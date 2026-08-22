@@ -30,12 +30,12 @@ export function ChartFrame({
   const [showTable, setShowTable] = React.useState(false);
 
   return (
-    <figure className={cn("rounded-lg bg-surface-1 card-ring p-4 md:p-5", className)}>
+    <figure className={cn("rounded-lg bg-surface-1 has-gloss card-lift p-4 md:p-5", className)}>
       {(eyebrow || title || table) && (
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             {eyebrow && (
-              <div className="text-2xs font-semibold uppercase tracking-wide text-ink-3">{eyebrow}</div>
+              <div className="upper-label text-2xs text-ink-lo">{eyebrow}</div>
             )}
             {title && <div className="text-sm font-medium text-ink-1">{title}</div>}
           </div>
@@ -44,9 +44,9 @@ export function ChartFrame({
               type="button"
               onClick={() => setShowTable((v) => !v)}
               aria-pressed={showTable}
-              className="h-7 shrink-0 rounded-full px-2.5 text-2xs font-semibold uppercase tracking-wide text-ink-3 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-1"
+              className="skewed h-7 shrink-0 rounded-sm bg-raised px-2.5 text-2xs uppercase-label text-ink-lo transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
             >
-              {showTable ? "Chart" : "Table"}
+              <span>{showTable ? "Chart" : "Table"}</span>
             </button>
           )}
         </div>

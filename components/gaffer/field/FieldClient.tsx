@@ -4,6 +4,7 @@ import * as React from "react";
 import useSWR from "swr";
 import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
+import { EOScatter } from "@/components/charts/EOScatter";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 const POLL_LIVE_MS = 20_000;
@@ -180,6 +181,8 @@ export function FieldClient({ initialModel }: { initialModel: MatchdayModel }) {
           ))}
         </ul>
       </section>
+
+      <EOScatter rows={model.squad} />
     </div>
   );
 }
