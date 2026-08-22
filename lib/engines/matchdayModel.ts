@@ -1,6 +1,6 @@
 import { buildLiveSquad, type LiveSquad } from "@/lib/engines/liveSquad";
 import { fallbackEO } from "@/lib/engines/eo";
-import { rankForTotal, ranksPerPoint, liveRank as computeLiveRank, type RankCurve } from "@/lib/engines/rankModel";
+import { ranksPerPoint, liveRank as computeLiveRank, type RankCurve } from "@/lib/engines/rankModel";
 import { swingForEvent, reconcile } from "@/lib/engines/swing";
 import type { RawEvent } from "@/lib/engines/swing";
 import { leverageRow, type LeverageRow } from "@/lib/engines/leverage";
@@ -137,7 +137,6 @@ export function composeMatchdayModel(deps: {
   const scoring = parseScoring(boot.scoring);
   const mostCaptained = boot.events.find((e) => e.id === deps.eventId)?.most_captained ?? null;
   const teamById = new Map(boot.teams.map((t) => [t.id, t]));
-  const fixtureById = new Map(fixtures.map((f) => [f.id, f]));
 
   const squadRows: SquadRow[] = picks.picks.map((p) => {
     const player = squadState.players.get(p.element);
@@ -208,7 +207,6 @@ export function composeMatchdayModel(deps: {
   let estimatedRank: number | null = null;
   let confidence: MatchdayModel["hero"]["confidence"] = "none";
   if (bundle.curve) {
-    const rpp = ranksPerPoint(bundle.curve, totalNow - bundle.fieldAvg);
     const lr = computeLiveRank({
       curve: bundle.curve,
       yourPreTotal: yourTotalPre,

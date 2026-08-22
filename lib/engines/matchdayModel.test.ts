@@ -21,7 +21,6 @@ describe("composeMatchdayModel", () => {
     const entry = fx<Entry>(`entry-${ENTRY_ID}.json`);
 
     // Rehydrate bootstrapLite through the real reducer (pure part)
-    const { cached } = await import("@/lib/cache/swr");
     const { MemoryStore, setCacheStore } = await import("@/lib/cache/store");
     setCacheStore(new MemoryStore());
     const boot = await getBootstrapLite();
