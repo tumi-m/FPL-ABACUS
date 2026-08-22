@@ -12,7 +12,7 @@ The v2 "FLOODLIGHT" spec lives in `architecture/`:
 4. `architecture/GAFFER_V2_PROMPTS.md` — per-session prompts + the audit prompt to run after each session.
 5. `floodlight-styleguide.html` — rendered reference; copy CSS from it.
 
-Non-negotiables: zero raw hex outside `globals.css` · no grey/neutral tokens · skew/gloss/bevel on **chrome only**, never data · every figure italic Saira, every name upright Barlow · fixture heat blue→green never red→green · chart series use the validated 8-slot palette (`#3987e5 #d95926 #199e70 #c98500 #d55181 #008300 #9085e9 #e66767`), never UI accents · one gradient hero figure per screen · `prefers-reduced-motion` genuinely stops everything · estimated numbers wrapped in `<Est>`.
+Non-negotiables: zero raw hex outside `globals.css` (sole exception: `config/brand.ts` themeColor for the meta tag) · no grey/neutral tokens · skew/gloss/bevel on **chrome only**, never data · every figure italic Saira, every name upright Barlow · fixture heat blue→green never red→green · chart series use the validated 8-slot palette (`#3987e5 #d95926 #199e70 #c98500 #d55181 #008300 #9085e9 #e66767`), never UI accents · one gradient hero figure per screen · `prefers-reduced-motion` genuinely stops everything · estimated numbers wrapped in `<Est>`.
 
 ## Commands
 

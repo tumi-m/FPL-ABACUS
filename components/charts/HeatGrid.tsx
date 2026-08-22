@@ -13,8 +13,8 @@ export interface HeatRow {
   cells: HeatCell[];
 }
 
-const LO = [0xcd, 0xe2, 0xfb];
-const HI = [0x0d, 0x36, 0x6b];
+const LO = [0xc7, 0xdf, 0xf5];
+const HI = [0x14, 0x36, 0x5c];
 
 function ramp(t: number): string {
   const r = Math.round(LO[0] + (HI[0] - LO[0]) * t);
@@ -27,7 +27,7 @@ function cellInk(bg: string): string {
   const [r, g, b] = bg.match(/\d+/g)?.map(Number) ?? [255, 255, 255];
   const lum =
     0.2126 * lin(r / 255) + 0.7152 * lin(g / 255) + 0.0722 * lin(b / 255);
-  return lum > 0.35 ? "var(--ink-1)" : "#FFFFFF";
+  return lum > 0.35 ? "var(--ink-1)" : "var(--ink-on-dark)";
 }
 
 const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));

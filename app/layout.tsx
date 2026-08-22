@@ -1,6 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
 import { brand } from "@/config/brand";
 import { Providers } from "@/components/primitives/Providers";
 import "./globals.css";
@@ -11,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0B0D10",
+  themeColor: brand.themeColor,
   width: "device-width",
   initialScale: 1,
 };
@@ -22,9 +20,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* FLOODLIGHT rev-02 type system: Saira carries every figure (italic, width axis),
+            Barlow carries everything you read. See architecture/GAFFER_STYLE_GUIDE.md §5. */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Saira:ital,wdth,wght@0,75..125,300..900;1,75..125,400..900&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,600&display=swap"
+        />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans`}>
+      <body className="font-sans">
         <Providers>{children}</Providers>
       </body>
     </html>

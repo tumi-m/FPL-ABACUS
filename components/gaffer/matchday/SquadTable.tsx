@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Meter } from "@/components/charts/Meter";
+import { ClubFlag } from "@/components/gaffer/ClubCrest";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 import { POSITION_SHORT } from "@/lib/ui/format";
 
@@ -51,8 +52,11 @@ export function SquadTable({ model }: { model: MatchdayModel }) {
             {rows.map((r) => (
               <tr key={r.element} className={`border-b border-hairline last:border-0 ${r.onBench ? "opacity-60" : ""}`}>
                 <td className="py-2 pr-2">
-                  <span className="font-medium text-ink-1">{r.webName}</span>
-                  <span className="ml-1.5 text-xs text-ink-3">{POSITION_SHORT[r.pos]}</span>
+                  <span className="flex items-center gap-2">
+                    <ClubFlag teamId={r.teamCode} className="h-4" />
+                    <span className="font-medium text-ink-1">{r.webName}</span>
+                  </span>
+                  <span className="ml-3 text-xs text-ink-3">{POSITION_SHORT[r.pos]}</span>
                   {r.isCaptain && r.multiplier >= 2 && <span title="Captain" className="ml-1 inline-grid h-4 w-4 place-items-center rounded-full bg-brand align-[1px] text-[9px] font-bold text-brand-ink">C</span>}
                   {r.subbedInFor !== null && <span className="ml-1 text-xs text-brand">⇅</span>}
                   {r.onBench && <span className="ml-1.5 text-2xs uppercase tracking-wide text-ink-3">bench</span>}

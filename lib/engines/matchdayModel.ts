@@ -62,6 +62,8 @@ export interface LeverageDisplay {
 
 export interface FixtureRailRow {
   id: number;
+  homeTeamId: number;
+  awayTeamId: number;
   homeShort: string;
   awayShort: string;
   homeScore: number | null;
@@ -383,6 +385,8 @@ export function composeMatchdayModel(deps: {
     const state: FixtureRailRow["state"] = f.finished_provisional || f.finished ? "done" : f.started ? "live" : "pre";
     return {
       id: f.id,
+      homeTeamId: f.team_h,
+      awayTeamId: f.team_a,
       homeShort: teamById.get(f.team_h)?.short_name ?? "?",
       awayShort: teamById.get(f.team_a)?.short_name ?? "?",
       homeScore: f.team_h_score,

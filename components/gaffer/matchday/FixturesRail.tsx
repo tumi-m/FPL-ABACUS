@@ -1,6 +1,7 @@
 "use client";
 
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
+import { ClubFlag } from "@/components/gaffer/ClubCrest";
 
 export function FixturesRail({ model }: { model: MatchdayModel }) {
   return (
@@ -14,9 +15,11 @@ export function FixturesRail({ model }: { model: MatchdayModel }) {
             title={f.yourPlayers > 0 ? `${f.yourPlayers} of your players involved` : undefined}
           >
             <span className="flex items-center gap-2">
+              <ClubFlag teamId={f.homeTeamId} />
               <span className="font-medium text-ink-1 num-tabular">{f.homeShort}</span>
               <span className="text-ink-3 num-tabular">{f.homeScore ?? "–"}–{f.awayScore ?? "–"}</span>
               <span className="font-medium text-ink-1 num-tabular">{f.awayShort}</span>
+              <ClubFlag teamId={f.awayTeamId} />
             </span>
             <span className="flex items-center gap-2 text-xs text-ink-3 num-tabular">
               {f.yourPlayers > 0 && (
