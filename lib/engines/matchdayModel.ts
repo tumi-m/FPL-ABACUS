@@ -16,6 +16,7 @@ export interface SquadRow {
   webName: string;
   pos: Pos;
   teamShort: string;
+  teamCode: number;
   multiplier: number;
   isCaptain: boolean;
   isVice: boolean;
@@ -104,6 +105,7 @@ export interface MatchdayModel {
     curveAvailable: boolean;
   };
   lastUpdatedLabel: string;
+  upstreamDegraded?: boolean;
 }
 
 const MAX_SWINGS = 30;
@@ -159,6 +161,7 @@ export function composeMatchdayModel(deps: {
       webName: meta?.web_name ?? `#${p.element}`,
       pos: (meta?.element_type ?? 4) as Pos,
       teamShort: team?.short_name ?? "",
+      teamCode: meta?.team_code ?? 0,
       multiplier: squadState.multipliers.get(p.element) ?? p.multiplier,
       isCaptain: p.is_captain,
       isVice: p.is_vice_captain,
