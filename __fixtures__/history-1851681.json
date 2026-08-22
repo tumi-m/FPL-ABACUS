@@ -1,0 +1,32 @@
+{
+  "current": [
+    {
+      "event": 1,
+      "points": 54,
+      "total_points": 54,
+      "rank": 1,
+      "rank_sort": 1,
+      "overall_rank": 1,
+      "percentile_rank": 1,
+      "bank": 0,
+      "value": 1000,
+      "event_transfers": 0,
+      "event_transfers_cost": 0,
+      "points_on_bench": 0
+    }
+  ],
+  "past": [
+    {
+      "season_name": "2025/26",
+      "total_points": 1658,
+      "rank": 9657936
+    }
+  ],
+  "chips": [
+    {
+      "name": "3xc",
+      "time": "2026-08-21T10:20:10.606551Z",
+      "event": 1
+    }
+  ]
+}

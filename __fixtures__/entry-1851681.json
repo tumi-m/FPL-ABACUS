@@ -1,0 +1,142 @@
+{
+  "id": 1851681,
+  "name": "GP The Great FC",
+  "player_first_name": "Godspower",
+  "player_last_name": "Marimbe",
+  "player_region_name": "Zimbabwe",
+  "player_region_iso_code_short": "ZW",
+  "summary_overall_points": 56,
+  "summary_overall_rank": 1,
+  "summary_event_points": 56,
+  "summary_event_rank": 1,
+  "current_event": 1,
+  "started_event": 1,
+  "last_deadline_bank": 0,
+  "last_deadline_value": 1000,
+  "last_deadline_total_transfers": 0,
+  "favourite_team": 6,
+  "leagues": {
+    "classic": [
+      {
+        "id": 6,
+        "name": "Chelsea",
+        "entry_rank": 1,
+        "entry_last_rank": 0,
+        "created": "2026-07-23T11:36:56.573638Z",
+        "league_type": "s",
+        "scoring": "c",
+        "start_event": 1,
+        "entry_can_leave": false,
+        "rank_count": 688131
+      },
+      {
+        "id": 259,
+        "name": "Zimbabwe",
+        "entry_rank": 1,
+        "entry_last_rank": 0,
+        "created": "2026-07-23T11:36:59.991521Z",
+        "league_type": "s",
+        "scoring": "c",
+        "start_event": 1,
+        "entry_can_leave": false,
+        "rank_count": 60433
+      },
+      {
+        "id": 276,
+        "name": "Gameweek 1",
+        "entry_rank": 1,
+        "entry_last_rank": 0,
+        "created": "2026-07-23T11:37:00.226484Z",
+        "league_type": "s",
+        "scoring": "c",
+        "start_event": 1,
+        "entry_can_leave": false,
+        "rank_count": 8906123
+      },
+      {
+        "id": 314,
+        "name": "Overall",
+        "entry_rank": 1,
+        "entry_last_rank": 0,
+        "created": "2026-07-23T11:37:00.733233Z",
+        "league_type": "s",
+        "scoring": "c",
+        "start_event": 1,
+        "entry_can_leave": false,
+        "rank_count": 8906129
+      },
+      {
+        "id": 399321,
+        "name": "Home of Fantasy Race to 38",
+        "entry_rank": 1,
+        "entry_last_rank": 0,
+        "created": "2026-07-29T11:08:24.511989Z",
+        "league_type": "x",
+        "scoring": "c",
+        "start_event": 1,
+        "entry_can_leave": true,
+        "rank_count": 24
+      },
+      {
+        "id": 600073,
+        "name": "GP Group Weight",
+        "entry_rank": 1,
+        "entry_last_rank": 0,
+        "created": "2026-08-05T11:16:49.292323Z",
+        "league_type": "x",
+        "scoring": "c",
+        "start_event": 1,
+        "entry_can_leave": false,
+        "rank_count": 5
+      },
+      {
+        "id": 949714,
+        "name": "Star FM-FPL 26/27",
+        "entry_rank": 1,
+        "entry_last_rank": 0,
+        "created": "2026-08-14T16:59:46.533456Z",
+        "league_type": "x",
+        "scoring": "c",
+        "start_event": 1,
+        "entry_can_leave": true,
+        "rank_count": 14008
+      },
+      {
+        "id": 1037720,
+        "name": "Playeat Monthly League Gw1-Gw4",
+        "entry_rank": 1,
+        "entry_last_rank": 0,
+        "created": "2026-08-16T11:27:29.382579Z",
+        "league_type": "x",
+        "scoring": "c",
+        "start_event": 1,
+        "entry_can_leave": true,
+        "rank_count": 23
+      },
+      {
+        "id": 1234976,
+        "name": "SuperSport League",
+        "entry_rank": 1,
+        "entry_last_rank": 0,
+        "created": "2026-08-18T13:06:43.695731Z",
+        "league_type": "s",
+        "scoring": "c",
+        "start_event": 1,
+        "entry_can_leave": false,
+        "rank_count": 1243812
+      }
+    ],
+    "h2h": [],
+    "cup": {
+      "matches": [],
+      "status": {
+        "qualification_event": null,
+        "qualification_numbers": null,
+        "qualification_rank": null,
+        "qualification_state": null
+      },
+      "cup_league": null
+    },
+    "cup_matches": []
+  }
+}
