@@ -42,6 +42,17 @@ engine temperature Cox PH (Breslow partial likelihood Newton steps → hazard �
 **Next up:** Q4 (10 Twin Study needs cohort sample extension; 17 Manifold Python cron),
 Q5 decision/market engines (12/14/15/16/18/19), Q6 Glicko-2 ladder, Q7 Committee.
 
+### ✅ v3 Q5 (core) — decision engines (`this commit`)
+`lib/quant/decision.ts` — feature 12 rank-at-risk (VaR₅ = 95th pct, coherent CVaR₅ tail mean,
+median); feature 14 crossover/Nash captaincy ((Δμ+B)/σ_Δ objective with shared-player hedge,
+per-challenger B* crossover pricing); feature 15 chip option value (Snell envelope via
+Tsitsiklis–Van Roy backward induction on simulated payoff paths, expiry wall for set-1);
+feature 16 transfer threshold (press-vs-wait DP over sampled gain distributions, ≥0 guarantee).
+9 tests pin coherence, chasing-side switching, wall expiry, FT-bank sensitivity. All
+deterministic per seed. Gates: vitest 176✓ / build.
+**Remaining v3:** Q4 Twin Study + Manifold (needs cohort 30k sample extension / Python cron),
+Q5 extras 18 Crowding + 19 WPA, Q6 Glicko-2 Ladder, Q7 Committee rule compiler. Then v4.
+
 ---
 
 ## Locked decisions
