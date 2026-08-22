@@ -68,11 +68,12 @@ Live dot (skewed volt square + expanding ring — the only continuous animation)
 wash, `[data-trend]` atmosphere tint from live rank polls, sheet slide+blur timings, hover-lift.
 Brand renamed to **FPL Gaffer**.
 
-### ⬜ Phase D — charts (14)
-Restyle existing 9 against tokens; new: EOScatter, DefconRate, PriceGauge, OwnershipFlow,
-FixtureSwing, xGvsActual, ChipTimeline. Rules: d3-scale/d3-shape only; one y-axis; table toggle +
-aria sentence; log-inverted rank axes; series = validated slots (never UI accents); volt/ultra
-head-to-head; diverging ultra↔flare; charts never skewed/glossed. Gallery /dev/charts gate.
+### 🔄 Phase D — charts (IN PROGRESS — `aab35ad`)
+Done: ChartFrame FLOODLIGHT chrome (bevel/gloss/skewed toggle/upper-label); **EOScatter** built
++ wired into /field. Remaining: restyle RankCurve/SwingBars/Sparkline/DistributionCurve/
+ProbabilityBand/HeatGrid/Meter numerals (.fig-num) + volt single-mark emphasis; build DefconRate,
+PriceGauge, OwnershipFlow, FixtureSwing, xGvsActual, ChipTimeline (LiveRankRibbon ≈ ProbabilityBand
+exists; CaptainMatrix ≈ HeatGrid base); add all to /dev/charts gallery.
 
 ### ⬜ Phase E — The Board
 NEW engine `lib/engines/fixtureModel.ts`: rolling 38-match opponent xGC/xG per-90 windows, shrunk
