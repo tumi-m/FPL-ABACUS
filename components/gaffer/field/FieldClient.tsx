@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import useSWR from "swr";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
@@ -21,7 +22,18 @@ const MODES: { id: Mode; label: string; hint: string }[] = [
 interface RivalPick { element: number; position: number; is_captain: boolean; multiplier: number }
 
 export function FieldClient({ initialModel }: { initialModel: MatchdayModel }) {
-  const [mode, setMode] = React.useState<Mode>("points");
+  const params = useSearchParams();
+  const router = useRouter();
+  const urlMode = MODES.find((m) => m.id === params.get("mode"))?.id ?? "points";
+  const [mode, setModeState] = React.useState<Mode>(urlMode);
+  // keep URL in sync so a mode is shareable; never re-layouts tokens
+  React.useEffect(() => {
+    if (urlMode !== mode) setModeState(urlMode);
+  }, [urlMode, mode]);
+  const setMode = (m: Mode) => {
+    setModeState(m);
+    router.replace(`/field?mode=${m}`, { scroll: false });
+  };
   const [rivalIdRaw, setRivalIdRaw] = React.useState("");
   const entry = initialModel.entry.id;
   const gw = initialModel.event.id;
