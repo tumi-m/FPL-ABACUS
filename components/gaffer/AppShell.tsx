@@ -57,8 +57,20 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
             </nav>
             <div className="ml-auto flex items-center gap-2">
               {teamId != null && (
-                <span className="hidden sm:inline-flex h-8 items-center rounded-full card-ring px-3 text-xs text-ink-2 num-tabular">
+                <span className="hidden sm:inline-flex h-8 items-center gap-2 rounded-full card-ring pl-3 pr-3 text-xs text-ink-2">
                   {teamName ?? `Team ${teamId}`}
+                  {live?.gwPoints != null && (
+                    <span className="inline-flex items-baseline gap-1.5 border-l border-line pl-2">
+                      <span className="fig-num text-sm text-volt" title={`GW${live.gameweek} live score`}>
+                        {live.gwPoints}
+                      </span>
+                      {live.seasonTotal != null && (
+                        <span className="fig-num text-xs text-ink-mid num-tabular" title="Season total">
+                          {live.seasonTotal.toLocaleString("en-GB")}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </span>
               )}
               <ThemeToggle />

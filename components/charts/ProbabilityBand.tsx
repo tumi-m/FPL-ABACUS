@@ -5,7 +5,6 @@ import { scaleLinear } from "d3-scale";
 import { area, line, curveMonotoneX } from "d3-shape";
 import { useMeasure } from "@/lib/charts/useMeasure";
 import { ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
-import { entityColor } from "@/lib/charts/series";
 
 export interface BandPoint {
   x: number;
@@ -63,7 +62,7 @@ export function ProbabilityBand({
         <ChartLegend
           items={[
             { name: "p5–p95", colorVar: "var(--seq-250)" },
-            { name: "median", colorVar: entityColor("you") },
+            { name: "median", colorVar: "var(--volt)" },
           ]}
         />
       }
@@ -76,7 +75,7 @@ export function ProbabilityBand({
             return <line key={f} x1={margin.left} x2={w - margin.right} y1={yy} y2={yy} stroke="var(--grid)" strokeWidth={1} />;
           })}
           <path d={bandArea(points) ?? undefined} fill="var(--seq-400)" opacity={0.14} />
-          <path d={medianLine(points) ?? undefined} fill="none" stroke={entityColor("you")} strokeWidth={2} strokeLinejoin="round" />
+          <path d={medianLine(points) ?? undefined} fill="none" stroke="var(--volt)" strokeWidth={2} strokeLinejoin="round" />
           {points
             .filter((_, i) => i % Math.ceil(points.length / 6) === 0)
             .map((p) => (

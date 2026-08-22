@@ -68,12 +68,15 @@ Live dot (skewed volt square + expanding ring — the only continuous animation)
 wash, `[data-trend]` atmosphere tint from live rank polls, sheet slide+blur timings, hover-lift.
 Brand renamed to **FPL Gaffer**.
 
-### 🔄 Phase D — charts (IN PROGRESS — `aab35ad`)
-Done: ChartFrame FLOODLIGHT chrome (bevel/gloss/skewed toggle/upper-label); **EOScatter** built
-+ wired into /field. Remaining: restyle RankCurve/SwingBars/Sparkline/DistributionCurve/
-ProbabilityBand/HeatGrid/Meter numerals (.fig-num) + volt single-mark emphasis; build DefconRate,
-PriceGauge, OwnershipFlow, FixtureSwing, xGvsActual, ChipTimeline (LiveRankRibbon ≈ ProbabilityBand
-exists; CaptainMatrix ≈ HeatGrid base); add all to /dev/charts gallery.
+### ✅ Phase D — charts (`aab35ad` + this commit)
+ChartFrame FLOODLIGHT chrome; **EOScatter** + **PointsWaterfall** (/field/points sub-page,
+header live GW+season score, `?next=` safe redirects, /field OG card). All ten existing charts
+restyled: `.fig-num` numerals, volt single-mark emphasis (you-line/median/sparkline/bullet),
+HeatGrid on `--heat-1..6` tokens (raw ramp hexes gone). New: **DefconRate** (threshold rule),
+**PriceGauge** (amber gauge + 24h velocity), **OwnershipFlow** (club-rail stacked area),
+**FixtureSwing** (direction-coloured slope), **XgVsActual** (cumulative xGI vs returns, one axis),
+**ChipTimeline** (lane pills). Full set in /dev/charts gallery. Gates: typecheck/lint/vitest
+99✓/build/e2e 32✓.
 
 ### ⬜ Phase E — The Board
 NEW engine `lib/engines/fixtureModel.ts`: rolling 38-match opponent xGC/xG per-90 windows, shrunk

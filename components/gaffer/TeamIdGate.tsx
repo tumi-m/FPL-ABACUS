@@ -8,7 +8,7 @@ import { X } from "@/components/primitives/icons";
 import { formatCompactRank } from "@/lib/ui/format";
 import { forgetTeam, getRecentTeams, parseTeamInput, rememberTeam, type RecentTeam } from "@/lib/store/team";
 
-export function TeamIdGate({ compact = false }: { compact?: boolean }) {
+export function TeamIdGate({ compact = false, next = "/live" }: { compact?: boolean; next?: string }) {
   const router = useRouter();
   const [value, setValue] = React.useState("");
   const [state, setState] = React.useState<"idle" | "checking" | "error">("idle");
@@ -33,7 +33,8 @@ export function TeamIdGate({ compact = false }: { compact?: boolean }) {
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { name?: string; summary_overall_rank?: number | null };
       rememberTeam({ id, name: data.name ?? `Team ${id}`, rank: data.summary_overall_rank ?? null });
-      router.push("/live");
+      // Only follow internal destinations — a crafted ?next must not leave the app.
+      router.push(next.startsWith("/") && !next.startsWith("//") ? next : "/live");
     } catch {
       setState("error");
       setError("No team with that ID. Check the number on your FPL Points page.");

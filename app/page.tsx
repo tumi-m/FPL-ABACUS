@@ -3,7 +3,13 @@ import { TeamIdGate } from "@/components/gaffer/TeamIdGate";
 import { SwingBars } from "@/components/charts/SwingBars";
 import { brand } from "@/config/brand";
 
-export default function Landing() {
+export default async function Landing({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const target = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
   return (
     <div className="min-h-dvh">
       <div className="mx-auto flex min-h-[70dvh] max-w-2xl flex-col items-center justify-center px-4 text-center">
@@ -11,7 +17,7 @@ export default function Landing() {
         <p className="mt-3 text-lg text-ink-2">{brand.tagline}</p>
         <p className="mt-2 max-w-md text-sm leading-relaxed text-ink-3">{brand.description}</p>
         <div className="mt-8 w-full flex justify-center">
-          <TeamIdGate />
+          <TeamIdGate next={target} />
         </div>
       </div>
 

@@ -9,9 +9,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const raw = store.get("gaffer_team")?.value;
   const teamId = raw && /^\d+$/.test(raw) ? Number(raw) : null;
   let teamName: string | null = null;
+  let entryPoints: { gw: number | null; season: number | null } = { gw: null, season: null };
   if (teamId != null) {
     try {
-      teamName = (await getEntry(teamId)).name ?? null;
+      const entry = await getEntry(teamId);
+      teamName = entry.name ?? null;
+      entryPoints = {
+        gw: entry.summary_event_points ?? null,
+        season: entry.summary_overall_points ?? null,
+      };
     } catch {
       teamName = null;
     }
@@ -21,6 +27,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (teamId != null) {
     try {
       live = liveBarData(await loadGwContext());
+      live.gwPoints = entryPoints.gw;
+      live.seasonTotal = entryPoints.season;
     } catch {
       live = null;
     }

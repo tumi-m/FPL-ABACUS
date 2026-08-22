@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import * as React from "react";
 import useSWR from "swr";
@@ -107,6 +108,24 @@ export function FieldClient({ initialModel }: { initialModel: MatchdayModel }) {
           </span>
         </div>
       </div>
+
+      {/* hero — the gameweek total, FIFA-oblique but not oversized */}
+      {(() => {
+        const gwTotal = model.squad.filter((s) => !s.onBench).reduce((sum, s) => sum + s.livePoints, 0);
+        return (
+          <div className="flex items-end justify-between rounded-lg has-gloss card-lift bg-raised px-5 py-4">
+            <div>
+              <p className="upper-label text-2xs text-ink-lo">GW{gw} points</p>
+              <p className="hero-figure mt-1 text-[clamp(44px,6vw,64px)] leading-none">
+                {Math.round(gwTotal).toLocaleString("en-GB")}
+              </p>
+            </div>
+            <Link href="/field/points" className="pb-1 text-xs text-volt hover:underline">
+              Where they come from →
+            </Link>
+          </div>
+        );
+      })()}
 
       {/* mode segmented control — skewed chrome */}
       <div role="group" aria-label="Field mode" className="flex flex-wrap gap-1 rounded-md card-ring p-1">

@@ -3,7 +3,6 @@
 import * as React from "react";
 import { scaleLinear } from "d3-scale";
 import { line, curveMonotoneX } from "d3-shape";
-import { entityColor } from "@/lib/charts/series";
 
 const W = 96;
 const H = 28;
@@ -28,8 +27,9 @@ export function Sparkline({ values, ariaLabel }: { values: number[]; ariaLabel: 
   return (
     <svg width={W} height={H} role="img" aria-label={ariaLabel}>
       <path d={gen(hist) ?? undefined} fill="none" stroke="var(--ink-3)" strokeWidth={1.5} strokeLinecap="round" opacity={0.55} />
-      <path d={gen(recent.map((v, i) => ({ v, i: i + cut })).map((p) => p.v)) ?? undefined} fill="none" stroke={entityColor("you")} strokeWidth={2} strokeLinecap="round" />
-      <circle cx={x(values.length - 1)} cy={y(values[values.length - 1])} r={2.5} fill={entityColor("you")} />
+      {/* current period — the volt identity mark */}
+      <path d={gen(recent.map((v, i) => ({ v, i: i + cut })).map((p) => p.v)) ?? undefined} fill="none" stroke="var(--volt)" strokeWidth={2} strokeLinecap="round" />
+      <circle cx={x(values.length - 1)} cy={y(values[values.length - 1])} r={2.5} fill="var(--volt)" />
     </svg>
   );
 }

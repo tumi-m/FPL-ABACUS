@@ -87,7 +87,7 @@ export function RankCurve({
                 key={s.id}
                 d={gen(s.data) ?? undefined}
                 fill="none"
-                stroke={entityColor(s.entity)}
+                stroke={isYou ? "var(--volt)" : entityColor(s.entity)}
                 strokeWidth={isYou ? 3 : 2}
                 strokeLinejoin="round"
                 strokeLinecap="round"
@@ -102,14 +102,14 @@ export function RankCurve({
               return (
                 <g key={`${s.id}-dot`}>
                   <circle cx={x(last.x)} cy={y(Math.max(1, last.y))} r={8} fill="var(--surface-1)" />
-                  <circle cx={x(last.x)} cy={y(Math.max(1, last.y))} r={4.5} fill={entityColor(s.entity)} />
+                  <circle cx={x(last.x)} cy={y(Math.max(1, last.y))} r={4.5} fill="var(--volt)" />
                   <text
                     x={x(last.x) - 8}
                     y={y(Math.max(1, last.y)) - 9}
                     textAnchor="end"
                     fontSize={11}
                     fill="var(--ink-2)"
-                    className="num-tabular"
+                    className="fig-num"
                   >
                     {compactRank(last.y)}
                   </text>

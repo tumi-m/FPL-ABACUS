@@ -11,7 +11,7 @@ export default async function LivePage() {
   const store = await cookies();
   const raw = store.get("gaffer_team")?.value;
   const teamId = raw && /^\d+$/.test(raw) ? Number(raw) : null;
-  if (!teamId) redirect("/");
+  if (!teamId) redirect("/?next=/live");
 
   const result = await buildMatchday(teamId);
   if (!result.ok) {

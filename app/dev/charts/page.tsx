@@ -6,6 +6,14 @@ import { DistributionCurve } from "@/components/charts/DistributionCurve";
 import { HeatGrid } from "@/components/charts/HeatGrid";
 import { Meter, BulletBar } from "@/components/charts/Meter";
 import { ProbabilityBand } from "@/components/charts/ProbabilityBand";
+import { EOScatter } from "@/components/charts/EOScatter";
+import { PointsWaterfall } from "@/components/charts/PointsWaterfall";
+import { DefconRate } from "@/components/charts/DefconRate";
+import { PriceGauge } from "@/components/charts/PriceGauge";
+import { OwnershipFlow } from "@/components/charts/OwnershipFlow";
+import { FixtureSwing } from "@/components/charts/FixtureSwing";
+import { XgVsActual } from "@/components/charts/XgVsActual";
+import { ChipTimeline } from "@/components/charts/ChipTimeline";
 
 export const metadata = { title: "Chart gallery", robots: { index: false, follow: false } };
 
@@ -90,6 +98,94 @@ export default function ChartGallery() {
         }))}
         ariaLabel="Fan chart of projected overall rank with confidence band"
       />
+      <EOScatter rows={squadFixture()} />
+      <PointsWaterfall rows={squadFixture()} />
+      <DefconRate
+        matches={["EVE", "MUN", "TOT", "CHE", "NEW"].map((t, i) => ({ label: t, defcon: [12, 14, 8, 11, 6][i] }))}
+        playerName="Gabriel"
+      />
+      <PriceGauge
+        playerName="Mbeumo"
+        netTransfers={186_400}
+        riseProbability={0.62}
+        velocity24h={[4, 9, 7, 12, 18, 24, 21, 28]}
+      />
+      <OwnershipFlow
+        days={["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]}
+        clubs={[
+          { club: "LIV", colorVar: "var(--club-liv)", values: [12, 18, 25, 31, 38, 46] },
+          { club: "ARS", colorVar: "var(--club-ars)", values: [9, 12, 17, 20, 27, 31] },
+          { club: "NFO", colorVar: "var(--club-nfo)", values: [4, 6, 11, 14, 16, 22] },
+        ]}
+      />
+      <FixtureSwing
+        playerName="Isak"
+        leagueMean={1.35}
+        points={[
+          { gw: 24, xgc: 1.82 },
+          { gw: 25, xgc: 1.66 },
+          { gw: 26, xgc: 1.21 },
+          { gw: 27, xgc: 0.94 },
+          { gw: 28, xgc: 1.05 },
+          { gw: 29, xgc: 0.78 },
+        ]}
+      />
+      <XgVsActual
+        playerName="Palmer"
+        points={[1, 2, 3, 4, 5, 6, 7, 8].map((gw) => ({
+          gw,
+          xgi: Math.round((gw * 0.92 + Math.sin(gw) * 0.3) * 100) / 100,
+          actual: Math.round((gw * 0.74 + Math.cos(gw * 1.7) * 0.5) * 100) / 100,
+        }))}
+      />
+      <ChipTimeline
+        plays={[
+          { manager: "You", gw: 24, kind: "fh" },
+          { manager: "You", gw: 29, kind: "wc2" },
+          { manager: "Rival A", gw: 25, kind: "bb" },
+          { manager: "Rival A", gw: 32, kind: "wc2" },
+          { manager: "Rival B", gw: 24, kind: "wc1" },
+          { manager: "Rival B", gw: 36, kind: "bb" },
+          { manager: "Rival C", gw: 29, kind: "mb" },
+          { manager: "Rival C", gw: 33, kind: "fh" },
+        ]}
+        gwRange={[23, 38]}
+      />
     </div>
   );
+}
+
+/** Complete SquadRow fixtures so engine-fed charts render standalone in the gallery. */
+function squadFixture() {
+  const names = [
+    { webName: "Salah", pos: 3 as const, teamId: 11, eo: 84, pts: 16 },
+    { webName: "Haaland", pos: 4 as const, teamId: 13, eo: 72, pts: 12 },
+    { webName: "Saka", pos: 3 as const, teamId: 1, eo: 41, pts: 9 },
+    { webName: "Gabriel", pos: 2 as const, teamId: 1, eo: 30, pts: 8 },
+    { webName: "Palmer", pos: 3 as const, teamId: 6, eo: 22, pts: 2 },
+  ];
+  return names.map((n, i) => ({
+    element: i + 1,
+    webName: n.webName,
+    pos: n.pos,
+    teamShort: "XXX",
+    teamCode: n.teamId,
+    multiplier: i === 0 ? 2 : 1,
+    isCaptain: i === 0,
+    isVice: i === 1,
+    onBench: false,
+    minutes: 90,
+    livePoints: n.pts,
+    provisionalBonus: 0,
+    defconCount: 0,
+    defconThreshold: 10,
+    bps: 20,
+    fixtureId: null,
+    opponentShort: "—",
+    fixtureState: "done" as const,
+    fixtureMinute: 90,
+    subbedInFor: null,
+    teamId: n.teamId,
+    eo: n.eo,
+  }));
 }

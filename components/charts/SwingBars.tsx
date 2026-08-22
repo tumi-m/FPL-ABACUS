@@ -59,7 +59,7 @@ export function SwingBars({ rows, ariaLabel }: { rows: SwingBarRow[]; ariaLabel:
                   y={yTop + barH / 2 + 3.5}
                   fontSize={10.5}
                   fill="var(--ink-2)"
-                  className="num-tabular"
+                  className="fig-num"
                 >
                   {formatDelta(r.value)}
                 </text>

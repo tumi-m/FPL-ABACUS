@@ -69,7 +69,7 @@ export function DistributionCurve({
             x2={x(yourScore)}
             y1={margin.top}
             y2={HEIGHT - margin.bottom}
-            stroke="var(--brand)"
+            stroke="var(--volt)"
             strokeWidth={2}
           />
           <text
@@ -78,7 +78,7 @@ export function DistributionCurve({
             fontSize={11}
             fontWeight={600}
             fill="var(--ink-1)"
-            className="num-tabular"
+            className="fig-num"
           >
             you · {yourScore}
           </text>

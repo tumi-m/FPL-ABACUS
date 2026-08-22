@@ -24,7 +24,7 @@ export function Meter({
       {(label || hint) && (
         <div className="mb-1 flex items-baseline justify-between gap-2">
           {label && <span className="text-2xs font-semibold uppercase tracking-wide text-ink-3">{label}</span>}
-          {hint && <span className="text-xs text-ink-2 num-tabular">{hint}</span>}
+          {hint && <span className="fig-num text-xs text-ink-2">{hint}</span>}
         </div>
       )}
       <div
@@ -67,7 +67,7 @@ export function BulletBar({
       {label && (
         <div className="mb-1 flex items-baseline justify-between gap-2">
           <span className="text-2xs font-semibold uppercase tracking-wide text-ink-3">{label}</span>
-          <span className="text-xs text-ink-1 num-tabular font-medium">{formatValue(value)}</span>
+          <span className="fig-num text-xs text-ink-1">{formatValue(value)}</span>
         </div>
       )}
       <div className="relative h-3 w-full rounded-full" style={{ background: "var(--surface-3)" }}>
@@ -80,7 +80,7 @@ export function BulletBar({
         )}
         <div
           className="absolute top-[3px] h-[6px] rounded-full"
-          style={{ left: 0, width: pct(value), background: entityYou() }}
+          style={{ left: 0, width: pct(value), background: "var(--volt)" }}
         />
         {target !== undefined && (
           <div
@@ -93,8 +93,4 @@ export function BulletBar({
       </div>
     </div>
   );
-}
-
-function entityYou() {
-  return "var(--series-3)";
 }
