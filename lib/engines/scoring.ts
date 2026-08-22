@@ -16,13 +16,14 @@ function perPos(raw: unknown, fallback: Record<number, number>): Record<Pos, num
 }
 
 /**
- * Parses bootstrap.game_config.scoring. Throws when the API stops exposing
- * scoring — we must never silently fall back to hardcoded point values.
+ * Parses bootstrap.game_config.scoring — accepts either the full
+ * game_config wrapper or the bare scoring object. Throws when the API stops
+ * exposing scoring; we must never silently fall back to hardcoded values.
  */
-export function parseScoring(gameConfig: unknown): ScoringConfig {
-  const cfg = gameConfig as { scoring?: Record<string, unknown> } | null;
-  const s = cfg?.scoring;
-  if (!s) throw new Error("game_config.scoring missing from bootstrap — cannot derive scoring");
+export function parseScoring(input: unknown): ScoringConfig {
+  const wrapper = input as { scoring?: Record<string, unknown> } | null;
+  const s = (wrapper?.scoring ?? input) as Record<string, unknown> | null;
+  if (!s || typeof s !== "object") throw new Error("game_config.scoring missing from bootstrap — cannot derive scoring");
 
   const num = (k: string, required = true): number => {
     const v = s[k];
