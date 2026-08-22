@@ -2,6 +2,8 @@
 
 FPL analytics app. Next.js 15 App Router, React 19, TS strict, Tailwind v4, drizzle/postgres.js, Vitest + Playwright.
 
+**Current work:** v2 FLOODLIGHT overhaul — resume from `docs/GAFFER_V2_PLAN.md` (phase status + locked decisions live there).
+
 ## Design system (read before touching any component)
 
 The v2 "FLOODLIGHT" spec lives in `architecture/`:

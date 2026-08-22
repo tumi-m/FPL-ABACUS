@@ -11,6 +11,7 @@ const DialogClose = DialogPrimitive.Close;
 function overlayClass() {
   return cn(
     "fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]",
+    "data-[state=open]:[animation:gaffer-overlay-in_160ms_ease-out]",
   );
 }
 
@@ -32,7 +33,7 @@ const DialogContent = React.forwardRef<
         side === "center" &&
           "left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg card-ring p-6 max-h-[85dvh] overflow-auto",
         side === "bottom" &&
-          "inset-x-0 bottom-0 rounded-t-xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] overlay-shadow max-h-[85dvh] overflow-auto",
+          "inset-x-0 bottom-0 rounded-t-xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] overlay-shadow max-h-[85dvh] overflow-auto data-[state=open]:[animation:gaffer-sheet-up_240ms_cubic-bezier(.22,1,.36,1)]",
         side === "right" && "inset-y-0 right-0 w-full max-w-md p-6 overlay-shadow overflow-auto",
         className,
       )}

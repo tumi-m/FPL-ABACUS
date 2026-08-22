@@ -45,7 +45,8 @@ export function AnimatedNumber({
 }) {
   const animated = useAnimatedNumber(value);
   return (
-    <span className={className} key={value}>
+    // key={value} remounts on change, which restarts the one-frame volt wash
+    <span className={`fig-wash ${className ?? ""}`} key={value}>
       {format ? format(animated) : Math.round(animated).toLocaleString("en-GB")}
     </span>
   );

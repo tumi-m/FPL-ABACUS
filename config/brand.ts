@@ -1,5 +1,5 @@
 export const brand = {
-  name: "GAFFER",
+  name: "FPL Gaffer",
   tagline: "Your gameweek, explained.",
   /** Platform chrome colour (meta theme-color) — matches --bg-base. */
   themeColor: "#010C1F",

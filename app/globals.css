@@ -106,6 +106,40 @@
   }
 }
 
+/* Motion — style guide §10. The live dot is the ONLY continuously animating
+   element, and only while a fixture is actually in play. */
+@keyframes gaffer-live-ring {
+  0% { box-shadow: 0 0 0 0 rgba(10,208,255,.5); }
+  100% { box-shadow: 0 0 0 9px rgba(10,208,255,0); }
+}
+.live-dot{
+  display:inline-block;
+  width:8px; height:8px; border-radius:2px;
+  transform: skewX(var(--skew));
+  background: var(--volt);
+  animation: gaffer-live-ring 2s infinite;
+}
+/* one-frame volt wash behind a figure that just changed */
+.fig-wash{ animation: gaffer-fig-wash 420ms cubic-bezier(.22,1,.36,1); }
+@keyframes gaffer-fig-wash {
+  0% { background-color: color-mix(in oklab, var(--volt) 26%, transparent); }
+  100% { background-color: transparent; }
+}
+/* card hover: translateY(-2px) + shadow lift, desktop pointer only */
+@media (hover:hover){
+  .hover-lift{ transition: transform 90ms cubic-bezier(.22,1,.36,1), box-shadow 90ms cubic-bezier(.22,1,.36,1); }
+  .hover-lift:hover{ transform: translateY(-2px); box-shadow: var(--lift); }
+}
+/* sheet open: translateY(100%)→0 over 240ms; backdrop blurs in over 160ms */
+@keyframes gaffer-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes gaffer-overlay-in {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(2px); }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    FLOODLIGHT rev-02 · stadium blue
    Dark lives on bare :root; light overrides in BOTH scopes so the toggle wins

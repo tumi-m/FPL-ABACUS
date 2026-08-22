@@ -2,6 +2,7 @@
 
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 import { ClubFlag } from "@/components/gaffer/ClubCrest";
+import { LiveDot } from "@/components/gaffer/LiveDot";
 
 export function FixturesRail({ model }: { model: MatchdayModel }) {
   return (
@@ -29,7 +30,7 @@ export function FixturesRail({ model }: { model: MatchdayModel }) {
               )}
               {f.state === "live" && (
                 <>
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand animate-live-dot" />
+                  <LiveDot className="!h-1.5 !w-1.5" />
                   {Math.min(f.minute, 90)}&prime;
                 </>
               )}

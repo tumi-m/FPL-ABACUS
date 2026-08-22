@@ -59,8 +59,23 @@ export function MatchdayClient({ initialModel }: { initialModel: MatchdayModel }
     },
   );
   const model = data as MatchdayModel | undefined;
-
   const current = model ?? initialModel;
+
+  // Atmosphere trend — style guide §10: floodlight bank tint interpolates
+  // surge-weighted when your rank is rising, flare-weighted when falling.
+  const liveRank = current?.hero.officialLiveRank ?? current?.hero.estimatedLiveRank ?? null;
+  const prevRankRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const prev = prevRankRef.current;
+    if (liveRank != null && prev != null && liveRank !== prev) {
+      root.dataset.trend = liveRank < prev ? "up" : "down";
+    }
+    if (liveRank != null) prevRankRef.current = liveRank;
+    return () => {
+      delete root.dataset.trend;
+    };
+  }, [liveRank]);
   const regretProps = {
     regretIndex: current.multiverse.regretIndex,
     reliefIndex: current.multiverse.reliefIndex,

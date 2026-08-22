@@ -12,7 +12,7 @@ async function asTeam(page: Page) {
 
 test("landing renders tagline", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle(/GAFFER/);
+  await expect(page).toHaveTitle(/Gaffer/);
   await expect(page.getByText("Your gameweek, explained.")).toBeVisible();
 });
 

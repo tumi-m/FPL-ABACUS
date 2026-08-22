@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Meter } from "@/components/charts/Meter";
 import { ClubFlag } from "@/components/gaffer/ClubCrest";
+import { LiveDot } from "@/components/gaffer/LiveDot";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 import { POSITION_SHORT } from "@/lib/ui/format";
 
@@ -90,7 +91,7 @@ export function SquadTable({ model }: { model: MatchdayModel }) {
 }
 
 function StateDot({ state }: { state: "pre" | "live" | "done" }) {
-  if (state === "live") return <span aria-label="in play" className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-brand align-middle" />;
+  if (state === "live") return <LiveDot className="ml-1.5 !h-1.5 !w-1.5 align-middle" />;
   if (state === "done") return <span aria-label="finished" className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-hairline-strong align-middle" />;
   return <span aria-label="yet to play" className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full border border-hairline-strong align-middle" />;
 }
