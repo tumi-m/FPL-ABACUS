@@ -116,10 +116,17 @@ model-select (JSON mode 4s, component keys only) → bestGuess fallback, NDJSON 
 60ms · AskBar header-pinned ⌘K sheet with screen-aware prompts + streaming card renderer.
 Gates: vitest 123✓ / build / e2e 37✓ (ask pipeline asserted).
 
-### ⬜ Phase G — generative visuals
-Season Fingerprint first (mulberry32 exists in simulate.ts; seed entryId; canvas dPR≤2;
-deterministic); Gameweek Sigil (/film cover + OG); Kit Weave bg for /squad+/dna; reactive aurora
-12fps off under reduced-motion/save-data.
+### ✅ Phase G — generative visuals (`this commit`)
+`lib/generative/specs.ts` (+7 tests) — deterministic layout math on mulberry32: fingerprint
+spokes (rank-swing tone, points length, chip→surge override), sigil petals/rings, kit-weave
+bands keyed to `--club-*` tokens · **SeasonFingerprint** canvas (dPR≤2, drawn once, no loop) →
+/dna · **GwSigil** pure SVG (server-rendered, zero hydration) + **/film** season-archive page
+with hero-figure cover and deterministic OG image · **KitWeave** diagonal club-band chrome →
+/squad header · **Aurora** reactive wash at hard-capped 12fps, fully stopped under
+prefers-reduced-motion / Save-Data / hidden tab. Same seed ⇒ identical art, server and client.
+Gates: vitest 130✓ / build / e2e 40✓.
+
+## v2 COMPLETE — remaining v2 features live in GAFFER_V2_FEATURES.md backlog; v3 quant layer below.
 
 ## Cross-cutting rules (every phase)
 

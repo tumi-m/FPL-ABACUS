@@ -145,3 +145,11 @@ test("ask bar routes captaincy questions without a model", async ({ request }) =
   const text = await res.text();
   expect(text).toContain('"intent":"captain.pick"');
 });
+
+test("the film renders the season archive with sigil", async ({ page }) => {
+  await asTeam(page);
+  const res = await page.goto("/film");
+  expect(res?.status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "The Film" })).toBeVisible();
+  await expect(page.getByRole("img", { name: /sigil for gameweek/i })).toBeVisible();
+});

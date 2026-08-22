@@ -6,6 +6,7 @@ import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getEntry, getPicks } from "@/lib/fpl/endpoints";
 import { formatPrice, POSITION_SHORT, crest } from "@/lib/ui/format";
 import { Badge } from "@/components/primitives/Badge";
+import { KitWeave } from "@/components/generative/KitWeave";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Squad" };
@@ -48,14 +49,25 @@ export default async function SquadPage() {
   const value = entry.last_deadline_value ?? 0;
   const totalTransfers = entry.last_deadline_total_transfers ?? 0;
 
+  const squadTeamIds = [
+    ...new Set(
+      picks.picks
+        .map((p) => boot.elements[p.element]?.team)
+        .filter((t): t is number => t != null),
+    ),
+  ].slice(0, 8);
+
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">Your 15</h1>
-        <p className="text-sm text-ink-2 num-tabular">
-          Value £{(value / 10).toFixed(1)}m · Bank £{(bank / 10).toFixed(1)}m · Transfers {totalTransfers}
-        </p>
-      </header>
+      <div className="relative overflow-hidden rounded-lg has-gloss card-lift bg-raised px-5 py-4">
+        <KitWeave teamIds={squadTeamIds} />
+        <header className="relative flex flex-wrap items-baseline justify-between gap-2">
+          <h1 className="text-xl font-semibold tracking-tight">Your 15</h1>
+          <p className="text-sm text-ink-2 num-tabular">
+            Value £{(value / 10).toFixed(1)}m · Bank £{(bank / 10).toFixed(1)}m · Transfers {totalTransfers}
+          </p>
+        </header>
+      </div>
 
       <ul className="grid gap-1.5 md:grid-cols-2">
         {picks.picks.map((p) => {

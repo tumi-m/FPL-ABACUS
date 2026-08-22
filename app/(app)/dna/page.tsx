@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getEntry, getHistory, getTransfers } from "@/lib/fpl/endpoints";
 import { computeDna } from "@/lib/engines/dna";
 import type { DnaInput } from "@/lib/engines/dna";
+import { SeasonFingerprint } from "@/components/generative/SeasonFingerprint";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Manager DNA" };
@@ -58,6 +59,12 @@ export default async function DnaPage() {
 
   const dna = computeDna(input);
   const bestRank = Math.min(...history.current.map((c) => c.overall_rank ?? Infinity));
+  const fingerprintRecords = history.current.map((c) => ({
+    event: c.event,
+    points: c.points,
+    overallRank: c.overall_rank,
+    chip: history.chips.find((ch) => ch.event === c.event)?.name ?? null,
+  }));
 
   return (
     <div className="space-y-4">
@@ -92,6 +99,14 @@ export default async function DnaPage() {
             ))}
           </tbody>
         </table>
+      </section>
+
+      <section aria-label="Season fingerprint" className="rounded-lg bg-surface-1 card-ring p-5">
+        <h2 className="mb-1 text-2xs font-semibold uppercase tracking-wide text-ink-3">Season fingerprint</h2>
+        <p className="mb-2 text-xs text-ink-lo">
+          One spoke per gameweek — surge for rank gains, flare for drops, length by points.
+        </p>
+        <SeasonFingerprint seed={teamId} records={fingerprintRecords} />
       </section>
 
       <p className="text-xs leading-relaxed text-ink-3">
