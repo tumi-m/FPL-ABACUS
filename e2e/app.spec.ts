@@ -74,10 +74,20 @@ test.describe("authenticated routes", () => {
     await expect(page.getByRole("button", { name: "Ownership" })).toBeVisible();
   });
 
-  test("board redirects to the planner until Phase E", async ({ page }) => {
+  test("board renders the fixture grid with URL-state controls", async ({ page }) => {
     await asTeam(page);
-    await page.goto("/board");
-    await expect(page).toHaveURL(/\/planner/);
+    const res = await page.goto("/board");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "The Board" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Horizon" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Colour model" })).toBeVisible();
+  });
+
+  test("board horizon and colour model persist in the URL", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/board?h=10&c=fdr");
+    await expect(page.getByRole("button", { name: "FDR" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page).toHaveURL(/h=10&c=fdr/);
   });
 
   test("deadline desk renders", async ({ page }) => {
@@ -99,10 +109,10 @@ test.describe("authenticated routes", () => {
     await expect(page.locator("h1")).not.toBeEmpty();
   });
 
-  test("planner renders the horizon grid", async ({ page }) => {
+  test("planner link now lands on the board", async ({ page }) => {
     await asTeam(page);
     await page.goto("/planner");
-    await expect(page.getByRole("heading", { name: "Planner" })).toBeVisible();
+    await expect(page).toHaveURL(/\/board/);
   });
 
   test("DNA renders the manager report", async ({ page }) => {

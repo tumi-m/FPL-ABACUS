@@ -78,12 +78,19 @@ HeatGrid on `--heat-1..6` tokens (raw ramp hexes gone). New: **DefconRate** (thr
 **ChipTimeline** (lane pills). Full set in /dev/charts gallery. Gates: typecheck/lint/vitest
 99✓/build/e2e 32✓.
 
-### ⬜ Phase E — The Board
-NEW engine `lib/engines/fixtureModel.ts`: rolling 38-match opponent xGC/xG per-90 windows, shrunk
-toward league mean (k=6), venue adj, quantile→heat 1..6. Grid (6/8/10/EoS, UPPERCASE home /
-lowercase away, position-aware colour — Gabriel ≠ Watkins acceptance test), colour models
-(xG/FDR/odds-stub), transfer staging + payback marker + ledger, chip lane w/ GW19 hard wall, URL
-state encoding, solver last (3s budget, labelled suggestion). Replaces /planner; drop redirect.
+### ✅ Phase E — The Board (`this commit`)
+`lib/engines/fixtureModel.ts` (+14 tests): rolling 38-match opponent GF/GA per-90 windows,
+shrunk to league mean k=6, venue factors derived from the same window; `projectFixture` ratio
+model; position-aware easiness (GK/DEF ← −xgAgainst, MID/FWD → +xgFor — Gabriel ≠ Watkins
+acceptance test); quantile→heat 1..6; cell encoding UPPERCASE home / lowercase away.
+`/board` server-rendered with URL state (`?h=6|8|10|eos&c=xg|fdr|odds`), quantile-bucketed
+HeatGrid, blanks as sunk holes, doubles joined codes, blanks/doubles footer. **BoardDesk**
+client island: transfer staging ledger (1 FT assumption labelled Est, real selling_price +
+bank affordability), payback markers, chip lane with per-chip stop_event hard wall enforced
+(one chip/GW, taken chips disabled). `/planner` now redirects to `/board`. e2e updated:
+board grid + URL persistence + planner redirect. Gates: vitest 113✓ / build / e2e 34✓.
+Deferred by design (Board digest §BUILD ORDER): RUN view, drafts, compare distributions,
+solver-points/rank (needs v3-2/4) — v4 scope.
 
 ### ⬜ Phase E½ — news subsystem
 Drizzle migration `news_item` (url-hash unique, element_ids[], team_ids[], relevance);
