@@ -7,6 +7,9 @@ export default defineConfig({
     include: ["lib/**/*.test.ts", "config/**/*.test.ts"],
   },
   resolve: {
-    alias: { "@": path.resolve(import.meta.dirname) },
+    alias: {
+      "@": path.resolve(import.meta.dirname),
+      "server-only": path.resolve(import.meta.dirname, "config/testing/server-only.ts"),
+    },
   },
 });

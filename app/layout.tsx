@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { brand } from "@/config/brand";
+import { Providers } from "@/components/primitives/Providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -23,7 +24,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans`}>{children}</body>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans`}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
