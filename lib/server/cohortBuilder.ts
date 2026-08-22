@@ -10,11 +10,15 @@ import { aggregateCohort, logSpacedPages, reservoirSample, toEnginePick } from "
 import type { Pick as EnginePick } from "@/lib/engines/types";
 
 const LEAGUE_314 = 314;
-/** Same head-dense strata as the rank curve so EO and the curve cover the same field. */
 const PAGE_BUDGET = 24;
 const MAX_PAGE = 180_000;
 const TARGET_SAMPLE = 2000;
 const PICKS_CONCURRENCY = 6;
+
+/** Per-invocation work budget. Keeps every tick comfortably inside a 60s
+ *  serverless ceiling (incl. cold-start overhead); the run resumes on the
+ *  next cron tick via persisted state. */
+const WORK_BUDGET_MS = 20_000;
 
 export const COHORT_ID = "overall";
 
@@ -27,30 +31,50 @@ export interface CohortBuildResult {
   elements?: number;
   ms?: number;
   skipped?: "lock-held" | "fresh" | "already-built" | "no-squads";
+  partial?: { phase: "pages" | "picks"; pagesLeft: number; candidates: number; picksDone: number; picksTotal: number };
+}
+
+/** Resumable run state — persisted between ticks so no single invocation
+ *  ever needs more than WORK_BUDGET_MS of upstream work. */
+interface RunState {
+  phase: "pages" | "picks";
+  pagesLeft: number[];
+  candidates: number[];
+  sampled: number[] | null;
+  /** compact squads: [[[element, multiplier], …], …] */
+  squads: number[][][] | null;
+  pickCursor: number;
+}
+
+function newState(): RunState {
+  return {
+    phase: "pages",
+    pagesLeft: logSpacedPages(PAGE_BUDGET, MAX_PAGE),
+    candidates: [],
+    sampled: null,
+    squads: null,
+    pickCursor: 0,
+  };
 }
 
 /**
- * Builds one cohort EO snapshot for a gameweek:
- * log-spaced standings sweep → reservoir sample → picks fan-out → aggregate → persist.
- * Idempotent per (gw, cohort); overlap-guarded by a cache lock since the cron
- * fires every 10 minutes.
+ * Builds the cohort EO snapshot for a gameweek across as many short cron
+ * ticks as needed: standings sweep → reservoir sample → picks fan-out →
+ * aggregate → persist. Idempotent per (gw, cohort); overlap-guarded by a
+ * cache lock; safe to interrupt at any point.
  */
 export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult> {
-  const started = Date.now();
+  const t0 = Date.now();
   const store = cacheStore();
 
-  // Fresh-marker fast path (set after a successful build).
   const freshMarker = `gaffer:cohort:built:${gw}:${COHORT_ID}`;
   if (await store.get(freshMarker)) return { ok: true, gw, cohort: COHORT_ID, skipped: "fresh" };
 
-  // Overlap guard. Not atomic across instances, but crons are single-instance
-  // on this deployment; worst case two builders race and the second upsert wins.
   const lockKey = `gaffer:cohort:lock:${gw}`;
   if (await store.get(lockKey)) return { ok: true, gw, cohort: COHORT_ID, skipped: "lock-held" };
-  await store.set(lockKey, String(started), 60 * 15);
+  await store.set(lockKey, String(t0), 60 * 15);
 
   try {
-    // DB-level idempotency: never rebuild within a gameweek unless told to.
     const existing = await db()
       .select({ id: cohortSnapshot.id })
       .from(cohortSnapshot)
@@ -58,34 +82,42 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
       .limit(1);
     if (existing.length > 0) {
       await store.set(freshMarker, String(existing[0].id), 60 * 60 * 6);
+      await store.del(`gaffer:cohort:run:${gw}`);
       return { ok: true, gw, cohort: COHORT_ID, skipped: "already-built" };
     }
 
-    // 1) Stratified candidate sweep.
-    const candidates = new Map<number, number>(); // entryId -> rank
-    for (const page of logSpacedPages(PAGE_BUDGET, MAX_PAGE)) {
-      try {
-        const res = await getStandings(LEAGUE_314, page);
-        for (const r of res.standings.results) {
-          if (!candidates.has(r.entry)) candidates.set(r.entry, r.rank);
+    const stateKey = `gaffer:cohort:run:${gw}`;
+    const rawState = await store.get(stateKey);
+    let state: RunState = rawState ? (JSON.parse(rawState) as RunState) : newState();
+    if (!state.pagesLeft) state = newState(); // corrupt-state safety net
+
+    // ── Work loop: bounded by wall clock, resumes across ticks ──────────
+    while (Date.now() - t0 < WORK_BUDGET_MS) {
+      if (state.phase === "pages") {
+        if (state.pagesLeft.length === 0) {
+          if (state.candidates.length === 0) return { ok: false, gw, cohort: COHORT_ID, skipped: "no-squads" };
+          state.sampled = [...reservoirSample(new Set(state.candidates), Math.min(TARGET_SAMPLE, state.candidates.length))];
+          state.squads = [];
+          state.pickCursor = 0;
+          state.phase = "picks";
+          continue;
         }
-      } catch {
-        // a failing page shrinks the sample; never fatal
+        const page = state.pagesLeft.shift() as number;
+        try {
+          const res = await getStandings(LEAGUE_314, page);
+          for (const r of res.standings.results) state.candidates.push(r.entry);
+        } catch {
+          // a failing page shrinks the sample; never fatal
+        }
+        await sleep(120);
+        continue;
       }
-      await sleep(120);
-    }
-    if (candidates.size === 0) return { ok: false, gw, cohort: COHORT_ID, skipped: "no-squads" };
 
-    // 2) Reservoir down to the target.
-    const sampled = reservoirSample(candidates.keys(), Math.min(TARGET_SAMPLE, candidates.size));
+      // phase === "picks"
+      const sampled = state.sampled as number[];
+      if (state.pickCursor >= sampled.length) break; // fan-out complete
 
-    // 3) Picks fan-out with bounded concurrency. Raw fetches (not cached()) —
-    // thousands of per-entry payloads must not flood the SWR cache store.
-    const squads: EnginePick[][] = [];
-    let cursor = 0;
-    while (cursor < sampled.length) {
-      const batch = sampled.slice(cursor, cursor + PICKS_CONCURRENCY);
-      cursor += PICKS_CONCURRENCY;
+      const batch = sampled.slice(state.pickCursor, state.pickCursor + PICKS_CONCURRENCY);
       const results = await Promise.all(
         batch.map(async (entryId): Promise<PicksResponse | null> => {
           try {
@@ -95,24 +127,48 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
           }
         }),
       );
+      state.pickCursor += batch.length;
       for (const picks of results) {
         if (!picks || picks.picks.length < 11) continue; // unset/partial squads
-        squads.push(picks.picks.map(toEnginePick));
+        state.squads?.push(picks.picks.map((p) => [p.element, p.multiplier]));
       }
       await sleep(150);
     }
-    if (squads.length === 0) return { ok: false, gw, cohort: COHORT_ID, skipped: "no-squads" };
 
-    // 4) Aggregate.
-    const aggregated = [...aggregateCohort(squads, squads.length).values()];
+    // ── Budget exhausted mid-run → persist state, resume next tick ──────
+    if (state.phase === "pages" || !state.sampled || state.pickCursor < state.sampled.length) {
+      await store.set(stateKey, JSON.stringify(state), 60 * 60 * 6);
+      return {
+        ok: true,
+        gw,
+        cohort: COHORT_ID,
+        partial: {
+          phase: state.phase,
+          pagesLeft: state.pagesLeft.length,
+          candidates: state.candidates.length,
+          picksDone: state.pickCursor,
+          picksTotal: state.sampled?.length ?? 0,
+        },
+        ms: Date.now() - t0,
+      };
+    }
 
-    // 5) Persist: upsert snapshot → replace ownership rows.
+    // ── Fan-out complete → aggregate + persist ───────────────────────────
+    const engineSquads: EnginePick[][] = ((state.squads as number[][][]) ?? []).map((squad) =>
+      squad.map(([element, multiplier]) => toEnginePick({ element, position: 1, multiplier })),
+    );
+    if (engineSquads.length === 0) {
+      await store.del(stateKey);
+      return { ok: false, gw, cohort: COHORT_ID, skipped: "no-squads" };
+    }
+    const aggregated = [...aggregateCohort(engineSquads, engineSquads.length).values()];
+
     const [snap] = await db()
       .insert(cohortSnapshot)
-      .values({ event: gw, cohort: COHORT_ID, sampleSize: squads.length })
+      .values({ event: gw, cohort: COHORT_ID, sampleSize: engineSquads.length })
       .onConflictDoUpdate({
         target: [cohortSnapshot.event, cohortSnapshot.cohort],
-        set: { sampleSize: squads.length, builtAt: new Date() },
+        set: { sampleSize: engineSquads.length, builtAt: new Date() },
       })
       .returning({ id: cohortSnapshot.id });
 
@@ -121,16 +177,17 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
       await db().insert(cohortOwnership).values(aggregated.slice(i, i + 500).map((r) => ({ ...r, snapshotId: snap.id })));
     }
 
+    await store.del(stateKey);
     await store.set(freshMarker, String(snap.id), 60 * 60 * 6);
 
     return {
       ok: true,
       gw,
       cohort: COHORT_ID,
-      sampled: sampled.length,
-      squads: squads.length,
+      sampled: state.sampled.length,
+      squads: engineSquads.length,
       elements: aggregated.length,
-      ms: Date.now() - started,
+      ms: Date.now() - t0,
     };
   } finally {
     await store.del(lockKey);

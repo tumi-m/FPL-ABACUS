@@ -1,0 +1,45 @@
+name: prod-cron
+
+# Hobby-plan workaround: Vercel only allows daily crons, so the frequent
+# schedule lives here instead. GitHub's scheduler has ±minutes of jitter;
+# every endpoint is idempotent and self-throttling (locks + fresh markers),
+# so drift is harmless.
+#
+# NOTE: GitHub disables scheduled workflows after 60 days without repo
+# activity — any push resets the timer.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: prod-cron
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fire cron endpoints
+        env:
+          URL: ${{ secrets.PROD_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$SECRET" ]; then
+            echo "Set repository secrets PROD_URL and CRON_SECRET to enable the production scheduler."
+            exit 0
+          fi
+          AUTH="Authorization: Bearer $SECRET"
+          call() {
+            echo "→ $1"
+            curl -fsS -m 120 -H "$AUTH" "$URL$1" && echo || echo "⚠ $1 failed"
+          }
+
+          call /api/cron/warm
+          call /api/cron/cohort
+
+          MIN=$(date -u +%M); HOUR=$(date -u +%H)
+          if [ $((MIN % 15)) -lt 5 ]; then call /api/cron/distribution; fi
+          if [ "$MIN" -lt 5 ];                        then call /api/cron/price; fi
+          if [ "$HOUR" -eq 9 ] && [ "$MIN" -ge 10 ] && [ "$MIN" -le 19 ]; then call /api/cron/finalise; fi

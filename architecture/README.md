@@ -99,7 +99,7 @@ all depend on. The secret is just an unguessable password:
 | 2. Upstash Redis | Must be in place before real traffic so swing accumulation starts at kickoff, not after the first redeploy wipes state. |
 | 3. Generate `CRON_SECRET` | Needed as an input for step 4's env vars. Nothing else uses it — it travels only between Vercel's scheduler and your own API routes. |
 | 4. Deploy with all env vars | Env vars are baked per-deployment; setting them before the first deploy avoids a wasted build and guarantees crons are authenticated from run #1. |
-| 5. Check cron duration | The cohort sweep declares `maxDuration = 300`. On Hobby hardware it may exceed the limit — better to discover this from the Crons tab than from silent missing data later. |
+| 5. Check cron duration / scheduler | On Hobby, Vercel only allows daily crons — so `vercel.json` keeps just the daily `finalise`, and the frequent schedule runs from GitHub Actions (`.github/workflows/prod-cron.yml`) using repo secrets `PROD_URL` + `CRON_SECRET`. The cohort builder is resumable: each invocation does ≤20s of upstream work and continues on the next tick, fitting any function limit. |
 | 6. Smoke test in dependency order | Warm endpoint first (proves auth + cache + FPL reachability), then browser flow (proves RSC + gate cookie), then DB tables filling (proves end-to-end persistence). Each check depends on the previous passing. |
 
 ---

@@ -4,11 +4,12 @@ import { hasDb } from "@/lib/env";
 import { buildCohortSnapshot } from "@/lib/server/cohortBuilder";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 /** Every 10 min: builds the sampled cohort EO snapshot for the live gameweek.
- *  Fast-paths (lock/fresh/already-built) return immediately; the heavy sweep
- *  only runs once per GW. No-ops without DATABASE_URL. */
+ *  The builder is resumable — each invocation does ≤20s of upstream work and
+ *  persists its progress, so this fits any plan's function limit. Fast paths
+ *  (lock/fresh/already-built/partial) return immediately; no-ops without DB. */
 export async function GET(req: NextRequest) {
   const denied = cronGuard(req);
   if (denied) return denied;
