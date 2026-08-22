@@ -30,9 +30,16 @@ Both fixed in `lib/fpl/schemas.ts`. This is exactly why fixtures are recorded ag
 | Gate | Status |
 |---|---|
 | Bonus tie rules (5 shapes) | unit-tested |
-| Replay exact bonus/autosubs/GW points | **PENDING** — runs after GW1 `data_checked` flips (~Sun 09:00 UK). Fixtures recorded; suite: `pnpm replay` |
+| Replay exact bonus/autosubs/GW points | **PENDING** — runs after GW1 `data_checked` flips (~Sun 09:00 UK). `pnpm record` now auto-drops the `replay-ready` marker when the recorded GW is final; suite: `pnpm replay` |
 | BPS constants verify | partial — Friday fixture BPS recorded; final bonus lands overnight |
 | Single-flight 100→1 fetch | passing |
+
+## Postgres wiring (phase C, landed)
+
+- Drizzle client over `postgres.js` (`lib/db/index.ts`) — Neon TCP and Supabase pooler safe (`prepare: false`). Migration `drizzle/0000_*.sql` validated against a real pg16: snapshot upsert idempotency, composite PKs, quoted reserved columns.
+- Cohort builder (`lib/server/cohortBuilder.ts`): log-spaced league-314 sweep → reservoir sample (target 2000) → bounded picks fan-out (6 concurrent) → `cohort_snapshot` upsert + ownership replace. Lock/fresh-marker fast paths keep the */10 cron cheap.
+- Real EO path: `getCohortEO(gw)` feeds `composeMatchdayModel`; `leverage.eoSource` becomes `"cohort"` and LeverageBoard shows n + binomial MOE. Without DB the estimated prior remains, labelled.
+- Price cron persists hourly snapshots + changes; finalise archives fixtures/live/status into `raw_archive` + a `score_distribution` sample row.
 
 ## Payload budget
 

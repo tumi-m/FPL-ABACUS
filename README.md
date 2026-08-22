@@ -24,14 +24,25 @@ Enter any FPL team ID on `/`. No auth, no paywall.
 | Command | What |
 |---|---|
 | `pnpm dev` / `build` | app |
-| `pnpm typecheck` · `lint` · `test` | gates |
+| `pnpm typecheck` · `lint` · `test` | gates (also enforced by CI) |
+| `pnpm db:generate` / `db:migrate` | drizzle schema → SQL / apply to `DATABASE_URL` |
 | `pnpm record` | snapshot every FPL endpoint into `__fixtures__/` |
 | `pnpm replay` | exact-match gate vs a finished GW (auto-skips until data is final) |
 | `pnpm e2e` | Playwright smoke |
 
+## Deploy
+
+All env vars are optional locally; for production:
+
+1. Provision **Postgres** (Neon, or Supabase via its transaction pooler on :6543 — the client sets `prepare: false`) and run `pnpm db:migrate`.
+2. Provision **Upstash Redis** (free tier fine) — without it, swing/rank/price state resets on cold starts.
+3. On Vercel: set `DATABASE_URL`, `UPSTASH_REDIS_REST_URL/TOKEN`, `CRON_SECRET`, `NEXT_PUBLIC_APP_URL`. Crons register from `vercel.json`; Vercel sends the secret as a Bearer header automatically.
+4. Note: `/api/cron/cohort` declares `maxDuration = 300` — needs Fluid Compute or Pro, or shrink `TARGET_SAMPLE` in `lib/server/cohortBuilder.ts`.
+5. Smoke: hit `/api/cron/warm`, enter a team ID, confirm `/live` composes.
+
 ## Data honesty
 
-Every estimated number renders with `~` + method tooltip. Cohort EO currently uses the labelled pre-GW1 fallback; cohort sampling activates with Postgres wiring. See `docs/NOTES.md` for verified findings (live-rank probe, schema drift) and open assumptions (BPS constants).
+Every estimated number renders with `~` + method tooltip. With Postgres configured, EO is sampled from real cohorts (labelled with sample size + margin of error); without it, a labelled pre-GW1 prior is used. See `docs/NOTES.md` for verified findings (live-rank probe, schema drift) and open assumptions (BPS constants).
 
 ## Environment
 
