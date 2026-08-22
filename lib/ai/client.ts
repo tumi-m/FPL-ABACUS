@@ -15,11 +15,12 @@ import "server-only";
  */
 
 const BASE_URL = (process.env.OLLAMA_BASE_URL ?? "https://ollama.com").replace(/\/+$/, "");
-const MODEL = process.env.OLLAMA_MODEL ?? "";
+/** Default gateway model; override with OLLAMA_MODEL. List: GET /api/tags */
+const MODEL = process.env.OLLAMA_MODEL || "deepseek-v4-flash:0731";
 const API_KEY = process.env.OLLAMA_API_KEY ?? "";
 
 export function aiEnabled(): boolean {
-  return Boolean(API_KEY && MODEL);
+  return Boolean(API_KEY);
 }
 
 export interface ChatMessage {
