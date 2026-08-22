@@ -54,7 +54,7 @@ export function SquadTable({ model }: { model: MatchdayModel }) {
               <tr key={r.element} className={`border-b border-hairline last:border-0 ${r.onBench ? "opacity-60" : ""}`}>
                 <td className="py-2 pr-2">
                   <span className="flex items-center gap-2">
-                    <ClubFlag teamId={r.teamCode} className="h-4" />
+                    <ClubFlag teamId={r.teamId} className="h-4" />
                     <span className="font-medium text-ink-1">{r.webName}</span>
                   </span>
                   <span className="ml-3 text-xs text-ink-3">{POSITION_SHORT[r.pos]}</span>

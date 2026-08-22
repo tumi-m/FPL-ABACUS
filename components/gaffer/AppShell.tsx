@@ -11,17 +11,15 @@ import { ChevronRight } from "@/components/primitives/icons";
 import type { LiveBarData } from "@/lib/ui/types";
 import { cn } from "@/lib/ui/cn";
 
+// FLOODLIGHT §11 IA — five destinations. Ask ships with Phase F (hidden until then).
 const NAV = [
   { href: "/live", label: "Matchday" },
-  { href: "/squad", label: "Squad" },
+  { href: "/field", label: "Field" },
+  { href: "/board", label: "Board" },
   { href: "/leagues", label: "Leagues" },
-  { href: "/deadline", label: "Deadline" },
-  { href: "/players", label: "Players" },
-  { href: "/planner", label: "Planner" },
-  { href: "/dna", label: "DNA" },
 ] as const;
 
-const TABS = ["live", "squad", "leagues", "deadline"] as const;
+const TABS = ["live", "field", "board", "leagues"] as const;
 const MORE = NAV.filter((n) => !TABS.includes(n.href as (typeof TABS)[number]));
 
 export function AppShell({ teamId, teamName, live, children }: { teamId: number | null; teamName: string | null; live?: LiveBarData | null; children?: React.ReactNode }) {

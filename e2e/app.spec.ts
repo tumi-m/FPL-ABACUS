@@ -66,6 +66,20 @@ test.describe("authenticated routes", () => {
     await expect(page.getByRole("columnheader", { name: "Manager" })).toBeVisible();
   });
 
+  test("field renders the pitch with the four mode controls", async ({ page }) => {
+    await asTeam(page);
+    const res = await page.goto("/field");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("group", { name: "Field mode" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Ownership" })).toBeVisible();
+  });
+
+  test("board redirects to the planner until Phase E", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/board");
+    await expect(page).toHaveURL(/\/planner/);
+  });
+
   test("deadline desk renders", async ({ page }) => {
     await asTeam(page);
     await page.goto("/deadline");

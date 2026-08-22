@@ -32,6 +32,10 @@ export interface SquadRow {
   fixtureState: "pre" | "live" | "done";
   fixtureMinute: number;
   subbedInFor: number | null;
+  /** FPL team id (1–20) — the club-identity lookup key. */
+  teamId: number;
+  /** Effective ownership % in the selected cohort (estimated prior if no snapshot). */
+  eo: number;
 }
 
 export interface SwingRow {
@@ -144,6 +148,22 @@ export function composeMatchdayModel(deps: {
   const mostCaptained = boot.events.find((e) => e.id === deps.eventId)?.most_captained ?? null;
   const teamById = new Map(boot.teams.map((t) => [t.id, t]));
 
+  // EO: sampled cohort when available, estimated prior otherwise.
+  const eoOf = (elementId: number): number => {
+    if (deps.cohortEo) {
+      const v = deps.cohortEo.eo.get(elementId);
+      if (v !== undefined) return v;
+    }
+    const meta = boot.elements[elementId];
+    if (!meta) return 0;
+    return fallbackEO({
+      selectedByPercent: meta.selected_by_percent,
+      pos: meta.element_type,
+      mostCaptainedId: mostCaptained,
+      elementId,
+    });
+  };
+
   const squadRows: SquadRow[] = picks.picks.map((p) => {
     const player = squadState.players.get(p.element);
     const meta = boot.elements[p.element];
@@ -181,24 +201,10 @@ export function composeMatchdayModel(deps: {
       fixtureState: state,
       fixtureMinute: fx?.minutes ?? 0,
       subbedInFor: subbedIn ? subbedIn.out : null,
+      teamId: meta?.team ?? 0,
+      eo: round1(eoOf(p.element)),
     };
   });
-
-  // EO: sampled cohort when available, estimated prior otherwise.
-  const eoOf = (elementId: number): number => {
-    if (deps.cohortEo) {
-      const v = deps.cohortEo.eo.get(elementId);
-      if (v !== undefined) return v;
-    }
-    const meta = boot.elements[elementId];
-    if (!meta) return 0;
-    return fallbackEO({
-      selectedByPercent: meta.selected_by_percent,
-      pos: meta.element_type,
-      mostCaptainedId: mostCaptained,
-      elementId,
-    });
-  };
 
   const yourTotalPre = entry.summary_overall_points ?? 0;
   const totalNow = yourTotalPre + squadState.gwPoints;
