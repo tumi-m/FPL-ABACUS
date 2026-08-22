@@ -93,6 +93,12 @@ export const REGISTRY: Record<string, GenUIComponent> = {
     title: "Effective bets",
     engine: "Dixon–Coles copula sims → participation ratio of squad Σ (v3-4/5)",
   },
+  "true-form": {
+    key: "true-form",
+    title: "True form",
+    engine: "Kalman local-level filter over per-90 contribution with cameo discount (v3-6)",
+    params: ParamSchemas.playerName,
+  },
 };
 
 export const COMPONENT_KEYS = Object.keys(REGISTRY);

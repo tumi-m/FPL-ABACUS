@@ -11,6 +11,7 @@ import { getElementSummary, getFixturesAll, getHistory, getPicks } from "@/lib/f
 import { buildFixtureModel, easiness, projectFixture } from "@/lib/engines/fixtureModel";
 import { fitDixonColes, type DcMatch } from "@/lib/quant/strength";
 import { simulateWeb, type WebPlayer } from "@/lib/quant/correlationWeb";
+import { trueForm } from "@/lib/quant/estimators";
 import { recentItems } from "@/lib/news/store";
 import { hasDb } from "@/lib/env";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
@@ -87,6 +88,8 @@ export async function resolveCard(
       return transferSim(params, ctx);
     case "effective-bets":
       return effectiveBets(ctx);
+    case "true-form":
+      return trueFormCard(params);
     default:
       return null;
   }
@@ -487,4 +490,35 @@ async function effectiveBets(ctx: ResolveContext): Promise<ResolvedCard | null> 
       hint: `${bets.toFixed(1)} / ${webPlayers.length}`,
     },
   };
+}
+
+// ── v3 Q3: true form ─────────────────────────────────────────────────────────
+
+async function trueFormCard(params: Record<string, unknown>): Promise<ResolvedCard | null> {
+  const boot = await getBootstrapLite();
+  const el = findElement(boot, params.playerName);
+  if (!el) return null;
+  try {
+    const summary = await getElementSummary(el.id);
+    const history = [...summary.history].sort((a, b) => a.round - b.round).slice(-12);
+    const observations = history.map((h) => ({
+      y90: h.minutes > 0 ? ((h.expected_goals ?? 0) + (h.expected_assists ?? 0)) / Math.max(1, h.minutes / 90) : null,
+      minutes: h.minutes,
+    }));
+    if (observations.length < 4) return null;
+
+    const state = trueForm(observations);
+    const points = state.filtered.map((f, i) => {
+      const spread = 1.96 * f.sd;
+      return { x: history[i].round, p50: Number(f.ability.toFixed(3)), p5: Number((f.ability - spread).toFixed(3)), p95: Number((f.ability + spread).toFixed(3)) };
+    });
+    return {
+      component: "true-form",
+      title: "True form",
+      prose: `${el.web_name}'s filtered per-90 contribution sits at ${state.ability.toFixed(2)} ±${(1.96 * Math.sqrt(state.variance)).toFixed(2)} — the band widens whenever minutes vanish.`,
+      props: { playerName: el.web_name, points },
+    };
+  } catch {
+    return null;
+  }
 }

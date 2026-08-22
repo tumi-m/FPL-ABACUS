@@ -12,6 +12,7 @@ import { DistributionCurve } from "@/components/charts/DistributionCurve";
 import { SwingBars } from "@/components/charts/SwingBars";
 import { ChipTimeline } from "@/components/charts/ChipTimeline";
 import { Meter } from "@/components/charts/Meter";
+import { ProbabilityBand } from "@/components/charts/ProbabilityBand";
 
 interface CardEvent {
   type: "card";
@@ -292,6 +293,14 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
             independent bets, lower means stacking.
           </p>
         </div>
+      );
+    case "true-form":
+      return (
+        <ProbabilityBand
+          points={props.points as never}
+          xLabel="Gameweek"
+          ariaLabel="Kalman-filtered per-90 contribution with uncertainty band"
+        />
       );
     default:
       return null;

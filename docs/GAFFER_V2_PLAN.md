@@ -29,6 +29,19 @@ stack < spread effective bets), β/α recovery, cone honesty. Wired user-visible
 "effective-bets" card (Ask bar, Meter). Gates: vitest 153✓ / build / e2e 40✓.
 **Next up:** Q2 (9 Ledger Shapley, 11 Process-vs-Outcome) per GAFFER_V3_FEATURES.md.
 
+### ✅ v3 Q2+Q3 — understanding + estimators (`this commit`)
+`lib/quant/understanding.ts` — feature 9 Shapley ledger (Monte Carlo permutation sampling,
+efficiency Σφ = total move, per-φ SE reported, deterministic per seed); feature 11
+process-vs-outcome four luck channels with hold-vs-act advice rules. `lib/quant/estimators.ts`
+— feature 6 true-form Kalman local-level filter (cameo discount via minutes-weighted obs noise,
+uncertainty widens through absences); feature 7 role radar BOCPD (Adams–MacKay with robust
+median-abs-diff observation scale, wide fresh-run predictive, short-run-mass alarm); feature 8
+engine temperature Cox PH (Breslow partial likelihood Newton steps → hazard → P(event≤horizon)).
+14 tests pin efficiency/recovery/detection-latency properties. Wired: "true-form" genUI card
+(Kalman ribbon via ProbabilityBand). Gates: vitest 167✓ / build / e2e 40✓.
+**Next up:** Q4 (10 Twin Study needs cohort sample extension; 17 Manifold Python cron),
+Q5 decision/market engines (12/14/15/16/18/19), Q6 Glicko-2 ladder, Q7 Committee.
+
 ---
 
 ## Locked decisions
