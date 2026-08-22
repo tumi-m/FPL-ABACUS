@@ -3,6 +3,7 @@
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 import { formatDeltaShort } from "@/lib/ui/format";
 import { POSITION_SHORT } from "@/lib/ui/format";
+import { Est } from "@/components/gaffer/Est";
 
 export function LeverageBoard({ model }: { model: MatchdayModel }) {
   const { yours, threats } = model.leverage;
@@ -14,6 +15,24 @@ export function LeverageBoard({ model }: { model: MatchdayModel }) {
       <BoardSection title="Your bets" rows={yours} emptyLine="No live leverage — your players are done or off the pitch." positive />
       <div className="my-4 h-px bg-hairline" role="separator" />
       <BoardSection title="The threat" rows={threats} emptyLine="No threats in play. Enjoy it." />
+
+      {model.leverage.eoSource === "estimated" ? (
+        <p className="mt-3 text-2xs text-ink-3">
+          Rows priced with{" "}
+          <Est method="Estimated EO: ownership × position start-rate prior, plus half captaincy for the field's most-captained player. Replaced by sampled cohort EO once Postgres wiring lands.">
+            estimated EO
+          </Est>
+          .
+        </p>
+      ) : model.leverage.cohortSampleSize ? (
+        <p className="mt-3 text-2xs text-ink-3">
+          Priced with{" "}
+          <Est method={`EO sampled from ${model.leverage.cohortSampleSize.toLocaleString()} managers (95% MOE ≈ ±${(1.96 * Math.sqrt(0.25 / Math.max(1, model.leverage.cohortSampleSize)) * 100).toFixed(1)} pts at p=50%).`}>
+            sampled cohort EO
+          </Est>{" "}
+          · n={model.leverage.cohortSampleSize.toLocaleString()}
+        </p>
+      ) : null}
     </section>
   );
 }

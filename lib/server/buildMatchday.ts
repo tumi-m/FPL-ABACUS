@@ -2,6 +2,7 @@ import "server-only";
 import { getEntry, getPicks, getTransfers } from "@/lib/fpl/endpoints";
 import { loadGwContext } from "@/lib/server/gw";
 import { getRankCurveBundle } from "@/lib/server/rankCurveServer";
+import { getCohortEO } from "@/lib/server/eoServer";
 import { collectEvents } from "@/lib/server/swingStore";
 import { composeMatchdayModel } from "@/lib/engines/matchdayModel";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
@@ -60,6 +61,7 @@ export async function buildMatchday(entryId: number): Promise<BuildResult> {
     rawEvents,
     transfersThisGw,
     previousSnapshot,
+    cohortEo: await getCohortEO(ctx.event.id),
   });
 
   await cacheStore().set(snapKey, JSON.stringify(snapshot), 60 * 60 * 6);

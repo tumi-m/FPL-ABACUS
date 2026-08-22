@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "record": "tsx scripts/record-fixtures.ts",
     "replay": "vitest run replay",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "e2e": "playwright test"
   },
   "dependencies": {

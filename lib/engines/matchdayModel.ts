@@ -94,7 +94,7 @@ export interface MatchdayModel {
   subs: { out: number; in: number }[];
   swings: SwingRow[];
   swingSummary: { reconciled: boolean; scale: number | null; residual: number; observedDelta: number | null };
-  leverage: { yours: LeverageDisplay[]; threats: LeverageDisplay[]; eoSource: "estimated" };
+  leverage: { yours: LeverageDisplay[]; threats: LeverageDisplay[]; eoSource: "estimated" | "cohort"; cohortSampleSize?: number };
   multiverse: { results: BranchResult[]; regretIndex: number; reliefIndex: number };
   fixturesRail: FixtureRailRow[];
   rankContext: {
@@ -125,6 +125,8 @@ export function composeMatchdayModel(deps: {
   rawEvents: RawEvent[];
   transfersThisGw: Transfer[];
   previousSnapshot?: { officialLiveRank: number | null; estRank: number | null } | null;
+  /** Sampled cohort EO — when present it replaces the estimated prior everywhere. */
+  cohortEo?: { cohort: string; sampleSize: number; eo: Map<number, number> } | null;
 }): { model: MatchdayModel; snapshot: { officialLiveRank: number | null; estRank: number | null } } {
   const { entry, picks, boot, live, fixtures, phase, addedDays, bundle, rawEvents, transfersThisGw } = deps;
 
@@ -180,8 +182,12 @@ export function composeMatchdayModel(deps: {
     };
   });
 
-  // EO (estimated pre-cohort) + per-player leverage
+  // EO: sampled cohort when available, estimated prior otherwise.
   const eoOf = (elementId: number): number => {
+    if (deps.cohortEo) {
+      const v = deps.cohortEo.eo.get(elementId);
+      if (v !== undefined) return v;
+    }
     const meta = boot.elements[elementId];
     if (!meta) return 0;
     return fallbackEO({
@@ -410,7 +416,12 @@ export function composeMatchdayModel(deps: {
     subs: squadState.subs,
     swings: swingDisplay,
     swingSummary,
-    leverage: { yours, threats, eoSource: "estimated" },
+    leverage: {
+      yours,
+      threats,
+      eoSource: deps.cohortEo ? "cohort" : "estimated",
+      ...(deps.cohortEo ? { cohortSampleSize: deps.cohortEo.sampleSize } : {}),
+    },
     multiverse: { results: multiverseResults.slice(0, 8), regretIndex: rr.regretIndex, reliefIndex: rr.reliefIndex },
     fixturesRail: rail,
     rankContext: {
