@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
-import { getEntry, getPicks } from "@/lib/fpl/endpoints";
+import { getPicks } from "@/lib/fpl/endpoints";
 import { Countdown } from "@/components/gaffer/Countdown";
 import { Badge } from "@/components/primitives/Badge";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
@@ -27,7 +27,6 @@ export default async function DeadlinePage() {
   } catch {
     squadIds = [];
   }
-  void getEntry;
 
   const actNow = [];
   const watch = [];

@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const started = Date.now();
   try {
     const boot = await getBootstrapLite();
-        const gw = boot.events.find((e) => e.is_current)?.id ?? boot.events[0]?.id ?? 1;
+    const gw = boot.events.find((e) => e.is_current)?.id ?? boot.events[0]?.id ?? 1;
     await Promise.all([getFixtures(gw), getLive(gw)]);
     return NextResponse.json({ ok: true, warmed: ["bootstrap", "event-status", `fixtures:${gw}`, `live:${gw}`], ms: Date.now() - started });
   } catch (err) {

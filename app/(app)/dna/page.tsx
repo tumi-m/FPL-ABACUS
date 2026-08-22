@@ -21,7 +21,6 @@ export default async function DnaPage() {
     transfers = [];
   }
 
-  const pointsByGw = new Map(history.current.map((c) => [c.event, c.points]));
   const transferRows = transfers.slice(-60).map((t) => {
     let inPts = 0;
     let outPts = 0;
@@ -56,7 +55,6 @@ export default async function DnaPage() {
     captainAlphaByGw: [],
     chipAverages: new Map(),
   };
-  void pointsByGw;
 
   const dna = computeDna(input);
   const bestRank = Math.min(...history.current.map((c) => c.overall_rank ?? Infinity));

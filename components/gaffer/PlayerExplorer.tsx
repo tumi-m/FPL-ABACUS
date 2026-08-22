@@ -130,7 +130,7 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
           </TableBody>
         </Table>
       </div>
-      <p className="text-xs text-ink-3">Showing top {filtered.length} of ~600 · presets: {Object.keys(PRESETS).join(" / ")}</p>
+      <p className="text-xs text-ink-3">Showing top {filtered.length} of {rows.length.toLocaleString()} · presets: {Object.keys(PRESETS).join(" / ")}</p>
     </div>
   );
 }

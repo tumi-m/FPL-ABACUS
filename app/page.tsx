@@ -16,6 +16,9 @@ export default function Landing() {
       </div>
 
       <section aria-label="What GAFFER shows" className="mx-auto max-w-[1360px] px-4 pb-24 md:px-6">
+        <p className="mb-4 text-center text-2xs font-medium uppercase tracking-wide text-ink-3">
+          Sample output · illustrative numbers
+        </p>
         <div className="grid gap-4 md:grid-cols-3">
           <PreviewCard
             title="Swing Engine"

@@ -46,9 +46,11 @@ async function main() {
     ["element-summary-1.json", () => fplFetch("/element-summary/1/", zElementSummary)],
   ];
 
+  let status: unknown = null;
   for (const [file, job] of jobs) {
     try {
       const data = await job();
+      if (file === "event-status.json") status = data;
       await writeFile(path.join(OUT, file), JSON.stringify(data, null, 2));
       console.log(`  ok  ${file}`);
     } catch (err) {
@@ -56,6 +58,18 @@ async function main() {
     }
     await new Promise((r) => setTimeout(r, 300));
   }
+
+  // The replay gate only runs against a FINAL gameweek. Drop the marker once
+  // the recorded GW has data_checked so `pnpm replay` stops skipping.
+  const events = (status as { events?: { id: number; data_checked: boolean }[] } | null)?.events;
+  if (events?.find((e) => e.id === gw)?.data_checked) {
+    await writeFile(
+      path.join(OUT, "replay-ready"),
+      JSON.stringify({ gw, recordedAt: new Date().toISOString() }, null, 2),
+    );
+    console.log(`  ok  replay-ready (GW${gw} final — replay gate armed)`);
+  }
+
   console.log("done → __fixtures__/");
 }
 

@@ -4,7 +4,7 @@ out
 build
 dist
 coverage
-__fixtures__/replay
+__fixtures__/replay-ready
 .env*.local
 .vercel
 *.tsbuildinfo

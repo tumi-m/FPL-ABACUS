@@ -27,7 +27,9 @@ export default async function SquadPage() {
 
   const boot = await getBootstrapLite();
   const currentGw = boot.events.find((e) => e.is_current)?.id ?? 1;
-  const deadlinePassed = true;
+  const currentEvent = boot.events.find((e) => e.id === currentGw);
+  const deadlinePassed =
+    currentEvent != null ? new Date(currentEvent.deadline_time).getTime() < Date.now() : true;
 
   let picks;
   try {
@@ -89,11 +91,9 @@ export default async function SquadPage() {
         })}
       </ul>
 
-      {picks.entry_history.points_on_bench > 0 || true ? (
-        <p className="text-xs text-ink-3">
-          Season view deep-dive (price pressure per player, xP horizon) arrives with the projection wiring on the Deadline Desk.
-        </p>
-      ) : null}
+      <p className="text-xs text-ink-3">
+        Season view deep-dive (price pressure per player, xP horizon) arrives with the projection wiring on the Deadline Desk.
+      </p>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { RankCurve } from "@/components/charts/RankCurve";
 import { SwingBars } from "@/components/charts/SwingBars";
 import { Sparkline } from "@/components/charts/Sparkline";
@@ -6,7 +7,7 @@ import { HeatGrid } from "@/components/charts/HeatGrid";
 import { Meter, BulletBar } from "@/components/charts/Meter";
 import { ProbabilityBand } from "@/components/charts/ProbabilityBand";
 
-export const metadata = { title: "Chart gallery" };
+export const metadata = { title: "Chart gallery", robots: { index: false, follow: false } };
 
 const curveSeries = [
   {
@@ -24,6 +25,10 @@ const curveSeries = [
 ];
 
 export default function ChartGallery() {
+  if (process.env.NODE_ENV === "production" && process.env.GAFFER_DEV_CHARTS !== "1") {
+    notFound();
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
       <h1 className="text-xl font-semibold tracking-tight">Chart gallery</h1>
