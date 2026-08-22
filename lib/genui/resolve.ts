@@ -9,6 +9,8 @@ import "server-only";
 import { getBootstrapLite, type ElementLite } from "@/lib/fpl/bootstrapLite";
 import { getElementSummary, getFixturesAll, getHistory, getPicks } from "@/lib/fpl/endpoints";
 import { buildFixtureModel, easiness, projectFixture } from "@/lib/engines/fixtureModel";
+import { fitDixonColes, type DcMatch } from "@/lib/quant/strength";
+import { simulateWeb, type WebPlayer } from "@/lib/quant/correlationWeb";
 import { recentItems } from "@/lib/news/store";
 import { hasDb } from "@/lib/env";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
@@ -83,6 +85,8 @@ export async function resolveCard(
       return newsSearch(params, ctx);
     case "transfer-sim":
       return transferSim(params, ctx);
+    case "effective-bets":
+      return effectiveBets(ctx);
     default:
       return null;
   }
@@ -419,6 +423,68 @@ async function transferSim(
     props: {
       moves: [{ out: { webName: outEl.web_name, epNext: outEl.ep_next }, in: { webName: inEl.web_name, epNext: inEl.ep_next } }],
       hitTotal: beyondFt ? 4 : 0,
+    },
+  };
+}
+
+// ── v3 Q0: the Correlation Web ───────────────────────────────────────────────
+
+async function effectiveBets(ctx: ResolveContext): Promise<ResolvedCard | null> {
+  const boot = await getBootstrapLite();
+  const squadIds = await squadIdsFor(ctx);
+  if (!squadIds.length) return null;
+
+  const fixtures = await getFixturesAll().catch(() => [] as Awaited<ReturnType<typeof getFixturesAll>>);
+  const now = Date.now();
+  const dcMatches: DcMatch[] = fixtures
+    .filter((f) => f.finished && f.team_h_score != null && f.team_a_score != null && f.kickoff_time)
+    .map((f) => ({
+      homeTeam: f.team_h,
+      awayTeam: f.team_a,
+      gh: f.team_h_score!,
+      ga: f.team_a_score!,
+      ageDays: Math.max(0, (now - new Date(f.kickoff_time!).getTime()) / 86_400_000),
+    }));
+  const fit = fitDixonColes(dcMatches, { xi: 0.0045 });
+  if (!fit.matchesUsed) return null;
+
+  // Next fixture per squad player.
+  const webPlayers: WebPlayer[] = [];
+  const webFixtures: { elementId: number; homeTeam: number; awayTeam: number; isHome: boolean }[] = [];
+  for (const id of squadIds.slice(0, 11)) {
+    const el = boot.elements[id];
+    if (!el) continue;
+    const fx = fixtures.find(
+      (f) => f.event === ctx.currentGw && (f.team_h === el.team || f.team_a === el.team),
+    );
+    if (!fx) continue;
+    const isHome = fx.team_h === el.team;
+    const teamGoals = fit.mu + fit.gamma; // rough home-weighted baseline for share normalisation
+    void teamGoals;
+    const shareBase = Math.max(1e-6, el.xg90 ?? 0.12);
+    webPlayers.push({
+      elementId: id,
+      teamId: el.team,
+      pos: el.element_type as WebPlayer["pos"],
+      goalShare: shareBase,
+      assistShare: Math.max(1e-6, el.xa90 ?? 0.08),
+      minutesProb: el.chance_of_playing_this_round != null ? el.chance_of_playing_this_round / 100 : 0.9,
+      defconRate: el.element_type === 2 ? 0.3 : 0.05,
+    });
+    webFixtures.push({ elementId: id, homeTeam: fx.team_h, awayTeam: fx.team_a, isHome });
+  }
+  if (webPlayers.length < 3) return null;
+
+  const web = simulateWeb(webPlayers, webFixtures, fit, undefined, { M: 800, seed: 2026 });
+  const bets = web.effectiveBets;
+  return {
+    component: "effective-bets",
+    title: "Effective bets",
+    prose: `Your XI behaves like ${bets.toFixed(1)} independent bets across ${webPlayers.length} players — stacking correlates outcomes and swings variance.`,
+    props: {
+      value: bets / webPlayers.length,
+      label: "Effective bets",
+      hint: `${bets.toFixed(1)} / ${webPlayers.length}`,
     },
   };
 }

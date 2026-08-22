@@ -11,6 +11,7 @@ import { XgVsActual } from "@/components/charts/XgVsActual";
 import { DistributionCurve } from "@/components/charts/DistributionCurve";
 import { SwingBars } from "@/components/charts/SwingBars";
 import { ChipTimeline } from "@/components/charts/ChipTimeline";
+import { Meter } from "@/components/charts/Meter";
 
 interface CardEvent {
   type: "card";
@@ -278,6 +279,20 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
     }
     case "transfer-sim":
       return null; // prose carries the verdict; ledger maths lives on the Board
+    case "effective-bets":
+      return (
+        <div className="rounded-lg bg-surface-1 card-ring p-4">
+          <Meter
+            value={props.value as number}
+            label={(props.label as string) ?? "Effective bets"}
+            hint={props.hint as string}
+          />
+          <p className="mt-2 text-2xs leading-relaxed text-ink-lo">
+            Participation ratio of your squad&apos;s simulated correlation matrix — 11 means fully
+            independent bets, lower means stacking.
+          </p>
+        </div>
+      );
     default:
       return null;
   }

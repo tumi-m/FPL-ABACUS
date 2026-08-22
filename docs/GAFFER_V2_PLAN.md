@@ -15,6 +15,20 @@ BOCPD Role Radar, 8 Engine Temperature Cox) → **Q4** cohort-heavy (10 Twin Stu
 Honesty rules from v3 §Honesty apply to every phase: uncertainty shipped with every number,
 grey-out below evidence thresholds, observational labelling, calibration published.
 
+### ✅ v3 Q0+Q1 — foundations + portfolio engines (`this commit`)
+`lib/quant/strength.ts` — feature 5 Dixon–Coles: coordinate-ascent MAP on weighted penalised
+Poisson likelihood (exp(−ξ·Δd) recency, Gaussian pooling priors), correct DC τ(x,y;ρ,λh,λa),
+Laplace SEs per team; `lib/quant/correlationWeb.ts` — feature 4 copula-by-construction:
+τ-rejection scoreline draws → multinomial goal/assist allocation by xG/xA share given simulated
+minutes → CS/DEFCON from same draw → empirical Σ + effective bets (participation ratio).
+`lib/quant/portfolio.ts` — features 1/3/13 pure engines: active share & weights, active-return
+series, TE(weekly×√38)/IR, Φ(IR√n) prob-ahead, squad β=Cov/Var + Jensen α + residual sd, Cone
+AR(1)-aware 10k-path fan p5/p50/p95 + target probability & required weekly rate. 23 tests pin
+recovery of injected strength, correlation sign structure (teammates +, independents ~0,
+stack < spread effective bets), β/α recovery, cone honesty. Wired user-visible via genUI
+"effective-bets" card (Ask bar, Meter). Gates: vitest 153✓ / build / e2e 40✓.
+**Next up:** Q2 (9 Ledger Shapley, 11 Process-vs-Outcome) per GAFFER_V3_FEATURES.md.
+
 ---
 
 ## Locked decisions

@@ -88,6 +88,11 @@ export const REGISTRY: Record<string, GenUIComponent> = {
     engine: "ep_next delta payback vs −4 hit",
     params: z.object({ out: ParamSchemas.playerName.optional(), in: ParamSchemas.playerName.optional() }).optional(),
   },
+  "effective-bets": {
+    key: "effective-bets",
+    title: "Effective bets",
+    engine: "Dixon–Coles copula sims → participation ratio of squad Σ (v3-4/5)",
+  },
 };
 
 export const COMPONENT_KEYS = Object.keys(REGISTRY);
