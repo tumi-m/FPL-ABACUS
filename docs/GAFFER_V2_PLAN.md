@@ -52,22 +52,21 @@ FixturesRail + SquadTable, validated 8-slot series palette, navy seq ramp, surge
 `--ink-on-dark`, HeatGrid ink tokenised, themeColor via brand.ts. Gates: typecheck/lint/vitest
 95✓/build/e2e 28✓.
 
-### 🔄 Phase B — motion (IN PROGRESS — remaining below)
-Done in globals.css already: `.live-dot` (skewed volt square + expanding ring keyframes),
-`.fig-wash` volt wash, `.hover-lift`.
-- [ ] LiveDot component; swap LiveBar ping circles, FixturesRail + SquadTable dots
-- [ ] AnimatedNumber gets fig-wash class
-- [ ] MatchdayClient sets `document.documentElement.dataset.trend` up/down from rank deltas
-- [ ] Sheet open timings check (translateY 240ms, backdrop blur 160ms)
-- [ ] Reduced-motion verified; audit vs style guide §12; commit `feat(phase-b)`
+### ✅ Phase C — the Field (`bd159e1`)
+Night-lit pitch, SVG shirt tokens (4 states, captain armband, DEFCON arc, bonus dots), 4 modes
+(Points/Ownership/Swing/Leverage — SquadRow gained `teamId` + `eo`), compare mode via
+`/api/fpl/entry/{id}/event/{gw}/picks`, nav → Matchday·Field·Board·Leagues (+`/board`→`/planner`
+redirect), Zustand store `lib/store/app.ts`. e2e 32✓.
 
-### ⬜ Phase C — Field view
-Night-lit pitch (radial floodlight gradient, mowing stripes 3%, 1px markings @40%); SVG shirt
-tokens from club rails; modes Points/Ownership/Swing/Leverage (engines exist:
-buildLiveSquad/eoServer/swingStore/leverage); compare mode (two XIs, shared players dimmed on
-halfway). Nav → 5 items + `/board`→`/planner` redirect; Squad folds into Field; Deadline folds into
-Board; Players folds into peek; DNA behind avatar. Zustand store `lib/store/app.ts` synced with
-gaffer_team cookie. e2e for /field.
+### Phase F groundwork done early (`OLLAMA_API_KEY` naming per user's Vercel/GitHub config)
+`lib/ai/client.ts` — OpenAI-compatible client for the hosted Ollama gateway
+(`OLLAMA_API_KEY` · `OLLAMA_BASE_URL` default https://api.ollama.com · `OLLAMA_MODEL`),
+4–8s timeouts, JSON mode, tolerant parser. **Model selects components only — never numbers.**
+Remaining F: genui registry/router/resolver/streaming + Ask bar UI.
+### ✅ Phase B — motion (`a18d75d`)
+Live dot (skewed volt square + expanding ring — the only continuous animation), count-up volt
+wash, `[data-trend]` atmosphere tint from live rank polls, sheet slide+blur timings, hover-lift.
+Brand renamed to **FPL Gaffer**.
 
 ### ⬜ Phase D — charts (14)
 Restyle existing 9 against tokens; new: EOScatter, DefconRate, PriceGauge, OwnershipFlow,
