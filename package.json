@@ -25,6 +25,7 @@
     "@radix-ui/react-tooltip": "^1.1.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "d3-interpolate": "^3.0.1",
     "d3-scale": "^4.0.2",
     "d3-shape": "^3.2.0",
     "drizzle-orm": "^0.38.3",

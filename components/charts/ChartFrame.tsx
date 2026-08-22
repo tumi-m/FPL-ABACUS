@@ -1,0 +1,111 @@
+"use client";
+
+import * as React from "react";
+import { cn } from "@/lib/ui/cn";
+
+export interface ChartTable {
+  headers: string[];
+  rows: (string | number)[][];
+}
+
+export function ChartFrame({
+  eyebrow,
+  title,
+  ariaLabel,
+  legend,
+  table,
+  caption,
+  children,
+  className,
+}: {
+  eyebrow?: string;
+  title?: string;
+  ariaLabel: string;
+  legend?: React.ReactNode;
+  table?: ChartTable;
+  caption?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const [showTable, setShowTable] = React.useState(false);
+
+  return (
+    <figure className={cn("rounded-lg bg-surface-1 card-ring p-4 md:p-5", className)}>
+      {(eyebrow || title || table) && (
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            {eyebrow && (
+              <div className="text-2xs font-semibold uppercase tracking-wide text-ink-3">{eyebrow}</div>
+            )}
+            {title && <div className="text-sm font-medium text-ink-1">{title}</div>}
+          </div>
+          {table && (
+            <button
+              type="button"
+              onClick={() => setShowTable((v) => !v)}
+              aria-pressed={showTable}
+              className="h-7 shrink-0 rounded-full px-2.5 text-2xs font-semibold uppercase tracking-wide text-ink-3 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-1"
+            >
+              {showTable ? "Chart" : "Table"}
+            </button>
+          )}
+        </div>
+      )}
+      {legend && <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">{legend}</div>}
+
+      {showTable && table ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm num-tabular">
+            <thead>
+              <tr className="border-b border-hairline text-left">
+                {table.headers.map((h) => (
+                  <th key={h} className="px-2 py-1.5 text-2xs font-semibold uppercase tracking-wide text-ink-3">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {table.rows.map((row, i) => (
+                <tr key={i} className="border-b border-hairline last:border-0">
+                  {row.map((cell, j) => (
+                    <td key={j} className="px-2 py-1.5 text-ink-2">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        children
+      )}
+
+      <figcaption className="sr-only">{caption ?? ariaLabel}</figcaption>
+    </figure>
+  );
+}
+
+export interface LegendItem {
+  name: string;
+  colorVar: string;
+  dashed?: boolean;
+}
+
+export function ChartLegend({ items }: { items: LegendItem[] }) {
+  return (
+    <>
+      {items.map((item) => (
+        <span key={item.name} className="inline-flex items-center gap-1.5 text-xs text-ink-2">
+          <span
+            aria-hidden
+            className="inline-block h-[3px] w-4 rounded-full"
+            style={{ background: item.colorVar, opacity: item.dashed ? 0.6 : 1 }}
+          />
+          {item.name}
+        </span>
+      ))}
+    </>
+  );
+}
