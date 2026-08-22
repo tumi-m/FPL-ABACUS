@@ -53,6 +53,21 @@ deterministic per seed. Gates: vitest 176✓ / build.
 **Remaining v3:** Q4 Twin Study + Manifold (needs cohort 30k sample extension / Python cron),
 Q5 extras 18 Crowding + 19 WPA, Q6 Glicko-2 Ladder, Q7 Committee rule compiler. Then v4.
 
+### ✅ v3 Q6+Q7 — the Ladder + the Committee (`this commit`)
+`lib/quant/ladder.ts` — feature 20 standard Glicko-2 (Glickman 2012): r/RD/σ per manager,
+round-robin vs cohort sample with W/D/L from GW points, Illinois-algorithm volatility update,
+RD widening through inactivity (capped at 350); `scoresFromPoints` maps pairwise point compares
+onto outcomes. `lib/quant/committee.ts` — feature 21 typed competition rules (window/metric/
+agg/filter/order/topN/tieBreak/prizeShare) with a deterministic evaluator: NaN entries drop,
+lower-is-better metrics honoured, tie-break ladder season-total→transfers→best-rank, prize
+shares split across topN as fractions of a pot the app never holds (ledger only). 11 tests.
+Gates: vitest 187✓ / build / typecheck / lint clean.
+
+## v3 STATUS: engines shipped for Q0, Q1, Q2, Q3, Q5-core, Q6, Q7 — all pure TS, tested.
+**Outstanding v3:** Q4 (10 Twin Study needs the 30k cohort sample extension in Postgres +
+cron; 17 Manifold needs a Python escape hatch) and Q5 extras (18 Crowding index, 19 WPA).
+UI surfaces for quant cards beyond ask-bar wiring are v4 scope (see GAFFER_V4_SCREEN_SPECS.md).
+
 ---
 
 ## Locked decisions
