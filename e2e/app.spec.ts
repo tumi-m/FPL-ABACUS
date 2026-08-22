@@ -90,6 +90,14 @@ test.describe("authenticated routes", () => {
     await expect(page).toHaveURL(/h=10&c=fdr/);
   });
 
+  test("newsdesk renders filters and availability notes", async ({ page }) => {
+    await asTeam(page);
+    const res = await page.goto("/news");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "Newsdesk" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Filter" })).toBeVisible();
+  });
+
   test("deadline desk renders", async ({ page }) => {
     await asTeam(page);
     await page.goto("/deadline");

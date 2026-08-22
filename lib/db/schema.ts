@@ -100,3 +100,23 @@ export const rawArchive = pgTable(
   },
   (t) => [index("raw_ep_time").on(t.endpoint, t.capturedAt)],
 );
+
+export const newsItem = pgTable(
+  "news_item",
+  {
+    id: serial("id").primaryKey(),
+    /** sha256 of the canonical URL — dedupe key across fetches. */
+    urlHash: varchar("url_hash", { length: 64 }).notNull(),
+    url: varchar("url", { length: 1024 }).notNull(),
+    source: varchar("source", { length: 32 }).notNull(),
+    title: varchar("title", { length: 512 }).notNull(),
+    summary: varchar("summary", { length: 2048 }),
+    publishedAt: timestamp("published_at").notNull(),
+    fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+    elementIds: integer("element_ids").array().notNull(),
+    teamIds: integer("team_ids").array().notNull(),
+    /** Generic ingest-time relevance — squad-specific ranking happens at read. */
+    relevance: real("relevance").notNull(),
+  },
+  (t) => [unique("news_url_hash").on(t.urlHash), index("news_published").on(t.publishedAt)],
+);

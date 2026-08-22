@@ -16,10 +16,11 @@ const NAV = [
   { href: "/live", label: "Matchday" },
   { href: "/field", label: "Field" },
   { href: "/board", label: "Board" },
+  { href: "/news", label: "News" },
   { href: "/leagues", label: "Leagues" },
 ] as const;
 
-const TABS = ["live", "field", "board", "leagues"] as const;
+const TABS = ["live", "field", "board", "news", "leagues"] as const;
 const MORE = NAV.filter((n) => !TABS.includes(n.href as (typeof TABS)[number]));
 
 export function AppShell({ teamId, teamName, live, children }: { teamId: number | null; teamName: string | null; live?: LiveBarData | null; children?: React.ReactNode }) {

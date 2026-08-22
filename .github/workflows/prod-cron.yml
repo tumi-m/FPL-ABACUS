@@ -42,4 +42,5 @@ jobs:
           MIN=$(date -u +%M); HOUR=$(date -u +%H)
           if [ $((MIN % 15)) -lt 5 ]; then call /api/cron/distribution; fi
           if [ "$MIN" -lt 5 ];                        then call /api/cron/price; fi
+          if [ "$MIN" -ge 30 ] && [ "$MIN" -le 34 ];  then call /api/cron/news; fi
           if [ "$HOUR" -eq 9 ] && [ "$MIN" -ge 10 ] && [ "$MIN" -le 19 ]; then call /api/cron/finalise; fi

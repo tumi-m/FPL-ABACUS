@@ -92,11 +92,16 @@ board grid + URL persistence + planner redirect. Gates: vitest 113✓ / build / 
 Deferred by design (Board digest §BUILD ORDER): RUN view, drafts, compare distributions,
 solver-points/rank (needs v3-2/4) — v4 scope.
 
-### ⬜ Phase E½ — news subsystem
-Drizzle migration `news_item` (url-hash unique, element_ids[], team_ids[], relevance);
-`lib/news/sources.ts` (RSS×3 + Reddit JSON); `lib/news/tagger.ts` regex name-matching vs bootstrap
-web_name; `/api/cron/news` hourly gate in prod-cron.yml; `/news` page ranked by squad relevance
-with filter chips; FPL elements[].news surfaced inline.
+### ✅ Phase E½ — news subsystem (`this commit`)
+Drizzle `news_item` (migration `0001`: url-hash unique, integer[] element/team ids, ingest
+relevance) · `lib/news/sources.ts` — BBC/Guardian/FFScout RSS + r/FantasyPL JSON, pure parsers,
+6s timeouts, sha256 url hashing · `lib/news/tagger.ts` — escaped word-boundary regex vs bootstrap
+web_name ("Salad" ≠ Salah), recency×source-weight relevance, multi-player spread bump ·
+`lib/news/store.ts` chunked onConflictDoNothing upsert + 14-day prune · `/api/cron/news`
+(cronGuard, per-source degradation, hourly gate added to prod-cron.yml at :30) · `/news` page:
+squad-relevance ranking (+3 squad / +1 club), URL-state filter chips (All/My squad/My clubs/
+General), FPL elements[].news + chance-of-playing surfaced inline via `<Est>`; News added to
+nav. Gates: vitest 123✓ / build / e2e 36✓.
 
 ### ⬜ Phase F — generative interface + grounded assistant
 `lib/ai/client.ts` (OpenAI-compatible → LLM_* env vars; 4s timeout selection mode; streaming
