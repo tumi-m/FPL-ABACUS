@@ -29,6 +29,8 @@ export interface ElementLite {
   assists: number;
   bonus: number;
   bps: number;
+  transfersInEvent: number;
+  transfersOutEvent: number;
 }
 
 export interface BootstrapLite {
@@ -81,6 +83,8 @@ export const getBootstrapLite = () =>
         assists: el.assists,
         bonus: el.bonus,
         bps: el.bps,
+        transfersInEvent: el.transfers_in_event,
+        transfersOutEvent: el.transfers_out_event,
       };
     }
 

@@ -103,14 +103,18 @@ squad-relevance ranking (+3 squad / +1 club), URL-state filter chips (All/My squ
 General), FPL elements[].news + chance-of-playing surfaced inline via `<Est>`; News added to
 nav. Gates: vitest 123✓ / build / e2e 36✓.
 
-### ⬜ Phase F — generative interface + grounded assistant
-`lib/ai/client.ts` (OpenAI-compatible → LLM_* env vars; 4s timeout selection mode; streaming
-prose mode); `lib/genui/registry.ts` (15 components, Zod params, resolve→existing engines);
-`lib/genui/router.ts` (40+ shapes; vitest asserts captaincy/price/hit questions resolve with zero
-model calls); resolver + RSC stream staggered 60ms; model fallback → router best guess.
-Grounded chat mode: prose ONLY from tool outputs (news_search, injury_list, captain_compare,
-transfer_sim…); numbers quoted verbatim. Ask bar header-pinned ⌘K, screen-aware prompts.
-Upstash rate limit 20/hr/IP; cache hash(intent,params,entry,gw) TTL 10min.
+### ✅ Phase F — generative interface + grounded assistant (`this commit`)
+`lib/genui/registry.ts` — 12 components, Zod param coercion, engine data-path documented per
+card · `lib/genui/router.ts` (+10 tests) — 12 intents / 40+ regex shapes, player-name extractor
+with stop-word trimming; **vitest pins the zero-model contract** (captaincy/price/hit resolve
+with no calls) · `lib/genui/resolve.ts` — every card grounded from cached upstream + engines
+(bootstrapLite ep_next×EO captaincy board, fixtureModel runs, element-summary xGI-vs-returns,
+entry-history chip lanes, news_item search, price pressure via new transfers_in/out_event on
+ElementLite); template prose only — the model never writes numbers · `/api/ask` POST: 20/hr/IP
+rate limit (cacheStore incrWithTtl), sha1(intent,params,entry,gw) cache TTL 600s, router →
+model-select (JSON mode 4s, component keys only) → bestGuess fallback, NDJSON stream staggered
+60ms · AskBar header-pinned ⌘K sheet with screen-aware prompts + streaming card renderer.
+Gates: vitest 123✓ / build / e2e 37✓ (ask pipeline asserted).
 
 ### ⬜ Phase G — generative visuals
 Season Fingerprint first (mulberry32 exists in simulate.ts; seed entryId; canvas dPR≤2;

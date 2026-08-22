@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Wordmark } from "@/components/gaffer/Wordmark";
 import { LiveBar } from "@/components/gaffer/LiveBar";
+import { AskBar } from "@/components/gaffer/ask/AskBar";
 import { ThemeToggle } from "@/components/primitives/ThemeToggle";
 import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
 import { ChevronRight } from "@/components/primitives/icons";
@@ -57,6 +58,7 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
               ))}
             </nav>
             <div className="ml-auto flex items-center gap-2">
+              <AskBar />
               {teamId != null && (
                 <span className="hidden sm:inline-flex h-8 items-center gap-2 rounded-full card-ring pl-3 pr-3 text-xs text-ink-2">
                   {teamName ?? `Team ${teamId}`}

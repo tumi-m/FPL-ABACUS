@@ -135,3 +135,13 @@ test.describe("authenticated routes", () => {
     await page.waitForURL((u) => u.pathname === "/");
   });
 });
+
+test("ask bar routes captaincy questions without a model", async ({ request }) => {
+  const res = await request.post("/api/ask", {
+    data: { q: "should I captain salah or haaland?" },
+    headers: { cookie: `gaffer_team=${TEAM_ID}` },
+  });
+  expect(res.status()).toBe(200);
+  const text = await res.text();
+  expect(text).toContain('"intent":"captain.pick"');
+});
