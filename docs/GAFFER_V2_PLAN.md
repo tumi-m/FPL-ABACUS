@@ -1,7 +1,21 @@
-# GAFFER v2 "FLOODLIGHT" — implementation plan & progress
+# GAFFER v2 + v3 — implementation plan & progress
 
 > **Resume file.** If the codespace dies, read this + `AGENTS.md` + `architecture/` and continue
 > from the first unchecked phase. Commit one commit per phase, push each to `main`.
+
+## v3 QUANT LAYER (persisted at `architecture/GAFFER_V3_FEATURES.md`)
+
+Merged roadmap after v2 Block C/D: **Q0** foundations (4 Correlation Web copula sim + 5 Strength
+Model Dixon–Coles nightly fit) → **Q1** portfolio (1 Position, 3 Beta, 13 Cone) → v2 E/E½/F/G →
+**Q2** understanding (9 Ledger Shapley, 11 Process-vs-Outcome) → **Q3** estimates (6 Kalman, 7
+BOCPD Role Radar, 8 Engine Temperature Cox) → **Q4** cohort-heavy (10 Twin Study w/ 30k sample,
+17 Manifold via Python cron) → **Q5** decision/market (12 VaR/CVaR, 14 Crossover, 15 Option Value,
+16 Threshold, 18 Crowding, 19 WPA) → **Q6** (20 Glicko-2 Ladder). **Q7 anytime: 21 The Committee**
+(typed rule compiler + deterministic evaluator + Prize Board; ledger only, never payments).
+Honesty rules from v3 §Honesty apply to every phase: uncertainty shipped with every number,
+grey-out below evidence thresholds, observational labelling, calibration published.
+
+---
 
 ## Locked decisions
 
