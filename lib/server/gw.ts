@@ -1,0 +1,40 @@
+import "server-only";
+import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
+import { getEventStatus, getFixtures, getLive } from "@/lib/fpl/endpoints";
+import { getGwPhase, bonusAddedDays } from "@/lib/engines/matchState";
+import type { EventStatus, Fixture, FplEvent, GwPhase, Live } from "@/lib/fpl/schemas";
+import type { BootstrapLite } from "@/lib/fpl/bootstrapLite";
+import type { LiveBarData } from "@/lib/ui/types";
+
+export interface GwContext {
+  boot: BootstrapLite;
+  event: FplEvent;
+  status: EventStatus;
+  fixtures: Fixture[];
+  live: Live;
+  phase: GwPhase;
+  addedDays: Set<string>;
+}
+
+export async function loadGwContext(gw?: number): Promise<GwContext> {
+  const boot = await getBootstrapLite();
+  const status = await getEventStatus();
+  const event =
+    boot.events.find((e) => e.id === gw) ??
+    boot.events.find((e) => e.is_current) ??
+    boot.events.find((e) => e.is_next) ??
+    boot.events[0];
+  const [fixtures, live] = await Promise.all([getFixtures(event.id), getLive(event.id)]);
+  const phase = getGwPhase(event, fixtures, status);
+  return { boot, event, status, fixtures, live, phase, addedDays: bonusAddedDays(status, event.id) };
+}
+
+/** Global matchday status for the app-wide LiveBar. */
+export function liveBarData(ctx: GwContext): LiveBarData {
+  const inPlay = ctx.fixtures.filter((f) => f.started === true && !f.finished_provisional);
+  let latestMinute: number | null = null;
+  for (const f of inPlay) {
+    if (f.minutes > 0 && (latestMinute === null || f.minutes > latestMinute)) latestMinute = f.minutes;
+  }
+  return { phase: ctx.phase, gameweek: ctx.event.id, fixturesInPlay: inPlay.length, latestMinute };
+}

@@ -1,0 +1,495 @@
+@import "tailwindcss";
+
+@theme {
+  /* FLOODLIGHT rev-02 — Saira carries every figure (italic, width axis); Barlow carries everything you read */
+  --font-sans: var(--f-u), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--f-d), system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+  --text-hero: 4.5rem;
+
+  --tracking-hero: -0.05em;
+  --tracking-tight: -0.03em;
+  --tracking-wide: 0.08em;
+  --tracking-label: 0.22em;
+
+  --spacing: 0.25rem;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-live-dot: gaffer-pulse 2s infinite;
+  --animate-shimmer: gaffer-shimmer 1.4s linear infinite;
+
+  /* Semantic colours resolve through runtime variables so theming is one file */
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+
+  /* floodlight tokens */
+  --color-base: var(--bg-base);
+  --color-sunk: var(--bg-sunk);
+  --color-raised: var(--bg-raised);
+  --color-overlay: var(--bg-overlay);
+  --color-line: var(--line);
+  --color-line-hi: var(--line-hi);
+  --color-volt: var(--volt);
+  --color-ice: var(--ice);
+  --color-surge: var(--surge);
+  --color-flare: var(--flare);
+  --color-ultra: var(--ultra);
+  --color-amber: var(--amber);
+  --color-magenta: var(--magenta);
+  --color-on-accent: var(--on-accent);
+  --color-heat-1: var(--heat-1);
+  --color-heat-2: var(--heat-2);
+  --color-heat-3: var(--heat-3);
+  --color-heat-4: var(--heat-4);
+  --color-heat-5: var(--heat-5);
+  --color-heat-6: var(--heat-6);
+
+  /* legacy accents */
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-wash: var(--brand-wash);
+  --color-good: var(--good);
+  --color-warning: var(--warning);
+  --color-serious: var(--serious);
+  --color-critical: var(--critical);
+
+  /* chart palettes */
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --color-series-5: var(--series-5);
+  --color-series-6: var(--series-6);
+  --color-series-7: var(--series-7);
+  --color-series-8: var(--series-8);
+  --color-seq-100: var(--seq-100);
+  --color-seq-250: var(--seq-250);
+  --color-seq-400: var(--seq-400);
+  --color-seq-550: var(--seq-550);
+  --color-seq-700: var(--seq-700);
+  --color-div-neg: var(--div-neg);
+  --color-div-mid: var(--div-mid);
+  --color-div-pos: var(--div-pos);
+  --color-grid: var(--grid);
+  --color-axis: var(--axis);
+
+  @keyframes gaffer-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+  @keyframes gaffer-shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+}
+
+/* Motion — style guide §10. The live dot is the ONLY continuously animating
+   element, and only while a fixture is actually in play. */
+@keyframes gaffer-live-ring {
+  0% { box-shadow: 0 0 0 0 rgba(10,208,255,.5); }
+  100% { box-shadow: 0 0 0 9px rgba(10,208,255,0); }
+}
+.live-dot{
+  display:inline-block;
+  width:8px; height:8px; border-radius:2px;
+  transform: skewX(var(--skew));
+  background: var(--volt);
+  animation: gaffer-live-ring 2s infinite;
+}
+/* one-frame volt wash behind a figure that just changed */
+.fig-wash{ animation: gaffer-fig-wash 420ms cubic-bezier(.22,1,.36,1); }
+@keyframes gaffer-fig-wash {
+  0% { background-color: color-mix(in oklab, var(--volt) 26%, transparent); }
+  100% { background-color: transparent; }
+}
+/* card hover: translateY(-2px) + shadow lift, desktop pointer only */
+@media (hover:hover){
+  .hover-lift{ transition: transform 90ms cubic-bezier(.22,1,.36,1), box-shadow 90ms cubic-bezier(.22,1,.36,1); }
+  .hover-lift:hover{ transform: translateY(-2px); box-shadow: var(--lift); }
+}
+/* sheet open: translateY(100%)→0 over 240ms; backdrop blurs in over 160ms */
+@keyframes gaffer-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes gaffer-overlay-in {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(2px); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FLOODLIGHT rev-02 · stadium blue
+   Dark lives on bare :root; light overrides in BOTH scopes so the toggle wins
+   either way. Never define a colour only inside a media query.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: dark;
+
+  /* ground — midnight navy, every step blue-tinted */
+  --bg-base:#010C1F;      /* the plane                          */
+  --bg-sunk:#000513;      /* wells, tracks, inputs              */
+  --bg-raised:#061A31;    /* cards, rows, chart surface         */
+  --bg-overlay:#0E2945;   /* sheets, popovers                   */
+  --line:#1E3957;
+  --line-hi:#36597D;
+
+  /* ink — steel, never neutral */
+  --ink-hi:#EFF8FF;       /* 18.20:1 on base */
+  --ink-mid:#B4CBDF;      /* 11.69:1 */
+  --ink-lo:#87A2BB;       /*  7.37:1 */
+
+  /* accents — one meaning each */
+  --volt:#0AD0FF;         /* you · live · primary action */
+  --ice:#9DF0FF;          /* chrome highlight · bevels   */
+  --surge:#2CF2B6;        /* gain · rank improved        */
+  --flare:#FF525B;        /* loss · threat · risk        */
+  --ultra:#A97AFF;        /* the field · rivals · model  */
+  --amber:#FFC035;        /* bonus · price movement      */
+  --magenta:#F86CCA;      /* differential · ownership    */
+  --on-accent:#04121F;
+
+  /* fixture heat — blue-forward sequential, hard → easy */
+  --heat-1:#4A3191; --heat-2:#3A55B1; --heat-3:#0080CC;
+  --heat-4:#00B3D4; --heat-5:#00DCCA; --heat-6:#5EF8B1;
+
+  /* club identity rails — theme-invariant decorative accents (style guide §8).
+     Always paired with the 3-letter code; never the sole encoder. */
+  --club-ars:#FF3B41; --club-avl:#9CC7EF; --club-bou:#F0463A; --club-bre:#FF8A5C;
+  --club-bha:#4FA3F7; --club-che:#3E7BE8; --club-cov:#7FD8F0; --club-cry:#5B8DEF;
+  --club-eve:#5C7BFF; --club-ful:#F5FBF7; --club-hul:#F5A12D; --club-ips:#6E9BE8;
+  --club-lee:#FFD84D; --club-liv:#FF4D63; --club-mci:#7CC6F0; --club-mun:#FF6A4D;
+  --club-new:#DCE9F0; --club-nfo:#FF5C6E; --club-tot:#8FB4FF; --club-sun:#FF4D5E;
+
+  /* theme-invariant inks for coloured surfaces */
+  --ink-fixed-dark:#04121F;
+  --ink-on-dark:#FFFFFF;
+
+  /* atmosphere */
+  --flare-l:rgba(157,240,255,.16);
+  --flare-r:rgba(10,208,255,.13);
+  --flare-b:rgba(169,122,255,.10);
+  --mesh:rgba(10,208,255,.030);
+  --vignette:radial-gradient(130% 100% at 50% 42%, transparent 42%, rgba(0,3,10,.55) 100%);
+
+  /* chrome */
+  --gloss:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,0) 42%);
+  --bevel:inset 0 1px 0 rgba(230,248,255,.16);
+  --lift:var(--bevel), 0 20px 44px -20px rgba(0,0,0,.9), 0 0 0 1px var(--line);
+  --glow:var(--bevel), 0 0 0 1px rgba(10,208,255,.45), 0 14px 44px -12px rgba(10,208,255,.42);
+
+  /* geometry & type */
+  --skew:-9deg;
+  --unskew:9deg;
+  --f-d:"Saira",system-ui,sans-serif;
+  --f-u:"Barlow",system-ui,sans-serif;
+  --r-sm:6px; --r-md:10px; --r-lg:16px; --r-xl:24px;
+
+  /* ── legacy aliases consumed app-wide (retired as components migrate) ── */
+  --surface-0: var(--bg-base);
+  --surface-1: var(--bg-raised);
+  --surface-2: var(--bg-overlay);
+  --surface-3: #0B2542;
+  --hairline: var(--line);
+  --hairline-strong: var(--line-hi);
+  --ink-1: var(--ink-hi);
+  --ink-2: var(--ink-mid);
+  --ink-3: var(--ink-lo);
+  --brand: var(--volt);
+  --brand-ink: var(--on-accent);
+  --brand-wash: rgba(10,208,255,.13);
+  --good: var(--surge);
+  --warning: var(--amber);
+  --serious: color-mix(in oklab, var(--amber) 55%, var(--flare));
+  --critical: var(--flare);
+
+  /* chart series — the validated 8-slot categorical set, in slot order.
+     Never the UI accents. */
+  --series-1: #3987E5;
+  --series-2: #D95926;
+  --series-3: #199E70;
+  --series-4: #C98500;
+  --series-5: #D55181;
+  --series-6: #008300;
+  --series-7: #9085E9;
+  --series-8: #E66767;
+
+  /* sequential — navy-blue ramp anchored on heat-3 azure */
+  --seq-100: #14365C;
+  --seq-250: #1E4E86;
+  --seq-400: #0080CC;
+  --seq-550: #18A8D8;
+  --seq-700: #4FD4EC;
+
+  /* diverging — surge ↔ flare over a line midpoint (discrete rank deltas) */
+  --div-neg: var(--flare);
+  --div-mid: var(--line);
+  --div-pos: var(--surge);
+
+  --grid: var(--line);
+  --axis: var(--line-hi);
+
+  --dur-instant: 90ms;
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-slow: 420ms;
+
+  --shadow-overlay-dark: 0 8px 32px rgb(0 0 0 / 0.32);
+  --shadow-overlay-light: 0 8px 24px rgb(0 0 0 / 0.08);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:where(:not([data-theme="dark"])) {
+    color-scheme: light;
+    --bg-base:#EFF7FF; --bg-sunk:#E2EDF8; --bg-raised:#FAFEFF; --bg-overlay:#FFFFFF;
+    --line:#CCDDEE; --line-hi:#A5BDD7;
+    --ink-hi:#0B1D36; --ink-mid:#3D516B; --ink-lo:#5C748E;
+    --volt:#0076B7; --ice:#008FB3; --surge:#008D61; --flare:#CE0B23;
+    --ultra:#6A35D9; --amber:#BC7400; --magenta:#B82989; --on-accent:#FFFFFF;
+    --heat-1:#6A53BD; --heat-2:#5778DF; --heat-3:#3BA6F5;
+    --heat-4:#28D3F4; --heat-5:#47F5E3; --heat-6:#82FFC5;
+    --flare-l:rgba(0,118,183,.10); --flare-r:rgba(0,143,179,.09); --flare-b:rgba(106,53,217,.07);
+    --mesh:rgba(11,29,54,.028);
+    --vignette:radial-gradient(130% 100% at 50% 42%, transparent 46%, rgba(11,29,54,.10) 100%);
+    --gloss:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,0) 46%);
+    --bevel:inset 0 1px 0 rgba(255,255,255,.95);
+    --lift:var(--bevel), 0 18px 36px -22px rgba(11,29,54,.34), 0 0 0 1px var(--line);
+    --glow:var(--bevel), 0 0 0 1px rgba(0,118,183,.4), 0 14px 40px -14px rgba(0,118,183,.32);
+
+    --surface-3: #E7F1FB;
+    --brand-wash: rgba(0,118,183,.12);
+    --serious: color-mix(in oklab, var(--amber) 60%, var(--flare));
+    --series-1: #2A78D6;
+    --series-2: #EB6834;
+    --series-3: #1BAF7A;
+    --series-4: #EDA100;
+    --series-5: #E87BA4;
+    --series-6: #008300;
+    --series-7: #4A3AA7;
+    --series-8: #E34948;
+    --seq-100: #C7DFF5;
+    --seq-250: #93C4EA;
+    --seq-400: #3BA6F5;
+    --seq-550: #1893D6;
+    --seq-700: #0B6FA8;
+    --shadow-overlay-dark: 0 8px 32px rgb(0 0 0 / 0.32);
+    --shadow-overlay-light: 0 8px 24px rgb(0 0 0 / 0.08);
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg-base:#EFF7FF; --bg-sunk:#E2EDF8; --bg-raised:#FAFEFF; --bg-overlay:#FFFFFF;
+  --line:#CCDDEE; --line-hi:#A5BDD7;
+  --ink-hi:#0B1D36; --ink-mid:#3D516B; --ink-lo:#5C748E;
+  --volt:#0076B7; --ice:#008FB3; --surge:#008D61; --flare:#CE0B23;
+  --ultra:#6A35D9; --amber:#BC7400; --magenta:#B82989; --on-accent:#FFFFFF;
+  --heat-1:#6A53BD; --heat-2:#5778DF; --heat-3:#3BA6F5;
+  --heat-4:#28D3F4; --heat-5:#47F5E3; --heat-6:#82FFC5;
+  --flare-l:rgba(0,118,183,.10); --flare-r:rgba(0,143,179,.09); --flare-b:rgba(106,53,217,.07);
+  --mesh:rgba(11,29,54,.028);
+  --vignette:radial-gradient(130% 100% at 50% 42%, transparent 46%, rgba(11,29,54,.10) 100%);
+  --gloss:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,0) 46%);
+  --bevel:inset 0 1px 0 rgba(255,255,255,.95);
+  --lift:var(--bevel), 0 18px 36px -22px rgba(11,29,54,.34), 0 0 0 1px var(--line);
+  --glow:var(--bevel), 0 0 0 1px rgba(0,118,183,.4), 0 14px 40px -14px rgba(0,118,183,.32);
+
+  --surface-3: #E7F1FB;
+  --brand-wash: rgba(0,118,183,.12);
+  --serious: color-mix(in oklab, var(--amber) 60%, var(--flare));
+  --series-1: #2A78D6;
+  --series-2: #EB6834;
+  --series-3: #1BAF7A;
+  --series-4: #EDA100;
+  --series-5: #E87BA4;
+  --series-6: #008300;
+  --series-7: #4A3AA7;
+  --series-8: #E34948;
+  --seq-100: #C7DFF5;
+  --seq-250: #93C4EA;
+  --seq-400: #3BA6F5;
+  --seq-550: #1893D6;
+  --seq-700: #0B6FA8;
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--bg-base);
+    color: var(--ink-hi);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--brand-wash);
+    color: var(--ink-hi);
+  }
+  :focus-visible {
+    outline: 2px solid var(--volt);
+    outline-offset: 2px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   The atmosphere layer — floodlight banks + stadium vignette + 115° mesh.
+   One fixed element behind everything. It never scrolls.
+   Drive trend from a data attribute set by the live poller.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.atmos{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(58% 42% at 16% -8%, var(--flare-l), transparent 64%),
+    radial-gradient(58% 42% at 84% -8%, var(--flare-r), transparent 64%),
+    radial-gradient(80% 60% at 50% 118%, var(--flare-b), transparent 62%),
+    repeating-linear-gradient(115deg, var(--mesh) 0 1px, transparent 1px 7px);
+  transition:background 1200ms cubic-bezier(.22,1,.36,1);
+}
+.atmos::after{ content:""; position:absolute; inset:0; background:var(--vignette); }
+[data-trend="up"]   .atmos{ --flare-r: rgba(44,242,182,.15); }
+[data-trend="down"] .atmos{ --flare-r: rgba(255,82,91,.13); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Typography — every figure italic Saira on its width axis; every name
+   upright Barlow. Tabular numerals in tables and axes only.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.fig-num{
+  font-family: var(--f-d);
+  font-style: italic;
+  font-weight: 800;
+  font-variation-settings: "wdth" 110;
+  letter-spacing: -.04em;
+}
+.hero-figure{
+  font-family: var(--f-d);
+  font-style: italic;
+  font-weight: 900;
+  font-variation-settings: "wdth" 116;
+  letter-spacing: -.05em;
+  background: linear-gradient(172deg, var(--ink-hi) 12%, var(--ice) 52%, var(--volt) 108%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.upper-label{
+  font-family: var(--f-d);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Chrome recipes — bevel, gloss, lift, glow. Skew applies to chrome only:
+   chips, badges, buttons, tabs, meters, fixture cells, crest tiles, club flags.
+   NEVER to cards, tables, charts, body copy or anything with a text cursor.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.skewed{
+  transform: skewX(var(--skew));
+}
+.skewed > *{
+  display: inline-block;
+  transform: skewX(var(--unskew));
+}
+@media (max-width: 640px){
+  :root{ --skew:-6deg; --unskew:6deg; }
+}
+
+.has-gloss{ position:relative; overflow:hidden; }
+.has-gloss::before{
+  content:"";
+  position:absolute; inset:0 0 auto; height:52%;
+  background:var(--gloss);
+  pointer-events:none;
+}
+.has-gloss > *{ position:relative; }
+
+.tile-streak{ position:relative; overflow:hidden; }
+.tile-streak::after{
+  content:"";
+  position:absolute; top:-40%; right:-20%; width:70%; height:180%;
+  transform:rotate(24deg);
+  background:linear-gradient(90deg,transparent,rgba(157,240,255,.07),transparent);
+  transition:transform 600ms cubic-bezier(.22,1,.36,1);
+}
+@media (hover:hover){
+  .tile-streak:hover::after{ transform:rotate(24deg) translateX(-160%); }
+}
+
+/* broadcast lower-third — the header for every screen */
+.lower3{ display:flex; border-radius:4px; overflow:hidden; box-shadow:var(--lift); }
+.lower3-flag{ width:12px; transform:skewX(var(--skew)) scaleX(1.4); }
+.lower3-body{
+  flex:1; display:flex; align-items:center; gap:12px; padding:10px 16px;
+  background:linear-gradient(180deg,var(--bg-overlay),var(--bg-raised));
+}
+
+@utility dur-instant {
+  transition-duration: var(--dur-instant);
+}
+@utility dur-fast {
+  transition-duration: var(--dur-fast);
+}
+@utility dur-base {
+  transition-duration: var(--dur-base);
+}
+@utility dur-slow {
+  transition-duration: var(--dur-slow);
+}
+@utility card-ring {
+  box-shadow: var(--bevel), 0 0 0 1px var(--line);
+}
+@utility card-lift {
+  box-shadow: var(--lift);
+}
+@utility btn-glow {
+  box-shadow: var(--glow);
+}
+@utility overlay-shadow {
+  box-shadow: var(--shadow-overlay-light);
+  :root[data-theme="dark"] & {
+    box-shadow: var(--shadow-overlay-dark);
+  }
+}
+@utility num-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: var(--dur-instant) !important;
+    scroll-behavior: auto !important;
+  }
+  .atmos { transition: none !important; }
+}

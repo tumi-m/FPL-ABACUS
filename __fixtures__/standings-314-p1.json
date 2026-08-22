@@ -1,0 +1,529 @@
+{
+  "league": {
+    "id": 314,
+    "name": "Overall",
+    "created": "2026-07-23T11:37:00.733233Z",
+    "closed": false,
+    "max_entries": null,
+    "league_type": "s",
+    "scoring": "c",
+    "admin_entry": null,
+    "start_event": 1,
+    "code_privacy": "p",
+    "has_cup": true,
+    "cup_league": null,
+    "rank": null
+  },
+  "new_entries": {
+    "has_next": false,
+    "page": 1,
+    "results": []
+  },
+  "last_updated_data": "2026-08-22T01:38:00Z",
+  "standings": {
+    "has_next": true,
+    "page": 1,
+    "results": [
+      {
+        "event_total": 56,
+        "player_name": "Godspower Marimbe",
+        "rank": 1,
+        "last_rank": 0,
+        "rank_sort": 1,
+        "total": 56,
+        "entry": 1851681,
+        "entry_name": "GP The Great FC"
+      },
+      {
+        "event_total": 54,
+        "player_name": "Samy  Oubenali",
+        "rank": 2,
+        "last_rank": 0,
+        "rank_sort": 2,
+        "total": 54,
+        "entry": 8812336,
+        "entry_name": "FC TELFAZA"
+      },
+      {
+        "event_total": 54,
+        "player_name": "Free Palestine",
+        "rank": 2,
+        "last_rank": 0,
+        "rank_sort": 3,
+        "total": 54,
+        "entry": 8696631,
+        "entry_name": "غزة �"
+      },
+      {
+        "event_total": 54,
+        "player_name": "Daniel Ing",
+        "rank": 2,
+        "last_rank": 0,
+        "rank_sort": 4,
+        "total": 54,
+        "entry": 7678634,
+        "entry_name": "Pending Moderation"
+      },
+      {
+        "event_total": 54,
+        "player_name": "Wott Klifold",
+        "rank": 2,
+        "last_rank": 0,
+        "rank_sort": 5,
+        "total": 54,
+        "entry": 8433132,
+        "entry_name": "Wott's Ciarolakis"
+      },
+      {
+        "event_total": 53,
+        "player_name": "allison becker",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 6,
+        "total": 53,
+        "entry": 3632071,
+        "entry_name": "allison's Team"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Howard Thomas",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 7,
+        "total": 53,
+        "entry": 2113566,
+        "entry_name": "Tinners"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Roxo Baper",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 8,
+        "total": 53,
+        "entry": 2934545,
+        "entry_name": "White"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Faisal Alshref",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 9,
+        "total": 53,
+        "entry": 8564887,
+        "entry_name": "faisal es"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Nicolai Madsen",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 10,
+        "total": 53,
+        "entry": 6967031,
+        "entry_name": "Captain Martin"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Frankie Cull",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 11,
+        "total": 53,
+        "entry": 7851988,
+        "entry_name": "Suzuki Me Rollin’"
+      },
+      {
+        "event_total": 53,
+        "player_name": "gareth ondrak",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 12,
+        "total": 53,
+        "entry": 5883237,
+        "entry_name": "Munchenflapjack"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Oliver Benbow",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 13,
+        "total": 53,
+        "entry": 2781295,
+        "entry_name": "Six Heaven"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Omar Nayel",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 14,
+        "total": 53,
+        "entry": 2012148,
+        "entry_name": "3ezbt Mo7sen"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Boughazi Zine dine",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 15,
+        "total": 53,
+        "entry": 6821235,
+        "entry_name": "boughazi"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Wycliff Kimuli",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 16,
+        "total": 53,
+        "entry": 8186239,
+        "entry_name": "ykee fc"
+      },
+      {
+        "event_total": 53,
+        "player_name": "rebin xan",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 17,
+        "total": 53,
+        "entry": 6001056,
+        "entry_name": "rebin's Team"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Ibrahim Ahmed",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 18,
+        "total": 53,
+        "entry": 8825756,
+        "entry_name": "ناصر الدسوقي"
+      },
+      {
+        "event_total": 53,
+        "player_name": "jime Swra",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 19,
+        "total": 53,
+        "entry": 8252996,
+        "entry_name": "jime swra Ode"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Omondi Orlando",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 20,
+        "total": 53,
+        "entry": 6246657,
+        "entry_name": "Wallabies"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Lim Bsjd",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 21,
+        "total": 53,
+        "entry": 4050338,
+        "entry_name": "Lim's legacy"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Zeshan Haque",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 22,
+        "total": 53,
+        "entry": 5096780,
+        "entry_name": "***********"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Ben Hui",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 23,
+        "total": 53,
+        "entry": 6862365,
+        "entry_name": "Ben Hui United"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Ben Øgun",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 24,
+        "total": 53,
+        "entry": 5173256,
+        "entry_name": "Øde Captain my Capt"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Callum Mclay",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 25,
+        "total": 53,
+        "entry": 5680911,
+        "entry_name": "McLay super 11's"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Jan Hestås",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 26,
+        "total": 53,
+        "entry": 2548348,
+        "entry_name": "JTs Engels"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Te -",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 27,
+        "total": 53,
+        "entry": 6881145,
+        "entry_name": "Te's Team"
+      },
+      {
+        "event_total": 53,
+        "player_name": "Sergio Arvind",
+        "rank": 6,
+        "last_rank": 0,
+        "rank_sort": 28,
+        "total": 53,
+        "entry": 8033542,
+        "entry_name": "Vin's legacy"
+      },
+      {
+        "event_total": 52,
+        "player_name": "Abu Saloma",
+        "rank": 29,
+        "last_rank": 0,
+        "rank_sort": 29,
+        "total": 52,
+        "entry": 8038357,
+        "entry_name": "Mohamed O."
+      },
+      {
+        "event_total": 52,
+        "player_name": "Stanley Morison",
+        "rank": 29,
+        "last_rank": 0,
+        "rank_sort": 30,
+        "total": 52,
+        "entry": 2199017,
+        "entry_name": "Red DJed Redemption"
+      },
+      {
+        "event_total": 52,
+        "player_name": "Fahd Kashkoush",
+        "rank": 29,
+        "last_rank": 0,
+        "rank_sort": 31,
+        "total": 52,
+        "entry": 8123770,
+        "entry_name": "jermie fahdbong"
+      },
+      {
+        "event_total": 52,
+        "player_name": "Nino Meces",
+        "rank": 29,
+        "last_rank": 0,
+        "rank_sort": 32,
+        "total": 52,
+        "entry": 2184581,
+        "entry_name": "Liam is Delapitated"
+      },
+      {
+        "event_total": 52,
+        "player_name": "Amal Ansari",
+        "rank": 29,
+        "last_rank": 0,
+        "rank_sort": 33,
+        "total": 52,
+        "entry": 7669375,
+        "entry_name": "Ambani Iraola"
+      },
+      {
+        "event_total": 52,
+        "player_name": "Ibrahim Mohamad",
+        "rank": 29,
+        "last_rank": 0,
+        "rank_sort": 34,
+        "total": 52,
+        "entry": 2526430,
+        "entry_name": "lkp"
+      },
+      {
+        "event_total": 52,
+        "player_name": "Barry Gary",
+        "rank": 29,
+        "last_rank": 0,
+        "rank_sort": 35,
+        "total": 52,
+        "entry": 6163044,
+        "entry_name": "Hitz"
+      },
+      {
+        "event_total": 52,
+        "player_name": "George Thomas",
+        "rank": 29,
+        "last_rank": 0,
+        "rank_sort": 36,
+        "total": 52,
+        "entry": 7403054,
+        "entry_name": "Dons are going up"
+      },
+      {
+        "event_total": 51,
+        "player_name": "Rittikrai Wongkittiphuwapuk",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 37,
+        "total": 51,
+        "entry": 7614032,
+        "entry_name": "ppbabyvox"
+      },
+      {
+        "event_total": 51,
+        "player_name": "harry lisle",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 38,
+        "total": 51,
+        "entry": 2017245,
+        "entry_name": "Sacary Bagna"
+      },
+      {
+        "event_total": 51,
+        "player_name": "S K",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 39,
+        "total": 51,
+        "entry": 5950781,
+        "entry_name": "SUDA G"
+      },
+      {
+        "event_total": 51,
+        "player_name": "Haaris Dar",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 40,
+        "total": 51,
+        "entry": 1384215,
+        "entry_name": "Change Name"
+      },
+      {
+        "event_total": 51,
+        "player_name": "Amro Owaineh",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 41,
+        "total": 51,
+        "entry": 5320258,
+        "entry_name": "Arsenalized"
+      },
+      {
+        "event_total": 51,
+        "player_name": "adam marouani",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 42,
+        "total": 51,
+        "entry": 8167940,
+        "entry_name": "adam's Team lm9wd"
+      },
+      {
+        "event_total": 51,
+        "player_name": "Andrew Bates",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 43,
+        "total": 51,
+        "entry": 5888451,
+        "entry_name": "Lazy Lemmings"
+      },
+      {
+        "event_total": 51,
+        "player_name": "Ed Debenham",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 44,
+        "total": 51,
+        "entry": 7652569,
+        "entry_name": "Ødegod Squad"
+      },
+      {
+        "event_total": 51,
+        "player_name": "Ian McCowen",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 45,
+        "total": 51,
+        "entry": 6072728,
+        "entry_name": "Ooh to be a Gooner"
+      },
+      {
+        "event_total": 51,
+        "player_name": "Philip Knowles",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 46,
+        "total": 51,
+        "entry": 2503120,
+        "entry_name": "Philip's Team"
+      },
+      {
+        "event_total": 51,
+        "player_name": "magnus bergh",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 47,
+        "total": 51,
+        "entry": 7612857,
+        "entry_name": "Ulfern"
+      },
+      {
+        "event_total": 51,
+        "player_name": "ศรัณย์ วงศ์ทองอยู่",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 48,
+        "total": 51,
+        "entry": 7845441,
+        "entry_name": "iTzapotay"
+      },
+      {
+        "event_total": 51,
+        "player_name": "Mustafa Ali",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 49,
+        "total": 51,
+        "entry": 8866488,
+        "entry_name": "mak halal"
+      },
+      {
+        "event_total": 51,
+        "player_name": "Mr Anh",
+        "rank": 37,
+        "last_rank": 0,
+        "rank_sort": 50,
+        "total": 51,
+        "entry": 5492823,
+        "entry_name": "Mr VĐ Team"
+      }
+    ]
+  }
+}

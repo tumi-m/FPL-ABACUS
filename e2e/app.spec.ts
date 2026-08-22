@@ -1,0 +1,155 @@
+import { expect, test, type Page } from "@playwright/test";
+
+const TEAM_ID = "1851681";
+
+function teamCookie() {
+  return { name: "gaffer_team", value: TEAM_ID, url: "http://localhost:3000" };
+}
+
+async function asTeam(page: Page) {
+  await page.context().addCookies([teamCookie()]);
+}
+
+test("landing renders tagline", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveTitle(/Gaffer/);
+  await expect(page.getByText("Your gameweek, explained.")).toBeVisible();
+});
+
+test.describe("team ID gate flow", () => {
+  test("invalid ID shows an inline error without navigating", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Your FPL team ID").fill("99999999");
+    await page.getByRole("button", { name: "Go" }).click();
+    await expect(page.getByRole("alert")).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe("/");
+  });
+
+  test("valid ID lands on Matchday and persists the session cookie", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Your FPL team ID").fill(TEAM_ID);
+    await page.getByRole("button", { name: "Go" }).click();
+    await page.waitForURL("**/live");
+
+    // Reload proves the gaffer_team cookie drives the gated shell.
+    await page.reload();
+    const cookies = await page.context().cookies();
+    expect(cookies.find((c) => c.name === "gaffer_team")?.value).toBe(TEAM_ID);
+  });
+});
+
+test.describe("authenticated routes", () => {
+  test("matchday composes the live model or a graceful fallback", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/live");
+    await expect(page).toHaveTitle(/Matchday/);
+    // Either the composed board or an explicit fallback state — never a crash screen.
+    await expect(page.locator("main")).not.toBeEmpty();
+  });
+
+  test("squad lists the fifteen", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/squad");
+    await expect(page.getByText("Your 15")).toBeVisible();
+  });
+
+  test("leagues index lists mini-leagues", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/leagues");
+    await expect(page.getByText("Mini-leagues")).toBeVisible();
+  });
+
+  test("league standings table renders managers", async ({ page }) => {
+    await asTeam(page);
+    const res = await page.goto("/leagues/314");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("columnheader", { name: "Manager" })).toBeVisible();
+  });
+
+  test("field renders the pitch with the four mode controls", async ({ page }) => {
+    await asTeam(page);
+    const res = await page.goto("/field");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("group", { name: "Field mode" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Ownership" })).toBeVisible();
+  });
+
+  test("board renders the fixture grid with URL-state controls", async ({ page }) => {
+    await asTeam(page);
+    const res = await page.goto("/board");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "The Board" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Horizon" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Colour model" })).toBeVisible();
+  });
+
+  test("board horizon and colour model persist in the URL", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/board?h=10&c=fdr");
+    await expect(page.getByRole("button", { name: "FDR" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page).toHaveURL(/h=10&c=fdr/);
+  });
+
+  test("newsdesk renders filters and availability notes", async ({ page }) => {
+    await asTeam(page);
+    const res = await page.goto("/news");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "Newsdesk" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Filter" })).toBeVisible();
+  });
+
+  test("deadline desk renders", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/deadline");
+    await expect(page.getByText("Deadline Desk")).toBeVisible();
+  });
+
+  test("players explorer renders with real totals", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/players");
+    await expect(page.getByRole("heading", { name: "Players" })).toBeVisible();
+    await expect(page.getByText(/Showing top \d+ of \d/)).toBeVisible();
+  });
+
+  test("player profile renders a player heading", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/players/1");
+    await expect(page.locator("h1")).not.toBeEmpty();
+  });
+
+  test("planner link now lands on the board", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/planner");
+    await expect(page).toHaveURL(/\/board/);
+  });
+
+  test("DNA renders the manager report", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/dna");
+    await expect(page).toHaveTitle(/Manager DNA/);
+  });
+
+  test("unauthenticated app routes bounce to landing", async ({ page }) => {
+    await page.context().clearCookies();
+    await page.goto("/squad");
+    await page.waitForURL((u) => u.pathname === "/");
+  });
+});
+
+test("ask bar routes captaincy questions without a model", async ({ request }) => {
+  const res = await request.post("/api/ask", {
+    data: { q: "should I captain salah or haaland?" },
+    headers: { cookie: `gaffer_team=${TEAM_ID}` },
+  });
+  expect(res.status()).toBe(200);
+  const text = await res.text();
+  expect(text).toContain('"intent":"captain.pick"');
+});
+
+test("the film renders the season archive with sigil", async ({ page }) => {
+  await asTeam(page);
+  const res = await page.goto("/film");
+  expect(res?.status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "The Film" })).toBeVisible();
+  await expect(page.getByRole("img", { name: /sigil for gameweek/i })).toBeVisible();
+});

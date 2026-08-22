@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+build
+dist
+coverage
+__fixtures__/replay-ready
+.env*.local
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+test-results
+playwright-report
+blob-report
+.DS_Store
