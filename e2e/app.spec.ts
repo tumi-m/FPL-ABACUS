@@ -192,6 +192,24 @@ test.describe("authenticated routes", () => {
     await expect(page).toHaveURL(/h=10&c=fdr/);
   });
 
+  test("board desk keeps independent plan slots", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/board");
+    const desk = page.getByRole("region", { name: "Transfer staging and chip lane" });
+    const tabs = desk.getByRole("group", { name: "Plans" });
+    await expect(tabs.getByRole("button", { name: /Plan A/ })).toHaveAttribute("aria-pressed", "true");
+
+    // A second slot starts empty and becomes active.
+    await desk.getByRole("button", { name: "New plan" }).click();
+    await expect(tabs.getByRole("button", { name: /^Plan B/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(desk.getByText(/board is clean/)).toBeVisible();
+
+    // Deleting it returns the desk to Plan A.
+    await desk.getByRole("button", { name: "Delete plan" }).click();
+    await expect(tabs.getByRole("button", { name: /Plan A/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(tabs.getByRole("button", { name: /^Plan B/ })).toBeHidden();
+  });
+
   test("newsdesk renders filters and availability notes", async ({ page }) => {
     await asTeam(page);
     const res = await page.goto("/news");

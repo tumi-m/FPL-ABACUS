@@ -3,6 +3,16 @@
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 import { Est } from "@/components/gaffer/Est";
+import {
+  MAX_PLANS,
+  activePlan,
+  addPlan,
+  emptyPlans,
+  loadPlans,
+  removePlan,
+  withActive,
+  type PlansState,
+} from "@/lib/engines/boardPlans";
 
 export interface DeskSquadRow {
   element: number;
@@ -24,6 +34,11 @@ export interface DeskCandidate {
   runLabel?: string;
 }
 
+export interface GwMarker {
+  kind: "double" | "blank";
+  detail: string;
+}
+
 interface DeskState {
   moves: { out: number; in: number }[];
   chips: Record<string, number>; // chipKey → gw
@@ -34,7 +49,8 @@ const HIT_COST = 4;
 
 /**
  * BoardDesk — transfer staging (ledger + payback marker) and the chip lane
- * with the set-1 hard wall. Local to this device; nothing auto-applies.
+ * with the set-1 hard wall. Multiple device-local plan slots; nothing
+ * auto-applies.
  */
 export function BoardDesk({
   teamId,
@@ -46,6 +62,7 @@ export function BoardDesk({
   chips,
   bankTenths,
   freeTransfers = 1,
+  markers,
 }: {
   teamId: number;
   squad: DeskSquadRow[];
@@ -58,22 +75,26 @@ export function BoardDesk({
   bankTenths: number;
   /** Rolling free transfers replayed from entry history. */
   freeTransfers?: number;
+  /** Blank/double flags per horizon GW. */
+  markers?: Record<number, GwMarker>;
 }) {
-  const storageKey = `gaffer_board_v1_${teamId}`;
-  const [state, setState] = React.useState<DeskState>({ moves: [], chips: {} });
+  const storageKey = `gaffer_board_v2_${teamId}`;
+  const legacyKey = `gaffer_board_v1_${teamId}`;
+  const [plans, setPlans] = React.useState<PlansState>(() => emptyPlans());
 
   React.useEffect(() => {
     try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) setState(JSON.parse(raw) as DeskState);
+      setPlans(
+        loadPlans(localStorage.getItem(storageKey) ?? localStorage.getItem(legacyKey)),
+      );
     } catch {
       /* fresh board */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const persist = (next: DeskState) => {
-    setState(next);
+  const persist = (next: PlansState) => {
+    setPlans(next);
     try {
       localStorage.setItem(storageKey, JSON.stringify(next));
     } catch {
@@ -93,24 +114,31 @@ export function BoardDesk({
     return cand.nowCost <= sell + bank;
   };
 
+  const plan = activePlan(plans);
+  const state: DeskState = { moves: plan.moves, chips: plan.chips };
+
   const addMove = (out: number, inc: number) => {
     if (!out || !inc || out === inc) return;
-    if (state.moves.some((m) => m.out === out || m.in === inc)) return;
-    persist({ ...state, moves: [...state.moves, { out, in: inc }] });
+    if (plan.moves.some((m) => m.out === out || m.in === inc)) return;
+    persist(withActive(plans, (p) => ({ ...p, moves: [...p.moves, { out, in: inc }] })));
   };
   const removeMove = (i: number) =>
-    persist({ ...state, moves: state.moves.filter((_, idx) => idx !== i) });
+    persist(withActive(plans, (p) => ({ ...p, moves: p.moves.filter((_, idx) => idx !== i) })));
 
   // Free transfers: rolling bank replayed from entry history (cap 5).
   const FREE_FT = freeTransfers;
-  const hits = Math.max(0, state.moves.length - FREE_FT);
+  const hits = Math.max(0, plan.moves.length - FREE_FT);
   const hitTotal = hits * HIT_COST;
 
   const assignChip = (key: string, gw: number | null) => {
-    const nextChips = { ...state.chips };
-    if (gw == null) delete nextChips[key];
-    else nextChips[key] = gw;
-    persist({ ...state, chips: nextChips });
+    persist(
+      withActive(plans, (p) => {
+        const nextChips = { ...p.chips };
+        if (gw == null) delete nextChips[key];
+        else nextChips[key] = gw;
+        return { ...p, chips: nextChips };
+      }),
+    );
   };
 
   const isPastWall = (gw: number, stopEvent: number) => gw > stopEvent;
@@ -146,6 +174,47 @@ export function BoardDesk({
           </dd>
         </div>
       </dl>
+
+      {/* plan slots — device-local, one desk per strategy */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div role="group" aria-label="Plans" className="flex gap-1 rounded-md card-ring p-1">
+          {plans.plans.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              aria-pressed={p.id === plan.id}
+              onClick={() => persist({ ...plans, active: p.id })}
+              className={`skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant ${
+                p.id === plan.id ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi"
+              }`}
+            >
+              <span>
+                {p.name}
+                {p.moves.length > 0 ? ` · ${p.moves.length}` : ""}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => persist(addPlan(plans))}
+            disabled={plans.plans.length >= MAX_PLANS}
+            className="inline-flex h-11 items-center rounded-md card-ring px-4 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            New plan
+          </button>
+          {plans.plans.length > 1 && (
+            <button
+              type="button"
+              onClick={() => persist(removePlan(plans, plan.id))}
+              className="inline-flex h-11 items-center rounded-md card-ring px-4 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-flare"
+            >
+              Delete plan
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="upper-label text-2xs text-ink-lo">Staging desk</h2>
@@ -280,6 +349,7 @@ export function BoardDesk({
         <div className="flex gap-1 overflow-x-auto pb-1">
           {gws.map((gw) => {
             const chipHere = Object.entries(state.chips).find(([, g]) => g === gw);
+            const marker = markers?.[gw];
             return (
               <div
                 key={gw}
@@ -289,7 +359,20 @@ export function BoardDesk({
                   gw === currentGw && "bg-surface-3",
                 )}
               >
-                <div className="text-2xs font-semibold uppercase-label text-ink-lo">GW{gw}</div>
+                <div className="text-2xs font-semibold uppercase-label text-ink-lo">
+                  GW{gw}
+                  {marker && (
+                    <span
+                      title={marker.detail}
+                      className={cn(
+                        "ml-1 rounded-full px-1 text-[9px] leading-[1.4]",
+                        marker.kind === "double" ? "bg-surge/15 text-surge" : "bg-flare/15 text-flare",
+                      )}
+                    >
+                      {marker.kind === "double" ? "×2" : "bye"}
+                    </span>
+                  )}
+                </div>
                 {chipHere ? (
                   <button
                     type="button"
@@ -333,7 +416,7 @@ export function BoardDesk({
       {(state.moves.length > 0 || Object.keys(state.chips).length > 0) && (
         <button
           type="button"
-          onClick={() => persist({ moves: [], chips: {} })}
+          onClick={() => persist(withActive(plans, (p) => ({ ...p, moves: [], chips: {} })))}
           className="inline-flex h-11 items-center self-start rounded-md card-ring px-4 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-flare"
         >
           Clear the desk

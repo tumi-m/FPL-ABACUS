@@ -30,12 +30,17 @@ Grounding for GAFFER's BoardDesk/planner UX. Sources surveyed Aug 2026: OneFPL, 
 
 ## Shipped in BoardDesk after this research
 
-- Real rolling FT replayed from entry history (cap 5, WC/FH reset rule) replacing the hardcoded `1` — parity with OneFPL/fpl.team basics.
+- Real rolling FT replayed from entry history (cap 5, WC/FH reset rule) replacing the hardcoded
+  `1` — parity with OneFPL/fpl.team basics.
 - Next-three fixture run labels on every OUT/IN row and option — fixture-run context without leaving the desk.
 - Roll nudge when ≥2 FT banked ("rolling is often the best move") — Copilot's top insight.
+- **Multi-plan slots** — up to four device-local plan tabs (`lib/engines/boardPlans.ts`, legacy v1
+  desks migrate into Plan A); each slot carries its own staged ledger + chip lane; tab badges show
+  move counts for side-by-side patient-vs-aggressive comparison.
+- **Blank/double markers inside chip lane cells** — `×2` / `bye` badges (tooltip carries club
+  counts) fed by `computeGwProfiles` in `buildBoardDesk`; the same profile now also renders the
+  Board footer honestly ("full slate" vs doubles + blanks).
 
 ## Next candidates (not built)
 
-- Multi-plan slots (patient vs aggressive side by side) — OneFPL's most-praised feature.
 - Solver-lite: rank-priced payback across the full 6-GW horizon rather than ep_next delta.
-- Blank/double markers inside the chip lane cells.

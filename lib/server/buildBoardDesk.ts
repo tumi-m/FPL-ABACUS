@@ -6,7 +6,11 @@ import "server-only";
  */
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getFixturesAll, getHistory, getPicks } from "@/lib/fpl/endpoints";
-import type { DeskCandidate, DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
+import type {
+  DeskCandidate,
+  DeskSquadRow,
+  GwMarker,
+} from "@/components/gaffer/board/BoardDesk";
 
 export interface BoardDeskProps {
   teamId: number;
@@ -19,9 +23,11 @@ export interface BoardDeskProps {
   bankTenths: number;
   /** Rolling free transfers replayed from entry history (bank cap 5). */
   freeTransfers: number;
+  /** Blank/double flags per horizon GW — shown inside the chip lane cells. */
+  markers?: Record<number, GwMarker>;
 }
 
-/** Next-three fixture run label for a club, e.g. "lei(H) mun(A) —". */
+/** Next-three fixture run label for a club, e.g. "lei(H) mun(A) —" (Board casing: the venue side is uppercase). */
 export function fixtureRun(
   teamId: number,
   fixtures: { event: number | null; team_h: number; team_a: number }[],
@@ -36,9 +42,68 @@ export function fixtureRun(
       continue;
     }
     const home = fx.team_h === teamId;
-    labels.push(`${shortNameOf(home ? fx.team_a : fx.team_h)}${home ? "(H)" : "(A)"}`);
+    const opp = shortNameOf(home ? fx.team_a : fx.team_h);
+    labels.push(`${home ? opp.toLowerCase() : opp.toUpperCase()}${home ? "(H)" : "(A)"}`);
   }
   return labels.join(" ");
+}
+
+export interface GwProfile {
+  id: number;
+  /** Club-fixture count that GW (10 is a full slate). */
+  fixtures: number;
+  /** Clubs playing more than once. */
+  doubles: number;
+  /** Clubs without a fixture. */
+  byes: number;
+}
+
+/** Fixture calendar profile per horizon GW — blanks and doubles in one pass. */
+export function computeGwProfiles(
+  fixtures: { event: number | null; team_h: number; team_a: number }[],
+  gws: number[],
+  teamCount = 20,
+): GwProfile[] {
+  return gws.map((gw) => {
+    const apps = new Map<number, number>();
+    for (const f of fixtures) {
+      if (f.event !== gw) continue;
+      apps.set(f.team_h, (apps.get(f.team_h) ?? 0) + 1);
+      apps.set(f.team_a, (apps.get(f.team_a) ?? 0) + 1);
+    }
+    let fixtureCount = 0;
+    let doubles = 0;
+    for (const n of apps.values()) {
+      fixtureCount += n;
+      if (n > 1) doubles += 1;
+    }
+    return { id: gw, fixtures: fixtureCount, doubles, byes: Math.max(0, teamCount - apps.size) };
+  });
+}
+
+export function gwMarker(p: GwProfile): GwMarker | null {
+  if (p.doubles > 0) {
+    return {
+      kind: "double",
+      detail: `Double gameweek — ${p.doubles} club${p.doubles === 1 ? "" : "s"} play twice`,
+    };
+  }
+  if (p.byes > 0) {
+    return {
+      kind: "blank",
+      detail: `Blank gameweek — ${p.byes} club${p.byes === 1 ? "" : "s"} without a fixture`,
+    };
+  }
+  return null;
+}
+
+export function markerMap(profiles: GwProfile[]): Record<number, GwMarker> {
+  const markers: Record<number, GwMarker> = {};
+  for (const p of profiles) {
+    const m = gwMarker(p);
+    if (m) markers[p.id] = m;
+  }
+  return markers;
 }
 
 /**
@@ -118,8 +183,10 @@ export async function buildBoardDesk(
 
   const allFixtures = opts.fixtures ?? (await getFixturesAll().catch(() => []));
   const horizonGws = boot.events.filter((e) => e.id >= currentGw).slice(0, 6);
+  const horizonIds = horizonGws.map((g) => g.id);
   const shortOf = (id: number) => boot.teams.find((t) => t.id === id)?.short_name ?? "?";
-  const runFor = (clubId: number) => fixtureRun(clubId, allFixtures, horizonGws.map((g) => g.id), shortOf);
+  const runFor = (clubId: number) => fixtureRun(clubId, allFixtures, horizonIds, shortOf);
+  const markers = markerMap(computeGwProfiles(allFixtures, horizonIds));
 
   const wallGw = boot.chips.length ? Math.min(...boot.chips.map((ch) => ch.stop_event)) : null;
 
@@ -138,6 +205,7 @@ export async function buildBoardDesk(
       .sort((a, b) => a.key.localeCompare(b.key)),
     bankTenths,
     freeTransfers,
+    markers,
   };
 }
 

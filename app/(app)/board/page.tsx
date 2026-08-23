@@ -17,7 +17,7 @@ import {
 } from "@/lib/engines/fixtureModel";
 import type { Pos } from "@/lib/engines/types";
 import { BoardDesk, type DeskCandidate, type DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
-import { computeFreeTransfers, fixtureRun } from "@/lib/server/buildBoardDesk";
+import { computeFreeTransfers, computeGwProfiles, fixtureRun, markerMap } from "@/lib/server/buildBoardDesk";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "The Board" };
@@ -156,16 +156,7 @@ export default async function BoardPage({
     cells: passOne[i].map((c) => ({ ...c, value: c.ease == null ? c.value : bucket(c.ease, cuts) })),
   }));
 
-  const blanksAndDoubles = horizonGws.map((gw) => {
-    const counts = new Map<number, number>();
-    for (const f of allFixtures) {
-      if (f.event !== gw.id) continue;
-      counts.set(f.team_h, (counts.get(f.team_h) ?? 0) + 1);
-      counts.set(f.team_a, (counts.get(f.team_a) ?? 0) + 1);
-    }
-    const doubles = [...counts.values()].filter((c) => c > 1).length;
-    return { id: gw.id, doubles };
-  });
+  const gwProfiles = computeGwProfiles(allFixtures, horizonGws.map((g) => g.id));
 
   // Desk props — staging + chip lane.
   const squadSet = new Set(squadIds);
@@ -275,11 +266,16 @@ export default async function BoardPage({
       <section aria-label="Blanks and doubles in the horizon" className="space-y-2">
         <h2 className="upper-label text-2xs text-ink-lo">Blanks &amp; doubles</h2>
         <ul className="flex flex-wrap gap-2 text-xs text-ink-3 num-tabular">
-          {blanksAndDoubles.map(({ id, doubles }) => (
-            <li key={id} className="rounded-full card-ring px-2.5 py-1">
-              GW{id}: {doubles > 0 ? `${doubles} double` : "no doubles"}
-            </li>
-          ))}
+          {gwProfiles.map((p) => {
+            const parts: string[] = [];
+            if (p.doubles > 0) parts.push(`${p.doubles} double${p.doubles === 1 ? "" : "s"}`);
+            if (p.byes > 0) parts.push(`${p.byes} blank`);
+            return (
+              <li key={p.id} className="rounded-full card-ring px-2.5 py-1">
+                GW{p.id}: {parts.length > 0 ? parts.join(" · ") : "full slate"}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -293,6 +289,7 @@ export default async function BoardPage({
         chips={chipKeys}
         bankTenths={bankTenths}
         freeTransfers={freeTransfers}
+        markers={markerMap(gwProfiles)}
       />
     </div>
   );
