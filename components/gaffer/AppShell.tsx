@@ -12,7 +12,8 @@ import { ChevronRight } from "@/components/primitives/icons";
 import type { LiveBarData } from "@/lib/ui/types";
 import { cn } from "@/lib/ui/cn";
 
-// FLOODLIGHT §11 IA — five destinations. Ask ships with Phase F (hidden until then).
+// FLOODLIGHT §11 IA — five destinations; mobile keeps four in the thumb bar,
+// the rest fold into "More" so the sheet always has substance.
 const NAV = [
   { href: "/live", label: "Matchday" },
   { href: "/field", label: "Field" },
@@ -21,7 +22,7 @@ const NAV = [
   { href: "/leagues", label: "Leagues" },
 ] as const;
 
-const TABS = ["live", "field", "board", "news", "leagues"] as const;
+const TABS = ["live", "field", "board", "leagues"] as const;
 const MORE = NAV.filter((n) => !TABS.includes(n.href as (typeof TABS)[number]));
 
 export function AppShell({ teamId, teamName, live, children }: { teamId: number | null; teamName: string | null; live?: LiveBarData | null; children?: React.ReactNode }) {
@@ -85,7 +86,8 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
 
         <nav
           aria-label="Primary mobile"
-          className="lg:hidden fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-hairline bg-surface-1/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
+          className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface-1/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
+          style={{ gridTemplateColumns: `repeat(${TABS.length + 1}, minmax(0, 1fr))`, display: "grid" }}
         >
           {TABS.map((t) => {
             const item = NAV.find((n) => n.href === `/${t}`)!;
@@ -94,8 +96,10 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
                 key={t}
                 href={item.href}
                 className={cn(
-                  "flex h-14 flex-col items-center justify-center gap-0.5 text-2xs",
-                  isActive(item.href) ? "text-brand font-semibold" : "text-ink-3",
+                  "flex h-14 min-w-[44px] flex-col items-center justify-center gap-0.5 text-2xs transition-colors dur-instant",
+                  isActive(item.href)
+                    ? "text-brand font-semibold [box-shadow:inset_0_2px_0_var(--volt)]"
+                    : "text-ink-mid hover:text-ink-hi",
                 )}
               >
                 {item.label}
@@ -105,25 +109,29 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
           <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
             <button
               onClick={() => setMoreOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={moreOpen}
               className={cn(
-                "flex h-14 flex-col items-center justify-center gap-0.5 text-2xs",
-                MORE.some((m) => isActive(m.href)) ? "text-brand font-semibold" : "text-ink-3",
+                "flex h-14 min-w-[44px] flex-col items-center justify-center gap-0.5 text-2xs transition-colors dur-instant",
+                MORE.some((m) => isActive(m.href))
+                  ? "text-brand font-semibold [box-shadow:inset_0_2px_0_var(--volt)]"
+                  : "text-ink-mid hover:text-ink-hi",
               )}
             >
               More
             </button>
-            <SheetContent side="bottom">
-              <SheetTitle className="mb-3">More</SheetTitle>
-              <ul className="divide-y divide-hairline -mx-1">
+            <SheetContent side="bottom" className="bg-raised">
+              <SheetTitle className="upper-label mb-3 text-2xs text-ink-lo">More</SheetTitle>
+              <ul className="-mx-1 divide-y divide-hairline">
                 {[{ href: "/", label: "Home" }, ...MORE].map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
                       onClick={() => setMoreOpen(false)}
-                      className="flex min-h-11 items-center justify-between px-1 py-2.5 text-base"
+                      className="flex min-h-12 items-center justify-between rounded-md px-2 py-3 text-base font-medium text-ink-hi transition-colors dur-instant hover:bg-surface-3"
                     >
                       {item.label}
-                      <ChevronRight className="text-ink-3" />
+                      <ChevronRight className="text-ink-lo" />
                     </Link>
                   </li>
                 ))}
