@@ -40,6 +40,8 @@ export interface WebResult {
   /** Participation ratio of the correlation eigenvalues. */
   effectiveBets: number;
   draws: number;
+  /** players×M point matrix when opts.keepDraws — the paired-WPA feed (v3-19). */
+  drawsMatrix?: Float32Array;
 }
 
 export interface ScoringTable {
@@ -113,7 +115,7 @@ export function simulateWeb(
   fixtures: { elementId: number; homeTeam: number; awayTeam: number; isHome: boolean }[],
   fit: DcFit,
   scoring: ScoringTable = DEFAULT_SCORING,
-  opts: { M?: number; seed?: number } = {},
+  opts: { M?: number; seed?: number; keepDraws?: boolean } = {},
 ): WebResult {
   const M = Math.max(100, Math.min(20_000, opts.M ?? 2_000));
   const seed = opts.seed ?? 97;
@@ -178,10 +180,10 @@ export function simulateWeb(
     void playedAssists;
   }
 
-  return summarise(players, pts, M);
+  return summarise(players, pts, M, opts);
 }
 
-function summarise(players: WebPlayer[], pts: Float32Array, M: number): WebResult {
+function summarise(players: WebPlayer[], pts: Float32Array, M: number, opts: { keepDraws?: boolean } = {}): WebResult {
   const means = players.map((_, i) => {
     let s = 0;
     for (let m = 0; m < M; m++) s += pts[i * M + m];
@@ -243,6 +245,7 @@ function summarise(players: WebPlayer[], pts: Float32Array, M: number): WebResul
     variance,
     effectiveBets: Number(effectiveBets.toFixed(2)),
     draws: M,
+    ...(opts.keepDraws ? { drawsMatrix: pts } : {}),
   };
 }
 

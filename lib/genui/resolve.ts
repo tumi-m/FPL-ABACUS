@@ -7,9 +7,11 @@ import "server-only";
  * supplies values; unknown names degrade gracefully (nulls, not guesses).
  */
 import { getBootstrapLite, type ElementLite } from "@/lib/fpl/bootstrapLite";
-import { getElementSummary, getFixturesAll, getHistory, getPicks } from "@/lib/fpl/endpoints";
+import { getElementSummary, getEntry, getFixturesAll, getHistory, getPicks, getStandings } from "@/lib/fpl/endpoints";
 import { buildFixtureModel, easiness, projectFixture } from "@/lib/engines/fixtureModel";
-import { buildCorrelationWeb } from "@/lib/server/buildCorrelationWeb";
+import { buildCorrelationWeb, buildWebContext } from "@/lib/server/buildCorrelationWeb";
+import { crowding } from "@/lib/quant/crowding";
+import { wpaPaired } from "@/lib/quant/wpa";
 import { trueForm } from "@/lib/quant/estimators";
 import { chipOptionValue } from "@/lib/quant/decision";
 import { generateSquad } from "@/lib/genui/squadGen";
@@ -99,6 +101,10 @@ export async function resolveCard(
       return chipTiming(ctx);
     case "review":
       return reviewCard(ctx);
+    case "crowding":
+      return crowdingCard(ctx);
+    case "wpa":
+      return wpaCard(params, ctx);
     default:
       return null;
   }
@@ -598,5 +604,110 @@ async function reviewCard(ctx: ResolveContext): Promise<ResolvedCard | null> {
     title: "Gameweek review",
     prose: parts.join(" "),
     props: null,
+  };
+}
+
+// ── v3 Q5 extras: crowding + paired WPA ─────────────────────────────────────
+
+async function crowdingCard(ctx: ResolveContext): Promise<ResolvedCard | null> {
+  if (!ctx.teamId) return null;
+  const boot = await getBootstrapLite();
+  const squad = await squadIdsFor(ctx);
+  if (!squad.length) return null;
+  const result = crowding(
+    squad.map((id) => ({
+      elementId: id,
+      pos: (boot.elements[id]?.element_type ?? 4) as 1 | 2 | 3 | 4,
+      eo: boot.elements[id]?.selected_by_percent ?? 0,
+    })),
+  );
+  if (!result.positions.length) return null;
+  const POS_LABEL: Record<number, string> = { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" };
+  const rows = result.positions.map((p) => ({
+    posLabel: POS_LABEL[p.pos],
+    effectivePicks: p.effectivePicks,
+    players: p.players,
+    topName: p.top ? (boot.elements[p.top.elementId]?.web_name ?? `#${p.top.elementId}`) : null,
+    topShare: p.top?.share ?? 0,
+  }));
+  const tightest = [...result.positions].sort((a, b) => a.effectivePicks - b.effectivePicks)[0];
+  const tightestLabel = POS_LABEL[tightest.pos];
+  return {
+    component: "crowding",
+    title: "Crowding",
+    prose: `The ${tightestLabel} market is making ~${tightest.effectivePicks.toFixed(1)} effective picks across ${tightest.players} owned players — collapse means differential value, spread means the template is cheap.`,
+    props: { rows },
+  };
+}
+
+async function wpaCard(params: Record<string, unknown>, ctx: ResolveContext): Promise<ResolvedCard | null> {
+  if (!ctx.teamId) return null;
+
+  // rival: explicit param, else the neighbour directly above you in your first classic league
+  let rivalEntry = typeof params.rivalEntry === "number" ? params.rivalEntry : null;
+  let rivalName: string | null = null;
+  if (rivalEntry == null) {
+    try {
+      const entry = await getEntry(ctx.teamId);
+      const leagueId = entry.leagues?.classic?.[0]?.id;
+      if (leagueId != null) {
+        const standings = await getStandings(leagueId, 1);
+        const rows = standings.standings.results;
+        const mine = rows.find((r) => r.entry === ctx.teamId);
+        const above = mine ? rows.find((r) => r.rank === mine.rank - 1) : rows.find((r) => r.entry !== ctx.teamId);
+        if (above) {
+          rivalEntry = above.entry;
+          rivalName = above.entry_name;
+        }
+      }
+    } catch {
+      rivalEntry = null;
+    }
+  }
+  if (rivalEntry == null) return null;
+
+  const [youCtx, themCtx] = await Promise.all([
+    buildWebContext(ctx.teamId, ctx.currentGw),
+    buildWebContext(rivalEntry, ctx.currentGw),
+  ]);
+  if (!youCtx || !themCtx) return null;
+
+  const result = wpaPaired(
+    { players: youCtx.players, fixtures: youCtx.fixtures, multipliers: youCtx.multipliers },
+    { players: themCtx.players, fixtures: themCtx.fixtures, multipliers: themCtx.multipliers },
+    youCtx.fit,
+    { M: 2000, seed: 2026, topN: 4 },
+  );
+  if (!result) return null;
+
+  if (rivalName == null) {
+    try {
+      const rival = await getEntry(rivalEntry);
+      rivalName = rival.name ?? null;
+    } catch {
+      rivalName = null;
+    }
+  }
+  const boot = await getBootstrapLite();
+  const moments = result.moments.map((m) => ({
+    name: boot.elements[m.elementId]?.web_name ?? `#${m.elementId}`,
+    side: m.side,
+    wpa: Math.round(m.wpa * 1000) / 10,
+  }));
+  const pct = Math.round(result.winProb * 100);
+  const hero = moments[0];
+  const prose = hero
+    ? `Across ${result.draws.toLocaleString("en-GB")} paired simulations you beat ${rivalName ?? `entry ${rivalEntry}`} ${pct}% of the time — ${hero.name} is the swing that matters most.`
+    : `Across ${result.draws.toLocaleString("en-GB")} paired simulations you beat ${rivalName ?? `entry ${rivalEntry}`} ${pct}% of the time.`;
+  return {
+    component: "wpa",
+    title: "Win probability added",
+    prose,
+    props: {
+      winProb: pct,
+      rivalName: rivalName ?? `Entry ${rivalEntry}`,
+      expectedPoints: result.expectedPoints,
+      moments,
+    },
   };
 }

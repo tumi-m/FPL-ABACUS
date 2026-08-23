@@ -78,9 +78,20 @@
       You|Them columns with fixture state, live points, provisional-bonus asterisk, ⇅ and C.
 - [x] e2e pins the deep-link and the honest no-picks fallback (54✓).
 
-### V4-F — v3 debt carried into the queue ⬜
-- [ ] Feature 18 Crowding index + 19 WPA engines (pure TS, tested, ask-card wired).
-- [ ] Twin Study (10): cohort 30k sample extension in Postgres + cron.
+### V4-F — v3 debt carried into the queue ✅ (this commit, except Twin Study)
+- [x] Feature 18 **Crowding** (`lib/quant/crowding.ts`): per-position s_p=EO/ΣEO → HHI,
+      effective picks 1/HHI, entropy/evenness, top-pick callout; 5 tests pin split/collapse/
+      monopoly/empty markets. Wired as the "crowding" ask card.
+- [x] Feature 19 **WPA** (`lib/quant/wpa.ts`): paired copula sim — both XIs share scoreline
+      draws, leave-one-out WPA per player on the same matrix (independent sims lie; these
+      don't). `simulateWeb` gains keepDraws for the raw matrix. 6 tests pin determinism,
+      symmetry, dominance, sign of swings, shared-fixture pairing, empty-side nulls.
+- [x] Wired user-visible: "crowding" + "wpa" registry cards, router intents (rival-entry
+      extraction), resolver cards (auto-rival = neighbour above you in your first classic
+      league), AskBar renderers. `buildWebContext` extracted as the shared DC-web builder
+      (multipliers included). Router tests pin both intents. Gates: vitest 237✓ · e2e 54✓.
+- [ ] Twin Study (10): cohort 30k sample extension in Postgres + cron — deferred: needs a
+      schema migration and a second frequent cron on the Hobby plan; queued after v6 lands.
 - [ ] Manifold (17) stays deferred (Python escape hatch).
 
 ## Cross-cutting rules (every phase)
