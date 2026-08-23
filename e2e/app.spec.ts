@@ -115,6 +115,24 @@ test.describe("authenticated routes", () => {
     await expect(page.getByRole("button", { name: "Risk" })).toHaveAttribute("aria-pressed", "true");
   });
 
+  test("field token tap opens the shared peek sheet", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field");
+    const token = page.locator('button[aria-label$="open details"]').first();
+    await expect(token).toBeVisible();
+    await token.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Player page" })).toBeVisible();
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+  });
+
+  test("per-entry field OG card renders an image", async ({ page }) => {
+    const res = await page.request.get(`/api/og/field/${TEAM_ID}`);
+    expect(res.ok()).toBeTruthy();
+    expect(res.headers()["content-type"]).toContain("image/");
+  });
+
   test("board renders the fixture grid with URL-state controls", async ({ page }) => {
     await asTeam(page);
     const res = await page.goto("/board");

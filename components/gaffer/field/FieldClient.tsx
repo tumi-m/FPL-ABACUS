@@ -8,6 +8,8 @@ import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { BoardDesk, type DeskCandidate, type DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
+import { PeekSheet } from "@/components/gaffer/field/PeekSheet";
+import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
 import { Est } from "@/components/gaffer/Est";
 import { COPY } from "@/lib/copy/deck";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
@@ -98,6 +100,9 @@ export function FieldClient({
   // compare state (declared early — the web layer below depends on it)
   const [rivalPicks, setRivalPicks] = React.useState<RivalPick[] | null>(null);
   const [rivalError, setRivalError] = React.useState<string | null>(null);
+
+  // peek — ONE shared sheet for token taps (v4 spec)
+  const [peekElement, setPeekElement] = React.useState<number | null>(null);
 
   // ── correlation web (modes 5+6) — fetched only when a mode needs it ─────
   const wantsWeb = mode === "correlation" || mode === "risk";
@@ -350,14 +355,21 @@ export function FieldClient({
                         else tokenRefs.current.delete(p.element);
                       }}
                     >
-                      <ShirtToken
-                        row={p}
-                        mode={mode}
-                        swing={swingByElement.get(p.element)}
-                        lev={leverageByElement.get(p.element)}
-                        webMean={webByElement?.mean.get(p.element)}
-                        riskShare={webByElement?.risk.get(p.element)}
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setPeekElement(p.element)}
+                        aria-label={`${p.webName}, open details`}
+                        className="block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
+                      >
+                        <ShirtToken
+                          row={p}
+                          mode={mode}
+                          swing={swingByElement.get(p.element)}
+                          lev={leverageByElement.get(p.element)}
+                          webMean={webByElement?.mean.get(p.element)}
+                          riskShare={webByElement?.risk.get(p.element)}
+                        />
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -370,12 +382,19 @@ export function FieldClient({
         <ul className="flex flex-wrap gap-2 opacity-70">
           {bench.map((p) => (
             <li key={p.element}>
-              <ShirtToken
-                row={p}
-                mode={mode}
-                swing={swingByElement.get(p.element)}
-                lev={leverageByElement.get(p.element)}
-              />
+              <button
+                type="button"
+                onClick={() => setPeekElement(p.element)}
+                aria-label={`${p.webName}, open details`}
+                className="block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
+              >
+                <ShirtToken
+                  row={p}
+                  mode={mode}
+                  swing={swingByElement.get(p.element)}
+                  lev={leverageByElement.get(p.element)}
+                />
+              </button>
             </li>
           ))}
         </ul>
@@ -401,7 +420,19 @@ export function FieldClient({
         )
       )}
 
-      {mode !== "planner" && <EOScatter rows={model.squad} />}
+      {mode !== "planner" && (
+        <EOScatter rows={model.squad} onSelect={(el) => setPeekElement(el)} />
+      )}
+
+      <PeekSheet
+        element={peekElement}
+        model={model}
+        swingByElement={swingByElement}
+        leverageByElement={leverageByElement}
+        onOpenChange={(o) => {
+          if (!o) setPeekElement(null);
+        }}
+      />
     </div>
   );
 }
@@ -465,7 +496,13 @@ export function ShirtToken({
   const riskScale = mode === "risk" && riskShare != null ? 0.78 + Math.min(0.65, riskShare * 5.5) : 1;
 
   return (
-    <div className={cn("relative w-[76px] text-center", done && "opacity-55")} title={`${row.webName} · ${club.name}`}>
+    <div
+      className={cn(
+        "relative w-[76px] text-center transition-opacity duration-[600ms] focus-visible:outline-none",
+        done && "opacity-55",
+      )}
+      title={`${row.webName} · ${club.name}`}
+    >
       {/* yet-to-play soft ring / live pulse */}
       {!done && (
         <span
@@ -509,7 +546,7 @@ export function ShirtToken({
 
       <span className="mt-0.5 block truncate text-2xs font-semibold text-ink-hi">{row.webName}</span>
 
-      {/* value pill on the shoulder */}
+      {/* value pill on the shoulder — points count up + wash on poll diffs */}
       <span
         className={cn(
           "mt-0.5 inline-block min-w-7 skewed rounded-sm px-1 py-px text-2xs font-extrabold num-tabular",
@@ -520,7 +557,11 @@ export function ShirtToken({
           val.tone === "plain" && "bg-overlay text-ink-mid card-ring",
         )}
       >
-        <span>{val.text}</span>
+        {mode === "points" ? (
+          <AnimatedNumber value={row.livePoints} format={(v) => String(Math.round(v))} />
+        ) : (
+          <span>{val.text}</span>
+        )}
       </span>
     </div>
   );
