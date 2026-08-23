@@ -12,6 +12,8 @@ export interface DeskSquadRow {
   /** FPL's real selling price (tenths) when exposed; falls back to nowCost. */
   sellPrice: number | null;
   epNext: number | null;
+  /** Next-three fixture run, e.g. "lei(H) mun(A) —". */
+  runLabel?: string;
 }
 export interface DeskCandidate {
   id: number;
@@ -19,6 +21,7 @@ export interface DeskCandidate {
   pos: number;
   nowCost: number;
   epNext: number | null;
+  runLabel?: string;
 }
 
 interface DeskState {
@@ -42,6 +45,7 @@ export function BoardDesk({
   wallGw,
   chips,
   bankTenths,
+  freeTransfers = 1,
 }: {
   teamId: number;
   squad: DeskSquadRow[];
@@ -52,6 +56,8 @@ export function BoardDesk({
   wallGw: number | null;
   chips: { key: string; label: string; stopEvent: number }[];
   bankTenths: number;
+  /** Rolling free transfers replayed from entry history. */
+  freeTransfers?: number;
 }) {
   const storageKey = `gaffer_board_v1_${teamId}`;
   const [state, setState] = React.useState<DeskState>({ moves: [], chips: {} });
@@ -95,8 +101,8 @@ export function BoardDesk({
   const removeMove = (i: number) =>
     persist({ ...state, moves: state.moves.filter((_, idx) => idx !== i) });
 
-  // Free transfers: assume 1 rolling FT (the plan's budget engine lands later).
-  const FREE_FT = 1;
+  // Free transfers: rolling bank replayed from entry history (cap 5).
+  const FREE_FT = freeTransfers;
   const hits = Math.max(0, state.moves.length - FREE_FT);
   const hitTotal = hits * HIT_COST;
 
@@ -122,8 +128,8 @@ export function BoardDesk({
       <dl className="flex flex-wrap items-end gap-x-8 gap-y-3 rounded-md bg-sunk card-ring px-4 py-3" aria-label="Your resources">
         <div>
           <dt className="upper-label text-2xs text-ink-lo">Free transfers</dt>
-          <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">
-            <Est method="budget engine lands with the v4 Plan object">{`${FREE_FT}`}</Est>
+          <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi" aria-label={`${FREE_FT} free transfer${FREE_FT === 1 ? "" : "s"} banked`}>
+            {FREE_FT}
           </dd>
         </div>
         <div>
@@ -158,7 +164,7 @@ export function BoardDesk({
         >
           {squad.map((s) => (
             <option key={s.element} value={s.element}>
-              OUT · {s.webName} ({POS_LABEL[s.pos]}) £{(s.nowCost / 10).toFixed(1)}
+              OUT · {s.webName} ({POS_LABEL[s.pos]}) £{(s.nowCost / 10).toFixed(1)}{s.runLabel ? ` · ${s.runLabel}` : ""}
             </option>
           ))}
         </select>
@@ -170,7 +176,7 @@ export function BoardDesk({
         >
           {candidates.map((c) => (
             <option key={c.id} value={c.id}>
-              IN · {c.webName} ({POS_LABEL[c.pos]}) £{(c.nowCost / 10).toFixed(1)}
+              IN · {c.webName} ({POS_LABEL[c.pos]}) £{(c.nowCost / 10).toFixed(1)}{c.runLabel ? ` · ${c.runLabel}` : ""}
             </option>
           ))}
         </select>
@@ -186,7 +192,11 @@ export function BoardDesk({
 
       {/* the ledger */}
       {state.moves.length === 0 ? (
-        <p className="text-xs text-ink-lo">No moves staged. The board is clean.</p>
+        <p className="text-xs text-ink-lo">
+          {FREE_FT >= 2
+            ? `${FREE_FT} free transfers banked — rolling is often the best move. The board is clean.`
+            : "No moves staged. The board is clean."}
+        </p>
       ) : (
         <table className="w-full text-xs num-tabular">
           <thead>
@@ -212,9 +222,11 @@ export function BoardDesk({
                 <tr key={`${m.out}-${m.in}`} className="border-b border-hairline last:border-0">
                   <td className="px-2 py-1.5 text-ink-mid">
                     {o?.webName ?? m.out} <span className="text-ink-lo">£{((o?.nowCost ?? 0) / 10).toFixed(1)}</span>
+                    {o?.runLabel && <span className="block text-2xs text-ink-lo">{o.runLabel}</span>}
                   </td>
                   <td className="px-2 py-1.5 text-ink-hi">
                     {n?.webName ?? m.in} <span className="text-ink-lo">£{((n?.nowCost ?? 0) / 10).toFixed(1)}</span>
+                    {n?.runLabel && <span className="block text-2xs text-ink-lo">{n.runLabel}</span>}
                   </td>
                   <td className="px-2 py-1.5">
                     {beyondFt ? (
