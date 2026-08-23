@@ -55,9 +55,13 @@
 - [x] `/api/ask` accepts `persona`, streams `{type:"gaffer"}` before the card; mobile Ask
       trigger added (44px, header). e2e pins strip, selection, bubble + API persona (58✓).
 
-### V6-C — context passing ⬜
-- [ ] `/api/ask` accepts the persona id; resolver context summary (GW, team structure, rank)
-      injected into the prompt; template fallback prose per persona when the model is down.
+### V6-C — context passing ✅ (this commit)
+- [x] `/api/ask` now passes the resolved gameweek + team structure into the gaffer prompt:
+      phase, points, played/to-play, captain, bench by position, live threats, rank + delta
+      via `arcadeFacts()` (pure, 3 new tests) and `matchdayToLite()`; `scrubFigures` moved
+      into `lib/ai/personas.ts` with 3 strip tests. The strict-numbers rule is unchanged —
+      figures live in the facts, never in persona prose.
+- [x] Cache-hit path still loads matchday for voice context. Gates: vitest 252✓ · e2e 58✓.
 
 ## Cross-cutting rules (every phase)
 Model selects components and parameters only — numbers come from engines via the resolver ·
