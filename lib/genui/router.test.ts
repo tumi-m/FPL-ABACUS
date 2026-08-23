@@ -26,11 +26,21 @@ describe("router — the zero-model contract", () => {
     expect(route("does gabriel hit 10 defcon?")!.component).toBe("defcon-check");
     expect(route("is he due or just finishing poorly? xg says what")!.component).toBe("xg-vs-actual");
     expect(route("what rank could i finish?")!.component).toBe("rank-projection");
-    expect(route("when should I play my wildcard?")!.component).toBe("chip-timeline");
+    expect(route("when should I play my wildcard?")!.component).toBe("chip-timing");
     expect(route("any injury news on james?")!.component).toBe("injury-list");
     expect(route("what's the latest gossip?")!.component).toBe("news-search");
     expect(route("my exposure to the template is scary")!.component).toBe("exposure-scatter");
     expect(route("which event moved me most in the ranks?")!.component).toBe("swing-impact");
+  });
+
+  it("routes the v5 assistant intents", () => {
+    const gen = route("build me a differential wildcard squad");
+    expect(gen!.component).toBe("squad-generator");
+    expect(gen!.params.risk).toBe("differential");
+    expect(route("generate me a safe team")!.params.risk).toBe("safe");
+    expect(route("who should I sell this week?")!.component).toBe("transfer-watch");
+    expect(route("best week for my bench boost?")!.component).toBe("chip-timing");
+    expect(route("how did I do last week?")!.component).toBe("review");
   });
 
   it("returns null on pure nonsense rather than guessing wildly", () => {
@@ -65,6 +75,7 @@ describe("registry integrity", () => {
       "captain-compare", "price-gauge", "transfer-sim", "fixture-run", "defcon-check",
       "xg-vs-actual", "rank-projection", "swing-impact", "exposure-scatter",
       "chip-timeline", "injury-list", "news-search",
+      "squad-generator", "transfer-watch", "chip-timing", "review",
     ]) {
       expect(isValidComponent(key)).toBe(true);
       expect(REGISTRY[key].engine.length).toBeGreaterThan(3);

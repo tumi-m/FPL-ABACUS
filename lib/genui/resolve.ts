@@ -12,6 +12,8 @@ import { buildFixtureModel, easiness, projectFixture } from "@/lib/engines/fixtu
 import { fitDixonColes, type DcMatch } from "@/lib/quant/strength";
 import { simulateWeb, type WebPlayer } from "@/lib/quant/correlationWeb";
 import { trueForm } from "@/lib/quant/estimators";
+import { chipOptionValue } from "@/lib/quant/decision";
+import { generateSquad } from "@/lib/genui/squadGen";
 import { recentItems } from "@/lib/news/store";
 import { hasDb } from "@/lib/env";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
@@ -90,6 +92,14 @@ export async function resolveCard(
       return effectiveBets(ctx);
     case "true-form":
       return trueFormCard(params);
+    case "squad-generator":
+      return squadGenerator(params);
+    case "transfer-watch":
+      return transferWatch(params, ctx);
+    case "chip-timing":
+      return chipTiming(ctx);
+    case "review":
+      return reviewCard(ctx);
     default:
       return null;
   }
@@ -521,4 +531,115 @@ async function trueFormCard(params: Record<string, unknown>): Promise<ResolvedCa
   } catch {
     return null;
   }
+}
+
+// ── v5-D: assistant use cases ────────────────────────────────────────────────
+
+async function squadGenerator(params: Record<string, unknown>): Promise<ResolvedCard | null> {
+  const boot = await getBootstrapLite();
+  const risk = params.risk === "safe" || params.risk === "differential" ? params.risk : "balanced";
+  const budgetTenths =
+    typeof params.budgetTenths === "number" ? Math.round(params.budgetTenths) : 1000;
+  const squad = generateSquad(Object.values(boot.elements), { budgetTenths, risk });
+  if (!squad) return null;
+  const POS = ["GK", "DEF", "MID", "FWD"];
+  return {
+    component: "squad-generator",
+    title: `Squad builder · ${risk}`,
+    prose: `A legal 15 for £${(squad.totalCost / 10).toFixed(1)}m projecting ${squad.totalEpNext} next gameweek. Prices move — treat it as a shortlist, not a shopping cart.`,
+    props: { risk, totalCost: squad.totalCost, players: squad.picks.map((p) => ({ ...p, posLabel: POS[p.pos - 1] ?? "?" })) },
+    note: "Generated from current prices and FPL projections.",
+  };
+}
+
+async function transferWatch(_params: Record<string, unknown>, ctx: ResolveContext): Promise<ResolvedCard | null> {
+  const boot = await getBootstrapLite();
+  const squadIds = await squadIdsFor(ctx);
+  if (!squadIds.length) return null;
+  const rows = squadIds
+    .map((id) => boot.elements[id])
+    .filter((e): e is ElementLite => e != null)
+    .sort((a, b) => (a.ep_next ?? 0) - (b.ep_next ?? 0))
+    .slice(0, 5)
+    .map((e) => ({
+      name: e.web_name,
+      epNext: e.ep_next,
+      cost: e.now_cost,
+      flagged: e.status !== "a",
+      news: e.news,
+    }));
+  if (!rows.length) return null;
+  return {
+    component: "transfer-watch",
+    title: "Transfer watch",
+    prose: `Weakest projected links: ${rows.slice(0, 3).map((r) => r.name).join(", ")}. Price any of them out and the swap pays for itself.`,
+    props: { players: rows },
+  };
+}
+
+async function chipTiming(ctx: ResolveContext): Promise<ResolvedCard | null> {
+  const squadIds = await squadIdsFor(ctx);
+  if (squadIds.length < 11) return null;
+  const boot = await getBootstrapLite();
+  const fixtures = await getFixturesAll().catch(() => [] as Awaited<ReturnType<typeof getFixturesAll>>);
+  const model = buildFixtureModel(fixtures, { upToGw: ctx.currentGw });
+
+  // Payoff per remaining gameweek: your XI's projected output scaled by the
+  // fixture ease each week offers. An estimate by construction.
+  const gws = boot.events.filter((e) => e.id >= ctx.currentGw).slice(0, 6);
+  const payoffs = gws.map((gw) => {
+    let sum = 0;
+    for (const id of squadIds.slice(0, 11)) {
+      const el = boot.elements[id];
+      if (!el) continue;
+      const fx = fixtures.find(
+        (f) => f.event === gw.id && (f.team_h === el.team || f.team_a === el.team),
+      );
+      if (!fx) continue;
+      const home = fx.team_h === el.team;
+      const oppId = home ? fx.team_a : fx.team_h;
+      const p = projectFixture(model, el.team, oppId, home);
+      const ease = Math.max(0.5, Math.min(1.5, p.xgFor / model.league.meanAttack90));
+      sum += (el.ep_next ?? 0) * ease;
+    }
+    return Number(sum.toFixed(1));
+  });
+  if (payoffs.length < 2) return null;
+
+  const opt = chipOptionValue({ payoffs, vol: 0.15, seed: ctx.currentGw, paths: 2000 });
+  const bestWeek = gws[opt.exerciseIndex]?.id ?? ctx.currentGw;
+  return {
+    component: "chip-timing",
+    title: "Chip timing",
+    prose: `On this fixture run the payoff peaks in GW${bestWeek}. Playing earlier leaves value on the table; later risks a worse draw.`,
+    props: { gws: gws.map((g) => g.id), payoffs, exerciseIndex: opt.exerciseIndex },
+    note: "Fixture-ease weighted projection, not a full simulation.",
+  };
+}
+
+async function reviewCard(ctx: ResolveContext): Promise<ResolvedCard | null> {
+  if (!ctx.matchday) return null;
+  const hero = ctx.matchday.hero;
+  const parts: string[] = [];
+  if (hero.officialEventPoints != null) {
+    parts.push(`You scored ${hero.officialEventPoints}, sitting around ${
+      hero.officialLiveRank != null ? hero.officialLiveRank.toLocaleString("en-GB") : "—"
+    }.`);
+  } else {
+    parts.push(`You are on ${hero.gwPoints} live.`);
+  }
+  const topSwing = [...ctx.matchday.swings].sort((a, b) => Math.abs(b.ranksGained) - Math.abs(a.ranksGained))[0];
+  if (topSwing) {
+    parts.push(
+      `The decisive moment was ${topSwing.minute}' ${topSwing.webName} — ${Math.abs(topSwing.ranksGained).toLocaleString("en-GB")} ranks ${topSwing.ranksGained >= 0 ? "gained" : "lost"}.`,
+    );
+  }
+  if (hero.benchPoints > 0) parts.push(`Your bench contributed ${hero.benchPoints}.`);
+  if (hero.transfersCost > 0) parts.push(`Hits cost you −${hero.transfersCost}.`);
+  return {
+    component: "review",
+    title: "Gameweek review",
+    prose: parts.join(" "),
+    props: null,
+  };
 }

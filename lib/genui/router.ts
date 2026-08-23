@@ -56,6 +56,41 @@ export function extractPlayerName(q: string): string | null {
 }
 
 const SHAPES: Shape[] = [
+  // ── v5-D assistant intents — more specific, so they sort first ──────────
+  {
+    intent: "squad.generate",
+    component: "squad-generator",
+    patterns: [
+      /\b(build|generate|make|create|pick|draft)\b.*\b(squad|team|wildcard)\b/i,
+      /\bwildcard (team|squad|picks)\b/i,
+      /\bwhat (team|squad) should i\b/i,
+      /\boptimi[sz]e my squad\b/i,
+    ],
+    extract: (q) => ({
+      risk: /\bdifferential|bold|risky\b/i.test(q)
+        ? "differential"
+        : /\bsafe|template|reliable\b/i.test(q)
+          ? "safe"
+          : "balanced",
+    }),
+  },
+  {
+    intent: "transfer.watch",
+    component: "transfer-watch",
+    patterns: [
+      /\bwho should i (sell|offload)\b/i, /\bweakest\b/i, /\bwho to (offload|move out|ship out)\b/i,
+      /\bsquad weaknesses?\b/i, /\bbest transfer targets?\b/i,
+    ],
+  },
+  {
+    intent: "chip.timing",
+    component: "chip-timing",
+    patterns: [
+      /\bwhen should i (play|use)\b/i, /\bbest week for (my )?(wildcard|free ?hit|bench boost|bb|tc)\b/i,
+      /\bchips? timing\b/i,
+    ],
+    extract: (q) => ({ query: q.slice(0, 120) }),
+  },
   // ── captaincy ────────────────────────────────────────────────────────────
   {
     intent: "captain.pick",
@@ -181,6 +216,14 @@ const SHAPES: Shape[] = [
     component: "news-search",
     patterns: [/\bnews\b/i, /\blatest\b/i, /\brumour/i, /\bgossip\b/i, /\bwhat.s happening\b/i, /\bpaper ?talk/i],
     extract: (q) => ({ query: q.slice(0, 120) }),
+  },
+  {
+    intent: "gw.review",
+    component: "review",
+    patterns: [
+      /\bhow did i do\b/i, /\breview my (gameweek|week|gw)\b/i, /\bsummarise my gameweek\b/i,
+      /\bwhat happened (to me |last week)\b/i,
+    ],
   },
 ];
 

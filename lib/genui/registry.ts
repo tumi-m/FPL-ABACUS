@@ -99,6 +99,33 @@ export const REGISTRY: Record<string, GenUIComponent> = {
     engine: "Kalman local-level filter over per-90 contribution with cameo discount (v3-6)",
     params: ParamSchemas.playerName,
   },
+  "squad-generator": {
+    key: "squad-generator",
+    title: "Squad builder",
+    engine:
+      "deterministic greedy optimiser over bootstrap + projections under full FPL constraints (v5-D); model sets strategy params only",
+    params: z
+      .object({
+        budgetTenths: z.number().int().min(700).max(1000).optional(),
+        risk: z.enum(["safe", "balanced", "differential"]).optional(),
+      })
+      .optional(),
+  },
+  "transfer-watch": {
+    key: "transfer-watch",
+    title: "Transfer watch",
+    engine: "squad ranked by ep_next vs price band; flags weakest links",
+  },
+  "chip-timing": {
+    key: "chip-timing",
+    title: "Chip timing",
+    engine: "Snell envelope over remaining gameweeks on a fixture-ease payoff curve (v3-15)",
+  },
+  review: {
+    key: "review",
+    title: "Gameweek review",
+    engine: "matchdayModel facts composed into template prose — hero, swings, regret",
+  },
 };
 
 export const COMPONENT_KEYS = Object.keys(REGISTRY);
