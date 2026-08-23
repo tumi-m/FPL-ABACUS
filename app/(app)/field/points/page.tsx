@@ -38,8 +38,9 @@ export default async function FieldPointsPage() {
         title="Points attribution"
         meta={`GW${model.event.id} · where the score comes from`}
         action={
-          <Link href="/field" className="text-xs text-volt hover:underline">
-            ← Back to the Field
+          <Link href="/field" role="button" className="skewed inline-flex h-9 items-center gap-2 rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi">
+            <span aria-hidden>←</span>
+            <span>Back to the Field</span>
           </Link>
         }
       />

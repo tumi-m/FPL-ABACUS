@@ -7,6 +7,7 @@ import { COPY } from "@/lib/copy/deck";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/primitives/Table";
 import { LeagueFilters } from "./LeagueFilters";
 import { PageHeader } from "@/components/gaffer/PageHeader";
+import { BackLink } from "@/components/gaffer/BackLink";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "League" };
@@ -81,12 +82,7 @@ export default async function LeagueDetail({
   if (!first) {
     return (
       <div className="space-y-4">
-        <Link
-          href="/leagues"
-          className="inline-flex h-10 items-center rounded-md px-2 -ml-2 text-sm text-ink-mid transition-colors dur-instant hover:text-ink-hi"
-        >
-          ← All leagues
-        </Link>
+        <BackLink href="/leagues" label="All leagues" />
         <p className="rounded-lg bg-surface-1 card-ring p-10 text-center text-sm text-ink-lo">
           {COPY.standingsDown.title} — {COPY.standingsDown.body}
         </p>
@@ -165,12 +161,7 @@ export default async function LeagueDetail({
 
   return (
     <div className="space-y-4">
-      <Link
-        href="/leagues"
-        className="inline-flex h-11 items-center rounded-md px-2 -ml-2 text-sm font-medium text-ink-mid transition-colors dur-instant hover:text-ink-hi"
-      >
-        ← All leagues
-      </Link>
+      <BackLink href="/leagues" label="All leagues" />
 
       {/* broadcast lower-third — match-graphic header per style guide §7 */}
       <PageHeader
