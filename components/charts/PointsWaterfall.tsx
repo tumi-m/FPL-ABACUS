@@ -3,12 +3,14 @@
 import * as React from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { ChartFrame } from "@/components/charts/ChartFrame";
+import { clubOf } from "@/config/clubs";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 /**
  * Points waterfall — where the gameweek score comes from. One floating bar per
  * scoring player (XI + came-on subs), building cumulatively to the total.
- * Marks stay flat and upright; the total bar is the single --volt identity mark.
+ * Bars wear their CLUB identity colour; the captain keeps a volt armband mark;
+ * the total bar is the single volt identity mark. Marks stay flat and upright.
  */
 export function PointsWaterfall({
   rows,
@@ -23,7 +25,13 @@ export function PointsWaterfall({
 
   const scoring = rows
     .filter((r) => !r.onBench)
-    .map((r) => ({ el: r.element, name: r.webName, pts: r.livePoints, captain: r.isCaptain && r.multiplier >= 2 }))
+    .map((r) => ({
+      el: r.element,
+      name: r.webName,
+      pts: r.livePoints,
+      teamId: r.teamId,
+      captain: r.isCaptain && r.multiplier >= 2,
+    }))
     .sort((a, b) => b.pts - a.pts);
 
   const total = scoring.reduce((s, r) => s + r.pts, 0);
@@ -85,7 +93,8 @@ export function PointsWaterfall({
               )}
               <rect
                 x={x(String(b.el))} y={top} width={bw} height={height}
-                rx="3" fill="var(--series-1)" opacity={b.captain ? 1 : 0.82}
+                rx="3" fill={clubOf(b.teamId).rail}
+                opacity={b.captain ? 1 : 0.85}
                 stroke="var(--bg-raised)" strokeWidth="2"
               >
                 <title>{`${b.name}${b.captain ? " (captain)" : ""} — ${b.pts} pts`}</title>
