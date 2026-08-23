@@ -18,8 +18,8 @@ const NAV = [
   { href: "/live", label: "Matchday" },
   { href: "/field", label: "Field" },
   { href: "/board", label: "Board" },
-  { href: "/news", label: "News" },
   { href: "/leagues", label: "Leagues" },
+  { href: "/arcade", label: "Arcade" },
 ] as const;
 
 const TABS = ["live", "field", "board", "leagues"] as const;

@@ -50,18 +50,18 @@ export function GafferStrip({ active, onChoose }: { active: PersonaId; onChoose:
             title={`${p.role}: ${p.blurb}`}
             onClick={() => onChoose(p.id)}
             className={cn(
-              "skewed group flex min-h-[64px] flex-col items-center justify-end gap-0.5 rounded-md card-ring px-1 pb-1.5 pt-1 transition-colors dur-instant",
+              "skewed group flex min-h-[88px] flex-col items-center justify-end gap-1 rounded-md card-ring px-1 pb-1.5 pt-2 transition-colors dur-instant",
               selected ? "bg-surface-3" : "hover:bg-surface-3/60",
             )}
             style={selected ? { boxShadow: "inset 0 0 0 1.5px var(--volt), var(--lift)" } : undefined}
           >
-            <span className="relative block h-10 w-8 overflow-hidden rounded-sm" aria-hidden>
+            <span className="relative block h-14 w-14 overflow-hidden rounded-sm" aria-hidden>
               <Image
-                src={p.avatar}
+                src={p.avatarIdle}
                 alt=""
                 fill
-                sizes="32px"
-                className={cn("object-cover object-top", !selected && "opacity-75")}
+                sizes="56px"
+                className={cn("object-cover object-top", !selected && "opacity-75 saturate-[.85]")}
                 unoptimized
               />
             </span>
