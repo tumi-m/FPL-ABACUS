@@ -1,7 +1,7 @@
+import Image from "next/image";
 import { Wordmark } from "@/components/gaffer/Wordmark";
 import { TeamIdGate } from "@/components/gaffer/TeamIdGate";
 import { SwingBars } from "@/components/charts/SwingBars";
-import { brand } from "@/config/brand";
 
 export default async function Landing({
   searchParams,
@@ -12,24 +12,25 @@ export default async function Landing({
   const target = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
   return (
     <div className="min-h-dvh">
-      <div className="mx-auto flex min-h-[70dvh] max-w-2xl flex-col items-center justify-center px-4 text-center">
+      <div className="mx-auto flex min-h-[78dvh] max-w-2xl flex-col items-center justify-center px-4 text-center">
         <Wordmark className="text-3xl" />
-        <p className="mt-3 text-lg text-ink-2">{brand.tagline}</p>
-        <p className="mt-2 max-w-md text-sm leading-relaxed text-ink-3">{brand.description}</p>
-        <div className="mt-8 w-full flex justify-center">
+        {/* the prize you're playing for — photo supplied by the owner */}
+        <Image
+          src="/images/trophy.jpeg"
+          alt="The Premier League trophy"
+          width={216}
+          height={270}
+          priority
+          className="mt-8 h-[216px] w-[173px] rounded-lg object-cover card-ring has-gloss"
+        />
+        <div className="mt-8 flex w-full justify-center">
           <TeamIdGate next={target} />
         </div>
       </div>
 
-      <section aria-label="What GAFFER shows" className="mx-auto max-w-[1360px] px-4 pb-24 md:px-6">
-        <p className="mb-4 text-center text-2xs font-medium uppercase tracking-wide text-ink-3">
-          Sample output · illustrative numbers
-        </p>
+      <section aria-label="What GAFFER shows" className="mx-auto max-w-[1360px] px-4 pb-10 md:px-6">
         <div className="grid gap-4 md:grid-cols-3">
-          <PreviewCard
-            title="Swing Engine"
-            line="Every scoring event, priced in your ranks."
-          >
+          <PreviewCard title="Swing Engine" line="Every scoring event, priced in your ranks.">
             <SwingBars
               rows={[
                 { label: "Saka assist", value: 86_400 },
@@ -54,6 +55,15 @@ export default async function Landing({
             </div>
           </PreviewCard>
         </div>
+
+        {/* the match ball — fills the closing whitespace as a broadcast band */}
+        <Image
+          src="/images/ball.webp"
+          alt="The match ball on the turf"
+          width={1440}
+          height={810}
+          className="mt-6 h-40 w-full rounded-lg object-cover card-ring has-gloss md:h-56"
+        />
       </section>
     </div>
   );
