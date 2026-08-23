@@ -15,7 +15,8 @@ test("landing renders the gate with trophy and ball imagery", async ({ page }) =
   await expect(page).toHaveTitle(/Gaffer/);
   await expect(page.getByLabel("Your FPL team ID")).toBeVisible();
   await expect(page.getByRole("img", { name: /troph/i })).toBeVisible();
-  await expect(page.getByRole("img", { name: /match ball/i })).toBeVisible();
+  await expect(page.locator("img[src*='ball']").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ask the Gaffer" }).last()).toBeVisible();
 });
 
 test.describe("team ID gate flow", () => {
@@ -250,7 +251,7 @@ test("ask bar routes captaincy questions without a model", async ({ request }) =
 test("arcade gaffer console: select strip, persona voice, sound toggle", async ({ page }) => {
   await asTeam(page);
   await page.goto("/live");
-  await page.getByRole("button", { name: "Open Ask" }).click();
+  await page.getByRole("button", { name: "Ask the Gaffer" }).click();
   // the four gaffers are on the strip
   await expect(page.getByRole("radiogroup", { name: "Choose your gaffer" })).toBeVisible();
   await expect(page.getByRole("radio", { name: /KOFI/ })).toBeVisible();
