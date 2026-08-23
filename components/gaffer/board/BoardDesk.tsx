@@ -117,12 +117,34 @@ export function BoardDesk({
   const affordable = canAfford(inRow, outRow);
 
   return (
-    <section aria-label="Transfer staging and chip lane" className="space-y-3 rounded-lg has-gloss card-lift bg-raised p-4 md:p-5">
+    <section aria-label="Transfer staging and chip lane" className="space-y-4 rounded-lg has-gloss card-lift bg-raised p-4 md:p-5">
+      {/* hero strip — resources read at a glance */}
+      <dl className="flex flex-wrap items-end gap-x-8 gap-y-3 rounded-md bg-sunk card-ring px-4 py-3" aria-label="Your resources">
+        <div>
+          <dt className="upper-label text-2xs text-ink-lo">Free transfers</dt>
+          <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">
+            <Est method="budget engine lands with the v4 Plan object">{`${FREE_FT}`}</Est>
+          </dd>
+        </div>
+        <div>
+          <dt className="upper-label text-2xs text-ink-lo">Bank</dt>
+          <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">£{bank.toFixed(1)}m</dd>
+        </div>
+        <div>
+          <dt className="upper-label text-2xs text-ink-lo">Hits staged</dt>
+          <dd
+            className={cn("fig-num mt-0.5 text-xl leading-none", hitTotal > 0 ? "text-flare" : "text-ink-mid")}
+            aria-label={`${hits} point hit${hits === 1 ? "" : "s"} planned, costing ${hitTotal} points`}
+          >
+            {hits > 0 ? `${hits} · −${hitTotal}` : "—"}
+          </dd>
+        </div>
+      </dl>
+
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="upper-label text-2xs text-ink-lo">Staging desk</h2>
         <p className="text-2xs text-ink-lo">
-          Ledger assumes <Est method="budget engine lands with the v4 Plan object" >1 free transfer</Est> ·
-          every move staged here stays local until you make it in the official game.
+          Every move staged here stays local until you make it in the official game.
         </p>
       </div>
 
@@ -132,7 +154,7 @@ export function BoardDesk({
           value={outSel}
           onChange={(e) => setOutSel(Number(e.target.value))}
           aria-label="Player out"
-          className="h-8 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi focus-visible:outline focus-visible:outline-volt"
+          className="h-10 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi focus-visible:outline focus-visible:outline-volt"
         >
           {squad.map((s) => (
             <option key={s.element} value={s.element}>
@@ -144,7 +166,7 @@ export function BoardDesk({
           value={inSel}
           onChange={(e) => setInSel(Number(e.target.value))}
           aria-label="Player in"
-          className="h-8 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi focus-visible:outline focus-visible:outline-volt"
+          className="h-10 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi focus-visible:outline focus-visible:outline-volt"
         >
           {candidates.map((c) => (
             <option key={c.id} value={c.id}>
@@ -156,7 +178,7 @@ export function BoardDesk({
           type="button"
           disabled={!affordable}
           onClick={() => addMove(outSel, inSel)}
-          className="skewed rounded-sm bg-volt px-3 py-1.5 text-xs uppercase-label text-on-accent transition-opacity dur-instant disabled:cursor-not-allowed disabled:opacity-40"
+          className="skewed inline-flex h-11 items-center rounded-sm bg-volt px-5 text-xs uppercase-label text-on-accent transition-opacity dur-instant disabled:cursor-not-allowed disabled:opacity-40"
         >
           <span>{affordable ? "Stage move" : "£ short"}</span>
         </button>
@@ -211,7 +233,7 @@ export function BoardDesk({
                     <button
                       type="button"
                       onClick={() => removeMove(i)}
-                      className="text-2xs uppercase-label text-ink-lo hover:text-flare"
+                      className="relative text-2xs uppercase-label text-ink-lo transition-colors dur-instant after:absolute after:inset-x-2 after:-inset-y-3 after:content-[''] hover:text-flare"
                     >
                       Drop
                     </button>
@@ -300,7 +322,7 @@ export function BoardDesk({
         <button
           type="button"
           onClick={() => persist({ moves: [], chips: {} })}
-          className="text-2xs uppercase-label text-ink-lo hover:text-flare"
+          className="inline-flex h-11 items-center self-start rounded-md card-ring px-4 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-flare"
         >
           Clear the desk
         </button>

@@ -5,13 +5,21 @@ import { clubOf, type Club } from "@/config/clubs";
  * Angled club flag — FLOODLIGHT rev-02 §8. The club colour as a 9° parallelogram.
  * Decorative; always pair with the club code somewhere on the row.
  */
-export function ClubFlag({ teamId, className }: { teamId: number | null | undefined; className?: string }) {
+export function ClubFlag({
+  teamId,
+  className,
+  colorVar,
+}: {
+  teamId: number | null | undefined;
+  className?: string;
+  colorVar?: string;
+}) {
   const club = clubOf(teamId);
   return (
     <span
       aria-hidden="true"
       className={cn("skewed inline-block w-[5px] self-stretch rounded-[2px]", className)}
-      style={{ background: club.rail }}
+      style={{ background: colorVar ?? club.rail }}
     />
   );
 }

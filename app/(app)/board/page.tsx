@@ -255,18 +255,25 @@ export default async function BoardPage({
         </p>
       </div>
 
-      <HeatGrid
-        ariaLabel={`Fixture difficulty grid across the ${horizonKey === "eos" ? "rest of the season" : `next ${horizonLen} gameweeks`}`}
-        rows={rows}
-      />
+      {/* fixture grid — the screen's hero */}
+      <section aria-label="Fixture difficulty grid" className="space-y-2">
+        <h2 className="upper-label text-2xs text-ink-lo">Fixture grid</h2>
+        <HeatGrid
+          ariaLabel={`Fixture difficulty grid across the ${horizonKey === "eos" ? "rest of the season" : `next ${horizonLen} gameweeks`}`}
+          rows={rows}
+        />
+      </section>
 
-      <ul className="flex flex-wrap gap-2 text-xs text-ink-3 num-tabular">
-        {blanksAndDoubles.map(({ id, doubles }) => (
-          <li key={id} className="rounded-full card-ring px-2.5 py-1">
-            GW{id}: {doubles > 0 ? `${doubles} double` : "no doubles"}
-          </li>
-        ))}
-      </ul>
+      <section aria-label="Blanks and doubles in the horizon" className="space-y-2">
+        <h2 className="upper-label text-2xs text-ink-lo">Blanks &amp; doubles</h2>
+        <ul className="flex flex-wrap gap-2 text-xs text-ink-3 num-tabular">
+          {blanksAndDoubles.map(({ id, doubles }) => (
+            <li key={id} className="rounded-full card-ring px-2.5 py-1">
+              GW{id}: {doubles > 0 ? `${doubles} double` : "no doubles"}
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <BoardDesk
         teamId={teamId}

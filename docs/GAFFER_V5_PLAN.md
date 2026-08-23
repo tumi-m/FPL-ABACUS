@@ -53,12 +53,18 @@ Seven assistant intents, all router-first, all numbers from engines:
 - [x] Two-arm bar replaced by a centred diverging meter with labelled ends, count-up figures,
       plain-language caption ("What your best/worst alternative was worth"), Est on estimates.
 
-### V5-F — League & Board visual polish ⬜ (next)
-- [ ] League detail: lower-third header, club-flag rails, movement arrows, you-row highlight,
-      summary strip (avg/spread), zebra-free row rhythm.
-- [ ] Board: hero strip (FT/bank/hits), section headers as upper-labels, desk spacing pass.
+### V5-F — League & Board visual polish ✅ (this commit)
+- [x] League detail: broadcast lower-third header (12px angled volt flag + gradient body),
+      summary strip (Avg GW as the hero figure · spread · best GW over shown rows),
+      movement rails — 5px skewed rail per row coloured surge/flare paired with ▲/▼ +
+      signed delta and aria text (never colour alone), you-row highlight via surface tint +
+      volt inset rail + YOU chip from the gaffer_team cookie, zebra-free hairline rhythm.
+- [x] Board: hero strip in BoardDesk (FT wrapped in Est · bank £m · hits staged −points,
+      flare when non-zero) so Field's Planner mode inherits it; selects h-10, Stage move
+      h-11, Drop/Clear get 44px hit areas (pseudo-element expansion / real buttons);
+      Fixture grid + Blanks & doubles section headers as upper-labels.
 
-### V5-G — UX depth (deferred until V5-F lands)
+### V5-G — UX depth (next)
 - [ ] Week Machine lite: phase-driven home emphasis + nav order (Autopsy/Workshop/War Room/
       Reveal/Match/Wait), always escapable.
 - [ ] Moments: settle-fade when bonus confirms; passed-rival toast (once, dismissible).
