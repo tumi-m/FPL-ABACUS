@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
 import { cn } from "@/lib/ui/cn";
@@ -223,10 +224,10 @@ export function AskBar() {
             </button>
           </form>
 
-          <div className="mt-2 flex items-center justify-between">
-            <p className="text-2xs text-ink-lo">
-              {personaById(personaId).name} · {personaById(personaId).role} — voice only; every figure comes from the engines.
-            </p>
+          {/* immersive gaffer — the selected one fills the console, frames flip */}
+          <SelectedGafferHero personaId={personaId} onSummon={() => inputRef.current?.focus()} />
+
+          <div className="mt-2 flex items-center justify-end">
             <button
               type="button"
               onClick={toggleBlips}
@@ -276,6 +277,81 @@ export function AskBar() {
         </SheetContent>
       </Sheet>
     </>
+  );
+}
+
+/**
+ * The selected gaffer as a large console hero — 2–3× the strip tile on desktop
+ * with the accent outline, a soft pitch pad underfoot, and the idle frame flip
+ * running. Tap to focus the question box.
+ */
+function SelectedGafferHero({
+  personaId,
+  onSummon,
+}: {
+  personaId: PersonaId;
+  onSummon: () => void;
+}) {
+  const persona = personaById(personaId);
+  const [frame, setFrame] = React.useState(0);
+
+  React.useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = window.setInterval(
+      () => setFrame((f) => (f + 1) % persona.avatarTalk.length),
+      280,
+    );
+    return () => window.clearInterval(t);
+  }, [persona]);
+
+  const src = persona.avatarTalk[frame % persona.avatarTalk.length] ?? persona.avatarIdle;
+
+  return (
+    <button
+      type="button"
+      onClick={onSummon}
+      aria-label={`${persona.name} — focus the question box`}
+      className="group relative mx-auto mt-5 flex w-full max-w-[560px] flex-col items-center overflow-hidden rounded-xl card-ring transition-transform dur-instant hover:-translate-y-0.5"
+      style={{
+        background:
+          "linear-gradient(180deg, color-mix(in oklab, var(--sunk) 88%, transparent), color-mix(in oklab, var(--raised) 65%, transparent))",
+        boxShadow: `inset 0 0 0 1.5px color-mix(in oklab, ${persona.accentVar} 40%, transparent)`,
+      }}
+    >
+      {/* pitch pad under the boots */}
+      <span
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-16 rounded-b-xl"
+        style={{
+          background:
+            "linear-gradient(180deg, transparent, color-mix(in oklab, #123B27 82%, transparent)), repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 36px, transparent 36px 72px)",
+        }}
+      />
+      <span className="relative z-10 pt-4 md:pt-6">
+        <span className="relative block h-36 w-36 sm:h-44 sm:w-44 md:h-64 md:w-64" aria-hidden>
+          <Image
+            src={src}
+            alt=""
+            fill
+            sizes="(min-width: 768px) 256px, (min-width: 640px) 176px, 144px"
+            className="object-contain object-bottom transition-transform dur-instant group-hover:scale-[1.02]"
+            unoptimized
+          />
+        </span>
+      </span>
+      <span
+        className="skewed relative z-10 -mt-1 mb-1 inline-flex scale-x-[1.12] items-center rounded-sm px-4 py-1 text-xs font-extrabold tracking-[0.18em] text-black"
+        style={{ background: persona.accentVar }}
+      >
+        {persona.name}
+      </span>
+      <span
+        className="upper-label relative z-10 mb-4 text-[9px] tracking-[0.16em]"
+        style={{ color: persona.accentVar }}
+      >
+        {persona.role}
+      </span>
+    </button>
   );
 }
 

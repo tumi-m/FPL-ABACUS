@@ -31,9 +31,9 @@ export function useGafferPersona(): [PersonaId, (id: PersonaId) => void] {
 const DEFAULT_VALUE: PersonaId = "oleg";
 
 /**
- * The character-select strip (v6-B) — four gaffers, volt ring on the active
- * one, accent rail underneath. Choosing a gaffer changes the voice, never
- * the numbers.
+ * The character-select strip (v6-B) — four gaffers, accent outline + rail on
+ * the active one, idle sprite per tile. Choosing a gaffer changes the voice,
+ * never the numbers.
  */
 export function GafferStrip({ active, onChoose }: { active: PersonaId; onChoose: (id: PersonaId) => void }) {
   return (
@@ -53,7 +53,7 @@ export function GafferStrip({ active, onChoose }: { active: PersonaId; onChoose:
               "skewed group flex min-h-[88px] flex-col items-center justify-end gap-1 rounded-md card-ring px-1 pb-1.5 pt-2 transition-colors dur-instant",
               selected ? "bg-surface-3" : "hover:bg-surface-3/60",
             )}
-            style={selected ? { boxShadow: "inset 0 0 0 1.5px var(--volt), var(--lift)" } : undefined}
+            style={selected ? { boxShadow: `inset 0 0 0 1.5px ${p.accentVar}, var(--lift)` } : undefined}
           >
             <span className="relative block h-14 w-14 overflow-hidden rounded-sm" aria-hidden>
               <Image
@@ -61,7 +61,7 @@ export function GafferStrip({ active, onChoose }: { active: PersonaId; onChoose:
                 alt=""
                 fill
                 sizes="56px"
-                className={cn("object-cover object-top", !selected && "opacity-75 saturate-[.85]")}
+                className={cn("object-contain object-bottom", !selected && "opacity-75 saturate-[.85]")}
                 unoptimized
               />
             </span>
@@ -69,7 +69,7 @@ export function GafferStrip({ active, onChoose }: { active: PersonaId; onChoose:
             <span
               aria-hidden
               className="block h-0.5 w-6 rounded-full"
-              style={{ background: p.accentVar }}
+              style={{ background: selected ? p.accentVar : "transparent" }}
             />
           </button>
         );

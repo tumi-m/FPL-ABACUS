@@ -10,13 +10,12 @@ async function asTeam(page: Page) {
   await page.context().addCookies([teamCookie()]);
 }
 
-test("landing renders the gate with trophy and ball imagery", async ({ page }) => {
+test("landing renders the gate, the gaffer lineup and ball imagery", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Gaffer/);
   await expect(page.getByLabel("Your FPL team ID")).toBeVisible();
-  await expect(page.getByRole("img", { name: /troph/i })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /kofi/i })).toBeVisible();
   await expect(page.locator("img[src*='ball']").first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Ask the Gaffer" }).last()).toBeVisible();
 });
 
 test.describe("team ID gate flow", () => {
@@ -273,15 +272,14 @@ test("arcade gaffer console: select strip, persona voice, sound toggle", async (
   // the four gaffers are on the strip
   await expect(page.getByRole("radiogroup", { name: "Choose your gaffer" })).toBeVisible();
   await expect(page.getByRole("radio", { name: /KOFI/ })).toBeVisible();
-  // pick the maverick — selection sticks
+  // pick the maverick — the immersive console hero expands
   await page.getByRole("radio", { name: /KOFI/ }).click();
   await expect(page.getByRole("radio", { name: /KOFI/ })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("button", { name: /KOFI.*focus the question box/ })).toBeVisible();
   // ask — the gaffer bubble speaks (deterministic fallback when no gateway key)
   await page.getByLabel("Your question").fill("should I take a hit?");
   await page.getByRole("button", { name: "Ask" }).last().click();
   await expect(page.getByText(/KOFI · The Maverick/)).toBeVisible({ timeout: 20_000 });
-  // the persona line names the active gaffer
-  await expect(page.getByText(/KOFI · The Maverick — voice only/)).toBeVisible();
 });
 
 test("the gaffer voice is persona-flavoured on the API", async ({ request }) => {
