@@ -32,12 +32,18 @@
 - [x] Keys 1–6 select the six pitch modes (planner stays click-only; typing-safe); e2e pins
       seven controls + URL persistence for both modes. Gates: vitest 219✓ · e2e 44✓.
 
-### V4-B — Peek sheet + live diff-polling + OG ⬜
-- [ ] One shared Sheet for token taps: player mini-card (state, stats, swing, quick actions);
-      chart tooltips route to the same component.
-- [ ] Diff-polling: animate ONLY changed tokens on poll (count-up + wash, finish fade 600ms,
-      auto-sub ⇅ drawn once); paused when hidden; reduced-motion static.
-- [ ] `/api/og/field/[entry]` — per-entry OG image via ImageResponse (static /field OG stays).
+### V4-B — Peek sheet + live diff-polling + OG ✅ (this commit)
+- [x] `components/gaffer/field/PeekSheet.tsx` — ONE shared bottom sheet for token taps:
+      crest tile, live-points hero with count-up/wash, fixture state, EO (Est-wrapped when
+      estimated), minutes/BPS/swing/leverage/bonus grid, DEFCON meter, 44px close + Player
+      page action. Pitch and bench tokens are buttons opening it; EOScatter dots route to
+      the same sheet (table toggle stays the a11y path).
+- [x] Diff-polling: points pill count-ups via AnimatedNumber (keyed remount replays the
+      volt wash, reduced-motion safe); finish fade is a 600ms opacity transition on done
+      tokens; ⇅ stays drawn-once; polling already pauses when hidden.
+- [x] `/api/og/field/[entry]` per-entry share card (ImageResponse) degrading to name-only
+      when picks/upstream are unavailable; never errors the share. e2e pins the peek flow
+      and the OG content-type. Gates: vitest 219✓ · e2e 48✓.
 
 ### V4-C — Entry Gate + homescreen ⬜
 - [ ] Landing rebuild per locked decisions (trophy hero, gate centred, ball photo band).

@@ -14,9 +14,12 @@ import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 export function EOScatter({
   rows,
   ariaLabel = "Scatter of your squad by effective ownership and active weight",
+  onSelect,
 }: {
   rows: MatchdayModel["squad"];
   ariaLabel?: string;
+  /** v4 peek — dot taps open the shared player sheet (table view stays the a11y path). */
+  onSelect?: (element: number) => void;
 }) {
   const W = 560;
   const H = 320;
@@ -91,7 +94,7 @@ export function EOScatter({
           Effective ownership % →
         </text>
 
-        {/* dots — 2px surface gaps via stroke */}
+        {/* dots — 2px surface gaps via stroke; taps peek the player */}
         {pts.map((p) => (
           <circle
             key={p.el}
@@ -102,6 +105,8 @@ export function EOScatter({
             stroke="var(--bg-raised)"
             strokeWidth="2"
             opacity={p.captain ? 1 : 0.85}
+            onClick={onSelect ? () => onSelect(p.el) : undefined}
+            className={onSelect ? "cursor-pointer" : undefined}
           >
             <title>{`${p.name} — EO ${p.x.toFixed(1)}%, active ${p.y >= 0 ? "+" : ""}${p.y.toFixed(2)}`}</title>
           </circle>
