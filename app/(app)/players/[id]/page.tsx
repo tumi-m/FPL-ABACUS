@@ -5,8 +5,9 @@ import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getElementSummary } from "@/lib/fpl/endpoints";
 import { Badge } from "@/components/primitives/Badge";
 import { Meter } from "@/components/charts/Meter";
-import { formatPrice, POSITION_SHORT, crest, playerImg } from "@/lib/ui/format";
+import { formatPrice, POSITION_SHORT, playerImg } from "@/lib/ui/format";
 import { COPY } from "@/lib/copy/deck";
+import { PageHeader } from "@/components/gaffer/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -32,30 +33,29 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
     <div className="space-y-4">
       <Link href="/players" className="text-xs text-ink-3 hover:text-ink-1">← All players</Link>
 
-      <header className="flex flex-wrap items-center gap-4 rounded-lg bg-surface-1 card-ring p-5">
-        <Image src={playerImg(el.photo)} alt={el.web_name} width={72} height={72} className="h-[72px] w-[72px] rounded-full object-cover bg-surface-3" />
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">{el.web_name}</h1>
-          <p className="mt-0.5 flex items-center gap-2 text-sm text-ink-2">
-            <Image src={crest(el.team_code)} alt="" width={18} height={18} />
-            {team?.name} · {POSITION_SHORT[el.element_type]} · {formatPrice(el.now_cost)}
-          </p>
-        </div>
-        <div className="ml-auto flex items-center gap-4 text-right num-tabular">
-          <div>
-            <div className="text-2xs uppercase tracking-wide text-ink-3">Points</div>
-            <div className="font-semibold text-2xl">{el.total_points}</div>
+      <PageHeader
+        title={el.web_name}
+        meta={`${team?.name ?? ""} · ${POSITION_SHORT[el.element_type]} · ${formatPrice(el.now_cost)}`}
+        media={
+          <Image src={playerImg(el.photo)} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-md object-cover bg-surface-3" />
+        }
+        action={
+          <div className="flex items-center gap-4 text-right num-tabular sm:gap-6">
+            <div>
+              <div className="upper-label text-2xs text-ink-lo">Points</div>
+              <div className="fig-num text-xl">{el.total_points}</div>
+            </div>
+            <div>
+              <div className="upper-label text-2xs text-ink-lo">Form</div>
+              <div className="fig-num text-xl">{el.form}</div>
+            </div>
+            <div>
+              <div className="upper-label text-2xs text-ink-lo">Owned</div>
+              <div className="fig-num text-xl">{el.selected_by_percent}%</div>
+            </div>
           </div>
-          <div>
-            <div className="text-2xs uppercase tracking-wide text-ink-3">Form</div>
-            <div className="font-semibold text-2xl">{el.form}</div>
-          </div>
-          <div>
-            <div className="text-2xs uppercase tracking-wide text-ink-3">Owned</div>
-            <div className="font-semibold text-2xl">{el.selected_by_percent}%</div>
-          </div>
-        </div>
-      </header>
+        }
+      />
 
       {el.status !== "a" && (
         <div className="rounded-lg bg-warning/10 p-4 text-sm text-warning">
