@@ -120,6 +120,22 @@ test.describe("authenticated routes", () => {
     }
   });
 
+  test("league manager rows deep-link to a head-to-head compare", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/leagues");
+    const firstLeague = page.locator('a[href^="/leagues/"]').first();
+    if ((await firstLeague.count()) === 0) return; // no leagues on this account — nothing to test
+    await page.goto((await firstLeague.getAttribute("href"))!);
+    // any manager link that is not the you-row
+    const rival = page.locator("a[href*='compare=']").first();
+    if ((await rival.count()) === 0) return; // solo league — no rival to compare
+    const href = (await rival.getAttribute("href"))!;
+    await page.goto(href); // deep-link directly — click hit-testing is flaky under the sticky header
+    await expect(page).toHaveURL(/field\?mode=points&compare=\d+/);
+    // either the head-to-head header loads or the honest no-picks note shows
+    await expect(page.getByText(/No picks visible|Entry \d+|You/).first()).toBeVisible({ timeout: 15_000 });
+  });
+
   test("field renders the pitch with the seven mode controls", async ({ page }) => {
     await asTeam(page);
     const res = await page.goto("/field");
