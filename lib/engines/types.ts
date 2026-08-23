@@ -31,6 +31,10 @@ export interface LiveStatsLite {
   ownGoals: number;
   penMissed: number;
   cards: number;
+  yellowCards: number;
+  redCards: number;
+  xg: number;
+  xa: number;
 }
 
 export interface LivePlayer {

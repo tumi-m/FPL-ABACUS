@@ -8,7 +8,7 @@ import { Meter } from "@/components/charts/Meter";
 import { Est } from "@/components/gaffer/Est";
 import { X } from "@/components/primitives/icons";
 import { clubOf } from "@/config/clubs";
-import { POSITION_SHORT, formatSignedRank } from "@/lib/ui/format";
+import { POSITION_SHORT, formatSignedRank, playerImg } from "@/lib/ui/format";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 type SwingRow = MatchdayModel["swings"][number];
@@ -42,7 +42,24 @@ export function PeekSheet({
         <SheetContent side="bottom" aria-label={`${row.webName} details`}>
           <div className="mb-3 flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <CrestTile teamId={row.teamId} />
+              {/* player face with club crest badge — profile-style identity block */}
+              <span className="relative inline-block shrink-0">
+                {row.photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={playerImg(row.photo)}
+                    alt=""
+                    width={56}
+                    height={56}
+                    className="h-14 w-14 rounded-md bg-surface-2 object-cover object-top card-ring"
+                  />
+                ) : (
+                  <CrestTile teamId={row.teamId} />
+                )}
+                <span className="absolute -bottom-1.5 -right-1.5 rounded-sm bg-raised p-[3px] shadow-[0_1px_4px_rgba(0,0,0,.5)]">
+                  <CrestTile teamId={row.teamId} />
+                </span>
+              </span>
               <div>
                 <SheetTitle className="leading-tight">{row.webName}</SheetTitle>
                 <p className="mt-0.5 text-2xs uppercase-label text-ink-lo">
@@ -117,6 +134,39 @@ export function PeekSheet({
               <dt className="upper-label text-2xs text-ink-lo">Bonus</dt>
               <dd className="mt-0.5 num-tabular text-ink-hi">
                 {row.provisionalBonus > 0 ? `${row.provisionalBonus} projected` : "—"}
+              </dd>
+            </div>
+            {/* the live stat line — straight from the event feed */}
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">Goals</dt>
+              <dd className="mt-0.5 num-tabular text-ink-hi">{row.liveStats?.goalsScored ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">Assists</dt>
+              <dd className="mt-0.5 num-tabular text-ink-hi">{row.liveStats?.assists ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">Yellows</dt>
+              <dd className="mt-0.5 num-tabular text-ink-hi">
+                {row.liveStats
+                  ? row.liveStats.yellowCards + (row.liveStats.redCards > 0 ? ` · ${row.liveStats.redCards} red` : "")
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">Saves</dt>
+              <dd className="mt-0.5 num-tabular text-ink-hi">{row.liveStats?.saves ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">xG · xA</dt>
+              <dd className="mt-0.5 num-tabular text-ink-hi">
+                {row.liveStats ? `${row.liveStats.xg.toFixed(2)} · ${row.liveStats.xa.toFixed(2)}` : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">Clean sheet</dt>
+              <dd className="mt-0.5 num-tabular text-ink-hi">
+                {row.liveStats == null ? "—" : row.liveStats.cleanSheets > 0 ? "Yes" : "No"}
               </dd>
             </div>
           </dl>

@@ -36,6 +36,10 @@ export interface SquadRow {
   teamId: number;
   /** Effective ownership % in the selected cohort (estimated prior if no snapshot). */
   eo: number;
+  /** Headshot photo code from bootstrap (playerImg key), empty when unknown. */
+  photo: string;
+  /** Per-GW live stat line from the event feed — null before a player is involved. */
+  liveStats: import("@/lib/engines/types").LiveStatsLite | null;
 }
 
 export interface SwingRow {
@@ -203,6 +207,8 @@ export function composeMatchdayModel(deps: {
       subbedInFor: subbedIn ? subbedIn.out : null,
       teamId: meta?.team ?? 0,
       eo: round1(eoOf(p.element)),
+      photo: meta?.photo ?? "",
+      liveStats: player?.stats ?? null,
     };
   });
 

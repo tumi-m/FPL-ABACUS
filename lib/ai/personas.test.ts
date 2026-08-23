@@ -29,6 +29,15 @@ describe("persona registry — the four arcade gaffers", () => {
     expect(PERSONAS[3].voice).toMatch(/fixture/i);
   });
 
+  it("select-screen intros are number-free and short (arcade tone)", () => {
+    for (const persona of PERSONAS) {
+      expect(persona.intro.split(/\s+/).length).toBeLessThanOrEqual(40);
+      expect(persona.intro).not.toMatch(/\d/);
+      expect(persona.intro).not.toMatch(/!!/);
+    }
+    expect(new Set(PERSONAS.map((p) => p.intro)).size).toBe(4);
+  });
+
   it("personaById resolves canon ids and defaults safely", () => {
     expect(personaById("ana").name).toBe("ANA");
     expect(personaById(null).id).toBe(DEFAULT_PERSONA);

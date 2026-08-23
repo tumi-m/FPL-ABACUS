@@ -29,6 +29,10 @@ function liteStats(stats: Live["elements"][number]["stats"]): LiveStatsLite {
     ownGoals: stats.own_goals,
     penMissed: stats.penalties_missed,
     cards: stats.yellow_cards + stats.red_cards,
+    yellowCards: stats.yellow_cards,
+    redCards: stats.red_cards,
+    xg: stats.expected_goals,
+    xa: stats.expected_assists,
   };
 }
 
