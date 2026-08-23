@@ -4,6 +4,9 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
 import { cn } from "@/lib/ui/cn";
+import { GafferStrip, useGafferPersona } from "@/components/gaffer/ask/GafferStrip";
+import { GafferBubble } from "@/components/gaffer/ask/GafferBubble";
+import { personaById } from "@/lib/ai/personas";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { PriceGauge } from "@/components/charts/PriceGauge";
 import { FixtureSwing } from "@/components/charts/FixtureSwing";
@@ -26,6 +29,7 @@ interface CardEvent {
 type StreamEvent =
   | { type: "meta"; intent: string; source: string }
   | { type: "prose"; text: string }
+  | { type: "gaffer"; persona: string; text: string }
   | CardEvent
   | { type: "done" }
   | { type: "error"; message: string };
@@ -39,10 +43,18 @@ const PROMPTS_BY_SCREEN: Record<string, string[]> = {
   DEFAULT: ["Who should I captain?", "Will anyone rise tonight?", "Any injury doubts in my squad?"],
 };
 
+interface GafferLine {
+  kind: "gaffer";
+  personaId: string;
+  text: string;
+}
+
 interface ChartCard {
   kind: "card";
   node: React.ReactNode;
 }
+
+const BLIPS_KEY = "gaffer_blips_muted";
 
 export function AskBar() {
   const pathname = usePathname();
@@ -50,9 +62,32 @@ export function AskBar() {
   const [q, setQ] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [prose, setProse] = React.useState<string[]>([]);
+  const [gaffers, setGaffers] = React.useState<GafferLine[]>([]);
   const [cards, setCards] = React.useState<ChartCard[]>([]);
+  const [personaId, choosePersona] = useGafferPersona();
+  const [blipsMuted, setBlipsMuted] = React.useState(true);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const resultsRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    try {
+      setBlipsMuted(localStorage.getItem(BLIPS_KEY) === "1");
+    } catch {
+      /* storage blocked — muted */
+    }
+  }, []);
+
+  const toggleBlips = () => {
+    setBlipsMuted((m) => {
+      const next = !m;
+      try {
+        localStorage.setItem(BLIPS_KEY, next ? "1" : "0");
+      } catch {
+        /* session-only */
+      }
+      return next;
+    });
+  };
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -77,13 +112,14 @@ export function AskBar() {
     if (!question.trim() || busy) return;
     setBusy(true);
     setProse([]);
+    setGaffers([]);
     setCards([]);
     setQ(question);
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ q: question }),
+        body: JSON.stringify({ q: question, persona: personaId }),
       });
       if (!res.body) throw new Error("no stream");
       const reader = res.body.getReader();
@@ -103,7 +139,9 @@ export function AskBar() {
           } catch {
             continue;
           }
-          if (ev.type === "prose") {
+          if (ev.type === "gaffer") {
+            setGaffers((g) => [...g, { kind: "gaffer", personaId: ev.persona, text: ev.text }]);
+          } else if (ev.type === "prose") {
             setProse((p) => [...p, ev.text]);
           } else if (ev.type === "card") {
             const node = renderCard(ev.component, ev.props);
@@ -132,10 +170,25 @@ export function AskBar() {
         Ask
         <kbd className="rounded bg-surface-3 px-1 py-0.5 text-2xs num-tabular">⌘K</kbd>
       </button>
+      {/* mobile trigger — 44px icon beside the theme toggle */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Open Ask"
+        className="relative grid h-11 w-11 place-items-center rounded-full card-ring text-ink-lo transition-colors dur-instant after:absolute after:inset-0 after:content-[''] hover:text-ink-hi sm:hidden"
+      >
+        <span aria-hidden className="text-sm font-bold">?</span>
+      </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="sm:max-w-xl">
           <SheetTitle>Ask the gaffer</SheetTitle>
+
+          {/* character select — the four arcade gaffers */}
+          <div className="mt-3">
+            <GafferStrip active={personaId} onChoose={choosePersona} />
+          </div>
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -160,7 +213,21 @@ export function AskBar() {
             </button>
           </form>
 
-          {prose.length === 0 && cards.length === 0 && (
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-2xs text-ink-lo">
+              {personaById(personaId).name} · {personaById(personaId).role} — voice only; every figure comes from the engines.
+            </p>
+            <button
+              type="button"
+              onClick={toggleBlips}
+              aria-pressed={!blipsMuted}
+              className="text-2xs uppercase-label text-ink-lo transition-colors dur-instant hover:text-ink-hi"
+            >
+              Sound {blipsMuted ? "off" : "on"}
+            </button>
+          </div>
+
+          {prose.length === 0 && cards.length === 0 && gaffers.length === 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {suggestions.map((s) => (
                 <button
@@ -176,13 +243,21 @@ export function AskBar() {
           )}
 
           <div ref={resultsRef} className="mt-4 max-h-[60dvh] space-y-3 overflow-y-auto pr-1">
+            {gaffers.map((g, i) => (
+              <GafferBubble
+                key={`g-${i}`}
+                persona={personaById(g.personaId)}
+                text={g.text}
+                blipsOn={!blipsMuted}
+              />
+            ))}
             {prose.map((t, i) => (
-              <p key={i} className="text-sm leading-relaxed text-ink-mid">
+              <p key={`p-${i}`} className="text-sm leading-relaxed text-ink-mid">
                 {t}
               </p>
             ))}
             {cards.map((c, i) => (
-              <div key={i}>{c.node}</div>
+              <div key={`c-${i}`}>{c.node}</div>
             ))}
           </div>
           <p className="mt-3 text-2xs leading-relaxed text-ink-lo">
