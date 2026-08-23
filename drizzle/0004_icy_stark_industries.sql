@@ -1,0 +1,1 @@
+ALTER TABLE "cohort_entry" ADD COLUMN "event_transfers" integer;

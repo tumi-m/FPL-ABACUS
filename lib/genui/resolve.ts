@@ -12,11 +12,15 @@ import { buildFixtureModel, easiness, projectFixture } from "@/lib/engines/fixtu
 import { buildCorrelationWeb, buildWebContext } from "@/lib/server/buildCorrelationWeb";
 import { crowding } from "@/lib/quant/crowding";
 import { wpaPaired } from "@/lib/quant/wpa";
+import { twinStudy } from "@/lib/engines/twinStudy";
+import { db } from "@/lib/db";
+import { cohortEntry, cohortSnapshot } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { hasDb } from "@/lib/env";
 import { trueForm } from "@/lib/quant/estimators";
 import { chipOptionValue } from "@/lib/quant/decision";
 import { generateSquad } from "@/lib/genui/squadGen";
 import { recentItems } from "@/lib/news/store";
-import { hasDb } from "@/lib/env";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 export interface ResolveContext {
@@ -105,6 +109,8 @@ export async function resolveCard(
       return crowdingCard(ctx);
     case "wpa":
       return wpaCard(params, ctx);
+    case "twin-study":
+      return twinStudyCard(params, ctx);
     default:
       return null;
   }
@@ -709,5 +715,94 @@ async function wpaCard(params: Record<string, unknown>, ctx: ResolveContext): Pr
       expectedPoints: result.expectedPoints,
       moments,
     },
+  };
+}
+
+// ── v3-10: the twin study ────────────────────────────────────────────────────
+
+async function twinStudyCard(params: Record<string, unknown>, ctx: ResolveContext): Promise<ResolvedCard | null> {
+  if (!hasDb || !ctx.teamId) return null;
+  const boot = await getBootstrapLite();
+  const squadIds = await squadIdsFor(ctx);
+  if (!squadIds.length) return null;
+
+  // the decision under study: a player in your squad the model may name
+  const named = typeof params.playerName === "string" ? findElement(boot, params.playerName) : null;
+  const target = named && squadIds.includes(named.id) ? named.id : squadIds[squadIds.length - 1];
+
+  // cohort rows for the settled GW
+  const snapRows = await db()
+    .select({ id: cohortSnapshot.id })
+    .from(cohortSnapshot)
+    .where(eq(cohortSnapshot.event, ctx.currentGw))
+    .limit(1);
+  if (!snapRows.length) return null;
+  const rows = await db()
+    .select({
+      entry: cohortEntry.entry,
+      elements: cohortEntry.elements,
+      counts: cohortEntry.counts,
+      squadCostTenths: cohortEntry.squadCostTenths,
+      bankTenths: cohortEntry.bankTenths,
+      eventTransfers: cohortEntry.eventTransfers,
+      gwPoints: cohortEntry.gwPoints,
+      arm: cohortEntry.arm,
+    })
+    .from(cohortEntry)
+    .where(eq(cohortEntry.snapshotId, snapRows[0].id));
+  if (!rows.length) return null;
+
+  const settled = rows.filter((r) => r.gwPoints != null && r.arm != null) as {
+    entry: number;
+    elements: number[];
+    counts: [number, number, number];
+    squadCostTenths: number;
+    bankTenths: number;
+    eventTransfers: number | null;
+    gwPoints: number;
+    arm: string;
+  }[];
+  // outcomes only exist post-settle — before that there is nothing honest to show
+  if (settled.length < 100) return null;
+
+  const history = await getHistory(ctx.teamId).catch(() => null);
+  const myBank = history?.current[history.current.length - 1]?.bank ?? 0;
+  const myFt = history?.current[history.current.length - 1]?.event_transfers ?? 1;
+  const result = twinStudy(
+    squadIds,
+    myBank,
+    myFt,
+    settled.map((r) => ({
+      entry: r.entry,
+      elements: r.elements,
+      counts: r.counts,
+      squadCostTenths: r.squadCostTenths,
+      bankTenths: r.bankTenths,
+      ft: r.eventTransfers,
+      rankAt: null,
+    })),
+    new Map(settled.map((r) => [r.entry, {
+      entry: r.entry,
+      gwPoints: r.gwPoints,
+      captainPoints: 0,
+      arm: (r.arm as "transfer" | "hit" | "chip" | "captain" | "hold"),
+    }])),
+    new Map(),
+  );
+  if (!result.arms.length) return null;
+
+  const targetName = boot.elements[target]?.web_name ?? `#${target}`;
+  const arms = result.arms.map((a) => ({
+    arm: a.arm,
+    n: a.n,
+    mean: a.mean,
+    median: a.median,
+  }));
+  const best = [...arms].sort((a, b) => b.mean - a.mean)[0];
+  return {
+    component: "twin-study",
+    title: "Twin study",
+    prose: `Among ${result.n} near-twins of your squad (≥13 shared players, bank within £0.5m), the "${best.arm}" arm averaged ${best.mean.toFixed(1)} points — observational, not causal. Sample ${result.n}, reliability ${result.reliable ? "ok" : "thin"}.`,
+    props: { arms, n: result.n, reliable: result.reliable, targetName, note: result.note },
   };
 }

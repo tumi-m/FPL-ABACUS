@@ -514,6 +514,39 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
         </div>
       );
     }
+    case "twin-study": {
+      const arms = props.arms as { arm: string; n: number; mean: number; median: number }[];
+      const n = props.n as number;
+      const reliable = props.reliable as boolean;
+      const best = arms.length ? Math.max(...arms.map((a) => a.mean)) : 0;
+      return (
+        <div className={cn("rounded-lg bg-surface-1 card-ring p-4", !reliable && "opacity-60")}>
+          <div className="flex items-baseline justify-between">
+            <div className="upper-label text-2xs text-ink-lo">Twin study — observational</div>
+            <div className="text-2xs text-ink-lo num-tabular">n = {n.toLocaleString("en-GB")}{reliable ? "" : " · thin"}</div>
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {arms.map((a) => (
+              <li key={a.arm} className="flex items-center gap-3">
+                <span className="w-16 text-xs uppercase-label text-ink-mid">{a.arm}</span>
+                <span className="h-3 flex-1 overflow-hidden rounded-full bg-surface-3">
+                  <span
+                    className="block h-full rounded-full"
+                    style={{ width: `${best > 0 ? (a.mean / best) * 100 : 0}%`, background: "var(--series-1)" }}
+                  />
+                </span>
+                <span className="w-16 text-right fig-num text-xs text-ink-hi">{a.mean.toFixed(1)}</span>
+                <span className="w-14 text-right text-2xs text-ink-lo num-tabular">n={a.n}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-2xs leading-relaxed text-ink-lo">
+            Managers with near-identical squads and bank, split by the decision they actually
+            made. Observational — selection is visible in the arms, not controlled.
+          </p>
+        </div>
+      );
+    }
     default:
       return null;
   }

@@ -246,6 +246,18 @@ const SHAPES: Shape[] = [
       return m ? { rivalEntry: Number(m[1]) } : {};
     },
   },
+  {
+    intent: "twin.study",
+    component: "twin-study",
+    patterns: [
+      /\btwins?\b/i, /\bwhat if i (kept|sold|held)\b/i, /\bdid i make the right (transfer|call|move)\b/i,
+      /\bmanagers like me\b/i, /\bpeople with my (squad|team)\b/i,
+    ],
+    extract: (q) => {
+      const playerName = extractPlayerName(q);
+      return playerName ? { playerName } : {};
+    },
+  },
 ];
 
 export function route(query: string): RouteResult | null {

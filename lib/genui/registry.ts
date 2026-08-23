@@ -139,6 +139,13 @@ export const REGISTRY: Record<string, GenUIComponent> = {
       "paired Dixon–Coles copula sim of your XI vs a league rival → leave-one-out win-prob swings (v3-19); model sets the rival entry only",
     params: z.object({ rivalEntry: z.number().int().min(1).max(99_999_999).optional() }).optional(),
   },
+  "twin-study": {
+    key: "twin-study",
+    title: "Twin study",
+    engine:
+      "cohort pairing (≥13/15 overlap, ±£0.5m bank) over sampled squads, partitioned by decision arm; observational (v3-10)",
+    params: ParamSchemas.playerName.optional(),
+  },
 };
 
 export const COMPONENT_KEYS = Object.keys(REGISTRY);

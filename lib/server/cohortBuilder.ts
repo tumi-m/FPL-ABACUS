@@ -1,7 +1,7 @@
 import "server-only";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { cohortOwnership, cohortSnapshot } from "@/lib/db/schema";
+import { cohortEntry, cohortOwnership, cohortSnapshot } from "@/lib/db/schema";
 import { cacheStore } from "@/lib/cache/store";
 import { fplFetch } from "@/lib/fpl/client";
 import { getStandings } from "@/lib/fpl/endpoints";
@@ -43,6 +43,8 @@ interface RunState {
   sampled: number[] | null;
   /** compact squads: [[[element, multiplier], …], …] */
   squads: number[][][] | null;
+  /** v3-10: per-entry detail for the twin study (persists with the snapshot). */
+  squadsDetailed: { entry: number; elements: number[]; multipliers: number[]; squadCostTenths: number; bankTenths: number; eventTransfers: number }[] | null;
   pickCursor: number;
 }
 
@@ -53,6 +55,7 @@ function newState(): RunState {
     candidates: [],
     sampled: null,
     squads: null,
+    squadsDetailed: null,
     pickCursor: 0,
   };
 }
@@ -95,9 +98,10 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
     while (Date.now() - t0 < WORK_BUDGET_MS) {
       if (state.phase === "pages") {
         if (state.pagesLeft.length === 0) {
-          if (state.candidates.length === 0) return { ok: false, gw, cohort: COHORT_ID, skipped: "no-squads" };
+        if (state.candidates.length === 0) return { ok: false, gw, cohort: COHORT_ID, skipped: "no-squads" };
           state.sampled = [...reservoirSample(new Set(state.candidates), Math.min(TARGET_SAMPLE, state.candidates.length))];
           state.squads = [];
+          state.squadsDetailed = [];
           state.pickCursor = 0;
           state.phase = "picks";
           continue;
@@ -128,9 +132,26 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
         }),
       );
       state.pickCursor += batch.length;
-      for (const picks of results) {
+      for (const [bi, picks] of results.entries()) {
         if (!picks || picks.picks.length < 11) continue; // unset/partial squads
+        const entryId = batch[bi];
         state.squads?.push(picks.picks.map((p) => [p.element, p.multiplier]));
+        const started = picks.picks.filter((p) => p.multiplier > 0).length;
+        const captains = picks.picks.filter((p) => p.multiplier >= 2).length;
+        const squadCostTenths = picks.entry_history.value - picks.entry_history.bank;
+        const bankTenths = picks.entry_history.bank;
+        const eventTransfers = picks.entry_history.event_transfers;
+        (state.squadsDetailed as NonNullable<RunState["squadsDetailed"]>).push({
+          entry: entryId,
+          elements: picks.picks.map((p) => p.element),
+          multipliers: picks.picks.map((p) => p.multiplier),
+          squadCostTenths,
+          bankTenths,
+          eventTransfers,
+        });
+        // keep arm counts for aggregate persistence
+        void started;
+        void captains;
       }
       await sleep(150);
     }
@@ -175,6 +196,23 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
     await db().delete(cohortOwnership).where(eq(cohortOwnership.snapshotId, snap.id));
     for (let i = 0; i < aggregated.length; i += 500) {
       await db().insert(cohortOwnership).values(aggregated.slice(i, i + 500).map((r) => ({ ...r, snapshotId: snap.id })));
+    }
+
+    // v3-10 twin study: per-entry rows for later pairing (settled on finalise)
+    if (state.squadsDetailed?.length) {
+      await db().delete(cohortEntry).where(eq(cohortEntry.snapshotId, snap.id));
+      const entries = state.squadsDetailed.map((s) => ({
+        snapshotId: snap.id,
+        entry: s.entry,
+        elements: s.elements,
+        counts: [15, s.multipliers.filter((m) => m > 0).length, s.multipliers.filter((m) => m >= 2).length] as [number, number, number],
+        squadCostTenths: s.squadCostTenths,
+        bankTenths: s.bankTenths,
+        eventTransfers: s.eventTransfers,
+      }));
+      for (let i = 0; i < entries.length; i += 500) {
+        await db().insert(cohortEntry).values(entries.slice(i, i + 500));
+      }
     }
 
     await store.del(stateKey);

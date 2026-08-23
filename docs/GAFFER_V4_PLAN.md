@@ -78,7 +78,7 @@
       You|Them columns with fixture state, live points, provisional-bonus asterisk, ⇅ and C.
 - [x] e2e pins the deep-link and the honest no-picks fallback (54✓).
 
-### V4-F — v3 debt carried into the queue ✅ (this commit, except Twin Study)
+### V4-F — v3 debt carried into the queue ✅ (this commit, except Manifold)
 - [x] Feature 18 **Crowding** (`lib/quant/crowding.ts`): per-position s_p=EO/ΣEO → HHI,
       effective picks 1/HHI, entropy/evenness, top-pick callout; 5 tests pin split/collapse/
       monopoly/empty markets. Wired as the "crowding" ask card.
@@ -90,8 +90,16 @@
       extraction), resolver cards (auto-rival = neighbour above you in your first classic
       league), AskBar renderers. `buildWebContext` extracted as the shared DC-web builder
       (multipliers included). Router tests pin both intents. Gates: vitest 237✓ · e2e 54✓.
-- [ ] Twin Study (10): cohort 30k sample extension in Postgres + cron — deferred: needs a
-      schema migration and a second frequent cron on the Hobby plan; queued after v6 lands.
+- [x] Feature 10 **Twin Study** (`lib/engines/twinStudy.ts` + cohort extension): new
+      `cohort_entry` table (migrations 0002-0004: per-entry elements/counts/cost/bank/FT +
+      settled outcome gw_points/arm); the cohort builder now persists per-entry rows
+      alongside EO aggregates; `settleCohortOutcomes` runs resumably inside the finalise
+      cron (09:10-09:19 ticks) deriving the decision arm (transfer/hit/chip/captain/hold)
+      per entry; pure pairing engine pins ≥13/15 overlap ∧ ±£0.5m bank ∧ ±1 FT with
+      mean/median/sd per arm, n<100 greys out, observational labelling (9 tests). Wired as
+      the "twin-study" ask card (registry/router/resolver/renderer).
+      ⚠ migrations 0002-0004 need `pnpm db:migrate` on the production DB before the card
+      returns data — until then the resolver honestly returns null (no rows).
 - [ ] Manifold (17) stays deferred (Python escape hatch).
 
 ## Cross-cutting rules (every phase)
