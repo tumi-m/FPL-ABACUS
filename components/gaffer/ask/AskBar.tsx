@@ -3,6 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
+import { cn } from "@/lib/ui/cn";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { PriceGauge } from "@/components/charts/PriceGauge";
 import { FixtureSwing } from "@/components/charts/FixtureSwing";
@@ -302,6 +303,82 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
           ariaLabel="Kalman-filtered per-90 contribution with uncertainty band"
         />
       );
+    case "squad-generator": {
+      const players = props.players as {
+        elementId: number; webName: string; posLabel: string; cost: number; epNext: number | null;
+      }[];
+      const totalCost = props.totalCost as number;
+      return (
+        <div className="rounded-lg bg-surface-1 card-ring p-4">
+          <div className="flex items-baseline justify-between">
+            <div className="upper-label text-2xs text-ink-lo">Generated 15</div>
+            <div className="fig-num text-sm text-ink-hi">£{(totalCost / 10).toFixed(1)}m</div>
+          </div>
+          <ul className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-3">
+            {players.map((p) => (
+              <li key={p.elementId} className="flex items-baseline justify-between gap-2 rounded-md bg-surface-0 px-2.5 py-2 card-ring">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-ink-hi">{p.webName}</span>
+                  <span className="text-2xs uppercase-label text-ink-lo">{p.posLabel}</span>
+                </span>
+                <span className="text-right num-tabular">
+                  <span className="fig-num block text-xs text-ink-hi">£{(p.cost / 10).toFixed(1)}</span>
+                  <span className="block text-2xs text-ink-lo">{p.epNext ?? "—"}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+    case "transfer-watch": {
+      const players = props.players as { name: string; epNext: number | null; cost: number; flagged: boolean; news: string }[];
+      return (
+        <div className="rounded-lg bg-surface-1 card-ring p-4">
+          <div className="upper-label text-2xs text-ink-lo">Weakest projected links</div>
+          <ul className="mt-2 divide-y divide-hairline">
+            {players.map((p) => (
+              <li key={p.name} className="flex items-baseline justify-between gap-3 py-2">
+                <span className="text-sm font-medium text-ink-hi">
+                  {p.name}
+                  {p.flagged && <span className="ml-2 text-2xs uppercase-label text-flare">flagged</span>}
+                </span>
+                <span className="num-tabular text-xs text-ink-lo">
+                  {p.epNext ?? "—"} pts · £{(p.cost / 10).toFixed(1)}m
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+    case "chip-timing": {
+      const gws = props.gws as number[];
+      const payoffs = props.payoffs as number[];
+      const exerciseIndex = props.exerciseIndex as number;
+      const best = Math.max(...payoffs, 1);
+      return (
+        <div className="rounded-lg bg-surface-1 card-ring p-4">
+          <div className="upper-label text-2xs text-ink-lo">Projected payoff by week</div>
+          <ul className="mt-3 space-y-1.5">
+            {gws.map((gw, i) => (
+              <li key={gw} className="flex items-center gap-3">
+                <span className={cn("w-12 text-xs num-tabular", i === exerciseIndex ? "font-semibold text-volt" : "text-ink-mid")}>
+                  GW{gw}
+                </span>
+                <span className="h-3 flex-1 overflow-hidden rounded-full bg-surface-3">
+                  <span
+                    className="block h-full rounded-full"
+                    style={{ width: `${(payoffs[i] / best) * 100}%`, background: i === exerciseIndex ? "var(--volt)" : "var(--seq-400)" }}
+                  />
+                </span>
+                <span className="w-10 text-right fig-num text-xs text-ink-mid">{payoffs[i]}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
     default:
       return null;
   }
