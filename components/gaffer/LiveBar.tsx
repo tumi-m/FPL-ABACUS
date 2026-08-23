@@ -1,45 +1,61 @@
+import Link from "next/link";
 import type { LiveBarData } from "@/lib/ui/types";
 import { LiveDot } from "@/components/gaffer/LiveDot";
+import { cn } from "@/lib/ui/cn";
 
 /**
- * The app-wide status strip. During live/provisional it reports the match
- * state; the rest of the week it carries the Week Machine moment so every
- * screen knows what the week is for right now.
+ * The app-wide status pill (v4-D): no more top banner. Centred above the
+ * thumb bar on mobile, docked bottom-right on desktop. Reports the match
+ * state while live/provisional and the Week Machine moment the rest of the
+ * week. Tapping it goes to Matchday.
  */
 export function LiveBar({ data }: { data: LiveBarData }) {
   const isLive = data.phase === "live" || data.phase === "provisional";
-
-  if (!isLive) {
-    const moment = data.moment;
-    if (!moment) return null;
-    const urgent = moment.key === "warroom";
-    return (
-      <div className="sticky top-0 z-50 flex h-10 items-center gap-3 border-b border-hairline bg-surface-1 px-4 md:px-6 text-xs">
-        <span
-          aria-hidden
-          className={`inline-block h-2 w-2 rounded-full ${urgent ? "bg-warning" : "bg-hairline-strong"}`}
-        />
-        <span className="font-semibold tracking-wide uppercase text-ink-1">{moment.label}</span>
-        <span className="text-ink-2 num-tabular">GW{data.gameweek}</span>
-      </div>
-    );
-  }
+  const moment = data.moment;
+  if (!isLive && !moment) return null;
 
   return (
-    <div className="sticky top-0 z-50 flex h-10 items-center gap-3 border-b border-hairline bg-surface-1 px-4 md:px-6 text-xs">
-      <LiveDot />
-      <span className="font-semibold tracking-wide uppercase text-ink-1">Live</span>
-      <span className="text-ink-2 num-tabular">GW{data.gameweek}</span>
-      <span aria-hidden className="h-4 w-px bg-hairline-strong" />
-      <span className="text-ink-2 num-tabular">
-        {data.fixturesInPlay} fixture{data.fixturesInPlay === 1 ? "" : "s"} in play
-      </span>
-      {data.latestMinute != null && (
-        <>
-          <span aria-hidden className="h-4 w-px bg-hairline-strong" />
-          <span className="text-ink-2 num-tabular">{Math.min(data.latestMinute, 90)}&prime;</span>
-        </>
+    <div
+      className={cn(
+        "pointer-events-none fixed inset-x-4 z-40 flex justify-center",
+        "bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.75rem)]",
+        "lg:inset-x-auto lg:right-6 lg:bottom-6 lg:justify-end",
       )}
+    >
+      <Link
+        href="/live"
+        aria-label="Gameweek status"
+        className="pointer-events-auto skewed inline-flex h-11 items-center gap-2.5 rounded-md bg-raised card-ring px-4 text-xs text-ink-2 num-tabular transition-colors dur-instant hover:bg-surface-3"
+      >
+        {isLive ? (
+          <>
+            <LiveDot />
+            <span className="font-semibold tracking-wide uppercase text-ink-1">Live</span>
+            <span>GW{data.gameweek}</span>
+            <span aria-hidden className="h-3.5 w-px bg-hairline-strong" />
+            <span>
+              {data.fixturesInPlay} in play
+            </span>
+            {data.latestMinute != null && (
+              <span className="text-ink-mid">{Math.min(data.latestMinute, 90)}&prime;</span>
+            )}
+          </>
+        ) : (
+          moment && (
+            <>
+              <span
+                aria-hidden
+                className={cn(
+                  "inline-block h-2 w-2 rounded-full",
+                  moment.key === "warroom" ? "bg-warning" : "bg-hairline-strong",
+                )}
+              />
+              <span className="font-semibold tracking-wide uppercase text-ink-1">{moment.label}</span>
+              <span>GW{data.gameweek}</span>
+            </>
+          )
+        )}
+      </Link>
     </div>
   );
 }

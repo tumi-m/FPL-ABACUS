@@ -64,6 +64,11 @@ test.describe("authenticated routes", () => {
     await asTeam(page);
     await page.goto("/live");
     await expect(page).toHaveTitle(/Matchday/);
+    // v4-D: the status pill lives at the bottom of the viewport, never a top banner
+    const pill = page.getByRole("link", { name: "Gameweek status" });
+    await expect(pill).toBeVisible();
+    const box = await pill.boundingBox();
+    expect(box && box.y).toBeGreaterThan(300);
     // Either the composed board or an explicit fallback state — never a crash screen.
     await expect(page.locator("main")).not.toBeEmpty();
   });

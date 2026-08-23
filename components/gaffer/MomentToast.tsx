@@ -17,7 +17,7 @@ export function MomentToast({ message, onClose }: { message: string | null; onCl
 
   if (!message) return null;
   return (
-    <div className="pointer-events-none fixed inset-x-4 bottom-20 z-50 flex justify-center md:bottom-6">
+    <div className="pointer-events-none fixed inset-x-4 z-50 flex justify-center bottom-[calc(6.75rem+env(safe-area-inset-bottom))] lg:bottom-6">
       <div role="status" className="skewed pointer-events-auto flex items-center gap-3 rounded-md bg-raised card-ring px-4 py-2.5 btn-glow">
         <span className="text-sm text-ink-hi">{message}</span>
         <button
