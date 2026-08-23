@@ -45,12 +45,20 @@
       when picks/upstream are unavailable; never errors the share. e2e pins the peek flow
       and the OG content-type. Gates: vitest 219✓ · e2e 48✓.
 
-### V4-C — Entry Gate + homescreen ⬜
-- [ ] Landing rebuild per locked decisions (trophy hero, gate centred, ball photo band).
-- [ ] Gate upgrades: paste hint chip ("Looks like a team link"), validation CONFIRMATION chip
-      (team · manager · rank — "is this you?") written before storage/nav, ID-explainer sheet
-      (3 annotated routes), league-URL paste → standings pick-list, multi-team switcher.
-- [ ] Name search stays deferred (coverage copy only) until traffic fills the index.
+### V4-C — Entry Gate + homescreen ✅ (this commit)
+- [x] Landing rebuilt per locked decisions: tagline + description gone; trophy photo hero
+      (`public/images/trophy.jpeg`, owner-supplied); gate centred; "Sample output" caption
+      gone; the match ball fills the closing whitespace as a broadcast band
+      (`public/images/ball.webp`).
+- [x] Gate upgrades: live paste-hint chip ("Looks like a team link" / league / ID);
+      `parseGateInput` (entry URL → league URL → bare digits, 6 unit tests); validation now
+      ends in a CONFIRMATION chip (crest via favourite club · team · manager · region · rank
+      — "Is this you?") written to cookie+recents only on confirm; league paste → standings
+      page-one pick-list with filter (>500k politely refused, empty standings honest);
+      ID-explainer sheet with the three annotated routes (web / app share / league link).
+- [x] Cookie max-age 400d per spec. Name search stays deferred (coverage copy only).
+- [x] e2e: hint chip, confirmation flow, explainer sheet, trophy+ball imagery (52✓).
+      Deferred: header multi-team switcher (recents cover switching via landing).
 
 ### V4-D — LiveBar relocation ⬜
 - [ ] Top sticky strip removed; moment-aware pill bottom-right (desktop) / bottom-centre

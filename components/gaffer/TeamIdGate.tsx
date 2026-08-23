@@ -4,82 +4,293 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/primitives/Input";
 import { Button } from "@/components/primitives/Button";
+import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
 import { X } from "@/components/primitives/icons";
+import { CrestTile } from "@/components/gaffer/ClubCrest";
 import { formatCompactRank } from "@/lib/ui/format";
-import { forgetTeam, getRecentTeams, parseTeamInput, rememberTeam, type RecentTeam } from "@/lib/store/team";
+import { forgetTeam, getRecentTeams, parseGateInput, rememberTeam, type RecentTeam } from "@/lib/store/team";
 import { COPY } from "@/lib/copy/deck";
+
+type Stage = "form" | "checking" | "confirm" | "league";
+
+interface ConfirmInfo {
+  id: number;
+  teamName: string;
+  manager: string;
+  rank: number | null;
+  region: string | null;
+  favouriteTeam: number | null;
+}
+
+interface LeaguePick {
+  entry: number;
+  entryName: string;
+  playerName: string;
+  rank: number;
+}
+
+const LEAGUE_HARDCAP = 500_000;
 
 export function TeamIdGate({ compact = false, next = "/live" }: { compact?: boolean; next?: string }) {
   const router = useRouter();
   const [value, setValue] = React.useState("");
-  const [state, setState] = React.useState<"idle" | "checking" | "error">("idle");
+  const [stage, setStage] = React.useState<Stage>("form");
   const [error, setError] = React.useState<string | null>(null);
+  const [confirmInfo, setConfirmInfo] = React.useState<ConfirmInfo | null>(null);
+  const [league, setLeague] = React.useState<{ name: string; rows: LeaguePick[] } | null>(null);
+  const [leagueFilter, setLeagueFilter] = React.useState("");
+  const [explainOpen, setExplainOpen] = React.useState(false);
   const [recent, setRecent] = React.useState<RecentTeam[]>([]);
 
   React.useEffect(() => {
     setRecent(getRecentTeams());
   }, []);
 
-  async function submit(raw: string) {
-    const id = parseTeamInput(raw);
-    if (!id) {
-      setState("error");
-      setError("Enter your team ID — the number on your FPL Points page URL.");
-      return;
-    }
-    setState("checking");
+  // paste hint — says what it looks like before you commit
+  const hint = React.useMemo(() => {
+    const t = value.trim();
+    if (!t) return null;
+    if (/entry\/\d+/.test(t)) return "Looks like a team link";
+    if (/leagues?\/\d+/.test(t)) return "Looks like a league link";
+    if (/^\d{4,10}$/.test(t)) return "Team ID";
+    return null;
+  }, [value]);
+
+  async function checkEntry(id: number) {
+    setStage("checking");
     setError(null);
     try {
       const res = await fetch(`/api/fpl/entry/${id}`);
       if (!res.ok) throw new Error(String(res.status));
-      const data = (await res.json()) as { name?: string; summary_overall_rank?: number | null };
-      rememberTeam({ id, name: data.name ?? `Team ${id}`, rank: data.summary_overall_rank ?? null });
-      // Only follow internal destinations — a crafted ?next must not leave the app.
-      router.push(next.startsWith("/") && !next.startsWith("//") ? next : "/live");
+      const d = (await res.json()) as {
+        name?: string;
+        player_first_name?: string;
+        player_last_name?: string;
+        player_region_name?: string | null;
+        summary_overall_rank?: number | null;
+        favourite_team?: number | null;
+      };
+      setConfirmInfo({
+        id,
+        teamName: d.name ?? `Team ${id}`,
+        manager: `${d.player_first_name ?? ""} ${d.player_last_name ?? ""}`.trim(),
+        rank: d.summary_overall_rank ?? null,
+        region: d.player_region_name ?? null,
+        favouriteTeam: d.favourite_team ?? null,
+      });
+      setStage("confirm");
     } catch {
-      setState("error");
+      setStage("form");
       setError(COPY.teamIdInvalid);
     }
   }
 
+  async function loadLeague(id: number) {
+    setStage("checking");
+    setError(null);
+    try {
+      const res = await fetch(`/api/fpl/standings/${id}/1`);
+      if (!res.ok) throw new Error(String(res.status));
+      const d = (await res.json()) as {
+        league?: { name?: string; max_entries?: number | null };
+        standings?: { results?: { entry: number; entry_name: string; player_name: string; rank: number }[] };
+      };
+      if ((d.league?.max_entries ?? 0) > LEAGUE_HARDCAP) {
+        setStage("form");
+        setError("That league is bigger than we can search here — paste your own team link instead.");
+        return;
+      }
+      const rows: LeaguePick[] = (d.standings?.results ?? []).map((r) => ({
+        entry: r.entry,
+        entryName: r.entry_name,
+        playerName: r.player_name,
+        rank: r.rank,
+      }));
+      if (!rows.length) {
+        setStage("form");
+        setError("No standings in that league yet — they publish after the first deadline.");
+        return;
+      }
+      setLeague({ name: d.league?.name ?? `League ${id}`, rows });
+      setLeagueFilter("");
+      setStage("league");
+    } catch {
+      setStage("form");
+      setError("Couldn't load that league. Check the link and try again.");
+    }
+  }
+
+  function submit(raw: string) {
+    const parsed = parseGateInput(raw);
+    if (!parsed) {
+      setError("Enter your team ID — the number on your FPL Points page URL.");
+      return;
+    }
+    if (parsed.kind === "entry") void checkEntry(parsed.id);
+    else void loadLeague(parsed.id);
+  }
+
+  function confirm() {
+    if (!confirmInfo) return;
+    rememberTeam({ id: confirmInfo.id, name: confirmInfo.teamName, rank: confirmInfo.rank });
+    // Only follow internal destinations — a crafted ?next must not leave the app.
+    router.push(next.startsWith("/") && !next.startsWith("//") ? next : "/live");
+  }
+
+  const filteredLeague = React.useMemo(() => {
+    if (!league) return [];
+    const q = leagueFilter.trim().toLowerCase();
+    if (!q) return league.rows;
+    return league.rows.filter(
+      (r) => r.entryName.toLowerCase().includes(q) || r.playerName.toLowerCase().includes(q),
+    );
+  }, [league, leagueFilter]);
+
+  // ── confirmation chip — team · manager · rank, is this you? ────────────
+  if (stage === "confirm" && confirmInfo) {
+    return (
+      <div className="w-full max-w-md" role="status">
+        <div className="rounded-lg bg-surface-1 card-ring p-5">
+          <div className="flex items-center gap-3">
+            {confirmInfo.favouriteTeam != null && <CrestTile teamId={confirmInfo.favouriteTeam} />}
+            <div className="min-w-0">
+              <p className="fig-num truncate text-lg leading-tight">{confirmInfo.teamName}</p>
+              <p className="mt-0.5 text-xs text-ink-lo">
+                {confirmInfo.manager || "Manager"}
+                {confirmInfo.region ? ` · ${confirmInfo.region}` : ""}
+              </p>
+            </div>
+            {confirmInfo.rank != null && (
+              <p className="ml-auto shrink-0 text-right">
+                <span className="upper-label block text-2xs text-ink-lo">Rank</span>
+                <span className="fig-num text-lg">{formatCompactRank(confirmInfo.rank)}</span>
+              </p>
+            )}
+          </div>
+          <p className="mt-4 text-sm text-ink-2">Is this you?</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button onClick={confirm}>
+              <span>This is me — continue</span>
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setStage("form");
+                setConfirmInfo(null);
+                setValue("");
+              }}
+            >
+              <span>Not my team</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── league pick-list — find yourself in the standings ──────────────────
+  if (stage === "league" && league) {
+    return (
+      <div className="w-full max-w-md" aria-label={`Pick your team from ${league.name}`}>
+        <div className="rounded-lg bg-surface-1 card-ring p-4">
+          <div className="mb-3 flex items-baseline justify-between gap-2">
+            <h2 className="fig-num truncate text-base leading-none">{league.name}</h2>
+            <button
+              type="button"
+              onClick={() => {
+                setStage("form");
+                setLeague(null);
+              }}
+              className="text-2xs uppercase-label text-ink-lo hover:text-ink-hi"
+            >
+              ← Back
+            </button>
+          </div>
+          <p className="mb-3 text-2xs text-ink-lo">
+            {league.rows.length} managers on page one — tap yours. Big leagues: filter by name.
+          </p>
+          <Input
+            value={leagueFilter}
+            onChange={(e) => setLeagueFilter(e.target.value)}
+            placeholder="Filter by team or manager"
+            aria-label="Filter league standings"
+            className="h-10"
+          />
+          <ul className="mt-3 max-h-72 space-y-1 overflow-y-auto" role="listbox" aria-label="Managers">
+            {filteredLeague.map((r) => (
+              <li key={r.entry}>
+                <button
+                  type="button"
+                  onClick={() => void checkEntry(r.entry)}
+                  className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2.5 text-left transition-colors dur-instant hover:bg-surface-3"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-ink-hi">{r.entryName}</span>
+                    <span className="block truncate text-xs text-ink-lo">{r.playerName}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-ink-mid num-tabular">#{r.rank}</span>
+                </button>
+              </li>
+            ))}
+            {filteredLeague.length === 0 && (
+              <li className="px-3 py-6 text-center text-sm text-ink-lo">
+                No one matches that filter on page one.
+              </li>
+            )}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
+  // ── the gate itself ────────────────────────────────────────────────────
   return (
     <div className={compact ? "" : "w-full max-w-md"}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          void submit(value);
+          submit(value);
         }}
         className="flex gap-2"
       >
         <Input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Team ID or pasted FPL URL"
+          placeholder="Team ID, or paste your FPL link"
           aria-label="Your FPL team ID"
-          aria-invalid={state === "error"}
+          aria-invalid={error != null}
           className={compact ? "h-9 text-sm" : "h-14 text-base"}
         />
-        <Button type="submit" size={compact ? "sm" : "lg"} disabled={state === "checking"}>
-          {state === "checking" ? "Checking…" : "Go"}
+        <Button type="submit" size={compact ? "sm" : "lg"} disabled={stage === "checking"}>
+          {stage === "checking" ? "Checking…" : "Go"}
         </Button>
       </form>
+
+      {hint && !error && stage === "form" && (
+        <p className="mt-2 text-2xs uppercase-label text-volt" role="status">
+          {hint}
+        </p>
+      )}
       {error && (
         <p role="alert" className="mt-2 text-sm text-critical">
           {error}
         </p>
       )}
+
+      <button
+        type="button"
+        onClick={() => setExplainOpen(true)}
+        className="mt-3 text-xs text-ink-mid underline-offset-4 transition-colors dur-instant hover:text-ink-hi hover:underline"
+      >
+        Where do I find my ID?
+      </button>
+
       {!compact && recent.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="text-2xs font-semibold uppercase tracking-wide text-ink-3">Recent</span>
           {recent.map((t) => (
-            <span
-              key={t.id}
-              className="inline-flex h-8 items-center gap-2 rounded-full card-ring pl-3 pr-1.5 text-xs"
-            >
-              <button
-                onClick={() => void submit(String(t.id))}
-                className="text-ink-2 hover:text-ink-1"
-              >
+            <span key={t.id} className="inline-flex h-8 items-center gap-2 rounded-full card-ring pl-3 pr-1.5 text-xs">
+              <button onClick={() => void checkEntry(t.id)} className="text-ink-2 hover:text-ink-1">
                 {t.name}
                 {t.rank ? <span className="ml-1.5 text-ink-3 num-tabular">{formatCompactRank(t.rank)}</span> : null}
               </button>
@@ -94,6 +305,62 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
           ))}
         </div>
       )}
+
+      {/* ID explainer — the three routes to your number */}
+      <Sheet open={explainOpen} onOpenChange={setExplainOpen}>
+        {explainOpen && (
+          <SheetContent side="bottom" aria-label="How to find your FPL team ID">
+            <div className="mb-3 flex items-center justify-between">
+              <SheetTitle className="text-base">Where your ID lives</SheetTitle>
+              <button
+                type="button"
+                onClick={() => setExplainOpen(false)}
+                aria-label="Close"
+                className="relative grid h-11 w-11 place-items-center rounded-md text-ink-mid transition-colors dur-instant after:absolute after:inset-0 after:rounded-md after:content-[''] hover:bg-surface-3 hover:text-ink-hi"
+              >
+                <X width={16} height={16} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <Route title="On the web" first>
+                Open your Points page — the number sits in the address bar:
+                <AddressBar>
+                  fantasy.premierleague.com/entry/<span className="font-bold text-volt">1851681</span>/history
+                </AddressBar>
+              </Route>
+              <Route title="In the app">
+                Use <em>Share team</em> — the shared link contains the same number after “entry/”.
+                <AddressBar>
+                  https://fantasy.premierleague.com/entry/<span className="font-bold text-volt">1851681</span>
+                </AddressBar>
+              </Route>
+              <Route title="From a league link">
+                Paste any mini-league link instead — you&apos;ll pick yourself from its standings.
+                <AddressBar>
+                  fantasy.premierleague.com/leagues/<span className="font-bold text-volt">12345</span>
+                </AddressBar>
+              </Route>
+            </div>
+          </SheetContent>
+        )}
+      </Sheet>
+    </div>
+  );
+}
+
+function Route({ title, first, children }: { title: string; first?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className={`upper-label text-2xs text-ink-lo ${first ? "" : "mt-2"}`}>{title}</p>
+      <p className="mt-1 text-sm leading-relaxed text-ink-2">{children}</p>
+    </div>
+  );
+}
+
+function AddressBar({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-2 overflow-x-auto whitespace-nowrap rounded-md bg-sunk card-ring px-3 py-2 text-xs text-ink-mid num-tabular">
+      {children}
     </div>
   );
 }

@@ -10,10 +10,12 @@ async function asTeam(page: Page) {
   await page.context().addCookies([teamCookie()]);
 }
 
-test("landing renders tagline", async ({ page }) => {
+test("landing renders the gate with trophy and ball imagery", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Gaffer/);
-  await expect(page.getByText("Your gameweek, explained.")).toBeVisible();
+  await expect(page.getByLabel("Your FPL team ID")).toBeVisible();
+  await expect(page.getByRole("img", { name: /troph/i })).toBeVisible();
+  await expect(page.getByRole("img", { name: /match ball/i })).toBeVisible();
 });
 
 test.describe("team ID gate flow", () => {
@@ -25,16 +27,35 @@ test.describe("team ID gate flow", () => {
     expect(new URL(page.url()).pathname).toBe("/");
   });
 
-  test("valid ID lands on Matchday and persists the session cookie", async ({ page }) => {
+  test("a pasted team link shows the paste hint, then the confirmation chip", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Your FPL team ID").fill("https://fantasy.premierleague.com/entry/1851681/history");
+    await expect(page.getByText("Looks like a team link")).toBeVisible();
+    await page.getByRole("button", { name: "Go" }).click();
+    await expect(page.getByText("Is this you?")).toBeVisible();
+  });
+
+  test("valid ID confirms, lands on Matchday and persists the session cookie", async ({ page }) => {
     await page.goto("/");
     await page.getByLabel("Your FPL team ID").fill(TEAM_ID);
     await page.getByRole("button", { name: "Go" }).click();
+    await expect(page.getByText("Is this you?")).toBeVisible();
+    await page.getByRole("button", { name: /this is me/i }).click();
     await page.waitForURL("**/live");
 
     // Reload proves the gaffer_team cookie drives the gated shell.
     await page.reload();
     const cookies = await page.context().cookies();
     expect(cookies.find((c) => c.name === "gaffer_team")?.value).toBe(TEAM_ID);
+  });
+
+  test("the ID explainer sheet opens and closes", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Where do I find my ID?" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Where your ID lives" })).toBeVisible();
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
   });
 });
 
