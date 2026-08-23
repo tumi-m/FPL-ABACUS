@@ -94,13 +94,25 @@ test.describe("authenticated routes", () => {
     }
   });
 
-  test("field renders the pitch with the five mode controls", async ({ page }) => {
+  test("field renders the pitch with the seven mode controls", async ({ page }) => {
     await asTeam(page);
     const res = await page.goto("/field");
     expect(res?.status()).toBe(200);
     await expect(page.getByRole("group", { name: "Field mode" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Ownership" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Planner" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Correlation" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Risk" })).toBeVisible();
+  });
+
+  test("field correlation and risk modes persist in the URL", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field?mode=correlation");
+    await expect(page.getByRole("button", { name: "Correlation" })).toHaveAttribute("aria-pressed", "true");
+    // the web feed mounts its honesty line (content depends on upstream, copy does not)
+    await expect(page.locator('p[role="status"]').first()).toBeVisible();
+    await page.goto("/field?mode=risk");
+    await expect(page.getByRole("button", { name: "Risk" })).toHaveAttribute("aria-pressed", "true");
   });
 
   test("board renders the fixture grid with URL-state controls", async ({ page }) => {
