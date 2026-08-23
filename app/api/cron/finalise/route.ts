@@ -51,6 +51,18 @@ export async function GET(req: NextRequest) {
       distRows = 1;
     }
 
+    // v3-10 Twin Study settle: resolve per-entry outcomes for the sampled
+    // cohort (resumable — partial progress continues on the next 09:10-09:19
+    // tick until the cursor completes).
+    let twin: { settled?: number; partial?: { done: number; total: number }; skipped?: string } = {};
+    try {
+      const { settleCohortOutcomes } = await import("@/lib/server/twinSettle");
+      const r = await settleCohortOutcomes(ctx.event.id);
+      twin = { settled: r.settled, partial: r.partial, skipped: r.skipped };
+    } catch {
+      twin = { skipped: "twin-settle-error" };
+    }
+
     return NextResponse.json({
       ok: true,
       gw: ctx.event.id,
@@ -58,6 +70,7 @@ export async function GET(req: NextRequest) {
       action: "archived",
       archivedFixtures: ctx.fixtures.length,
       distributionRows: distRows,
+      twin,
     });
   } catch (err) {
     return NextResponse.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, { status: 502 });

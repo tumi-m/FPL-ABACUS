@@ -38,6 +38,31 @@ export const cohortOwnership = pgTable(
   (t) => [primaryKey({ columns: [t.snapshotId, t.element] })],
 );
 
+/** v3-10 Twin Study: per-entry squad snapshot within a sampled cohort.
+ *  Elements as int array (15 ids), counts as [owned, started, captain] for
+ *  the three arms. rankAt is the entry's overall rank at snapshot time. */
+export const cohortEntry = pgTable(
+  "cohort_entry",
+  {
+    snapshotId: integer("snapshot_id")
+      .references(() => cohortSnapshot.id)
+      .notNull(),
+    entry: integer("entry").notNull(),
+    elements: jsonb("elements").$type<number[]>().notNull(),
+    /** [owned, started, caption] — compact counts for the arms. */
+    counts: jsonb("counts").$type<[number, number, number]>().notNull(),
+    squadCostTenths: integer("squad_cost_tenths").notNull(),
+    bankTenths: integer("bank_tenths").notNull(),
+    /** Free transfers available that GW — part of the twin pairing rule. */
+    eventTransfers: integer("event_transfers"),
+    // outcome, filled on finalise: gw points net of hits + decision arm
+    gwPoints: integer("gw_points"),
+    captainPoints: integer("captain_points"),
+    arm: varchar("arm", { length: 12 }),
+  },
+  (t) => [primaryKey({ columns: [t.snapshotId, t.entry] })],
+);
+
 export const scoreDistribution = pgTable(
   "score_distribution",
   {
