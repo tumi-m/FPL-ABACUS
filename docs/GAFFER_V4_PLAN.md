@@ -18,16 +18,19 @@
 
 ## Phases
 
-### V4-A — Field modes 5+6 ⬜ (next)
-- [ ] Extract the WebPlayer/Dixon-Coles pipeline out of `resolve.ts` effectiveBets into
-      `lib/server/buildCorrelationWeb.ts`; resolver consumes the shared path (behaviour pinned).
-- [ ] `simulateWeb` exposes per-player variance; pure `marginalRisk()` = wᵢ(Σw)ᵢ/w′Σw with
-      recovery tests (independents ~equal share, variance dominates).
-- [ ] Mode 5 **Correlation** (`?mode=correlation`): SVG arc layer over the pitch — surge +ρ /
-      flare −ρ, thickness |ρ|, header stat "X.X effective bets / 11".
-- [ ] Mode 6 **Risk** (`?mode=risk`): token SIZE encodes marginal variance contribution;
-      neutral colour (size is the encoding, never hue).
-- [ ] Keys 1–6 select modes (reduced-motion safe); e2e asserts six controls + URL state.
+### V4-A — Field modes 5+6 ✅ (this commit)
+- [x] WebPlayer/Dixon–Coles pipeline extracted from `resolve.ts` into
+      `lib/server/buildCorrelationWeb.ts`; the effective-bets card consumes the shared path.
+- [x] `simulateWeb` exposes per-player variance; pure `marginalRisk()` = wᵢ(Σw)ᵢ/w′Σw with
+      synthetic Σ tests (equal split, variance weighting, correlated pairs, perfect-hedge
+      clamp, zero-variance guard) plus a simulateWeb integration bounds test — 13 file tests.
+- [x] Mode 5 **Correlation** (`?mode=correlation`): DOM-measured arc layer (ResizeObserver,
+      never re-layout) — surge +ρ / flare −ρ, thickness |ρ|, top-24 pairs ≥ 0.15,
+      "X.X effective bets / N" stat with Est wrap; `/api/gaffer/web` feeds it lazily via SWR.
+- [x] Mode 6 **Risk** (`?mode=risk`): shirt scale 0.78–1.43 by variance share, neutral colour,
+      share % pill, portfolio-sd stat with Est wrap.
+- [x] Keys 1–6 select the six pitch modes (planner stays click-only; typing-safe); e2e pins
+      seven controls + URL persistence for both modes. Gates: vitest 219✓ · e2e 44✓.
 
 ### V4-B — Peek sheet + live diff-polling + OG ⬜
 - [ ] One shared Sheet for token taps: player mini-card (state, stats, swing, quick actions);

@@ -35,6 +35,8 @@ export interface WebResult {
   correlation: Map<string, number>; // "a|b" ordered pair → ρ̂
   /** Per-player mean simulated points (sanity + display). */
   meanPoints: Map<number, number>;
+  /** Per-player simulated point variance (the risk feed). */
+  variance: Map<number, number>;
   /** Participation ratio of the correlation eigenvalues. */
   effectiveBets: number;
   draws: number;
@@ -185,6 +187,12 @@ function summarise(players: WebPlayer[], pts: Float32Array, M: number): WebResul
     for (let m = 0; m < M; m++) s += pts[i * M + m];
     return s / M;
   });
+  // per-player variance (population, same M denominator as the covariance sums)
+  const variances = players.map((_, i) => {
+    let v = 0;
+    for (let m = 0; m < M; m++) v += (pts[i * M + m] - means[i]) ** 2;
+    return v / M;
+  });
 
   // pairwise Pearson correlations (only where variance exists)
   const correlation = new Map<string, number>();
@@ -228,10 +236,50 @@ function summarise(players: WebPlayer[], pts: Float32Array, M: number): WebResul
   const effectiveBets = lambdaSumSqTrace > 0 ? (trace * trace) / lambdaSumSqTrace : n;
 
   const meanPoints = new Map(players.map((p, i) => [p.elementId, Number(means[i].toFixed(3))]));
+  const variance = new Map(players.map((p, i) => [p.elementId, Number(variances[i].toFixed(3))]));
   return {
     correlation,
     meanPoints,
+    variance,
     effectiveBets: Number(effectiveBets.toFixed(2)),
     draws: M,
+  };
+}
+
+export interface MarginalRisk {
+  /** elementId → normalised marginal variance contribution (sums to 1). */
+  share: Map<number, number>;
+  /** Portfolio sd — the XI's total simulated points sd. */
+  portfolioSd: number;
+}
+
+/**
+ * v4 Field mode 6 — marginal variance contribution per player:
+ * wᵢ(Σw)ᵢ / w′Σw with w = 1 (each starter's points count once in your GW
+ * total). Players whose draws hedge the rest can contribute ~0; the
+ * portfolio sd collapses when correlations are strongly negative.
+ */
+export function marginalRisk(
+  players: WebPlayer[],
+  correlation: Map<string, number>,
+  variance: Map<number, number>,
+): MarginalRisk {
+  const ids = players.map((p) => p.elementId);
+  const cov = (a: number, b: number): number => {
+    const va = variance.get(a) ?? 0;
+    const vb = variance.get(b) ?? 0;
+    if (a === b) return va;
+    const rho = correlation.get(`${a}|${b}`) ?? correlation.get(`${b}|${a}`) ?? 0;
+    return rho * Math.sqrt(va * vb);
+  };
+  const contrib = ids.map((a) => ids.reduce((s, b) => s + cov(a, b), 0));
+  const total = contrib.reduce((s, v) => s + v, 0);
+  if (total <= 1e-9) {
+    return { share: new Map(ids.map((a) => [a, 0])), portfolioSd: 0 };
+  }
+  return {
+    // negative marginal contributors clamp to 0 — a hedge never grows a token
+    share: new Map(ids.map((a, i) => [a, Math.max(0, contrib[i] / total)])),
+    portfolioSd: Math.sqrt(Math.max(0, total)),
   };
 }

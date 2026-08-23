@@ -8,20 +8,36 @@ import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { BoardDesk, type DeskCandidate, type DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
+import { Est } from "@/components/gaffer/Est";
 import { COPY } from "@/lib/copy/deck";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 const POLL_LIVE_MS = 20_000;
 const POLL_IDLE_MS = 300_000;
 
-type Mode = "points" | "ownership" | "swing" | "leverage" | "planner";
+type Mode = "points" | "ownership" | "swing" | "leverage" | "planner" | "correlation" | "risk";
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "points", label: "Points", hint: "Live points per player" },
   { id: "ownership", label: "Ownership", hint: "Effective ownership in the selected cohort — template fades, differentials burn" },
   { id: "swing", label: "Swing", hint: "Ranks gained or lost so far, per player" },
   { id: "leverage", label: "Leverage", hint: "Expected rank swing still available" },
   { id: "planner", label: "Planner", hint: "Stage transfers and chips against your team" },
+  { id: "correlation", label: "Correlation", hint: "Arcs join players whose GW outcomes move together — stacking shrinks your effective bets" },
+  { id: "risk", label: "Risk", hint: "Token size is each player's share of your XI's variance" },
 ];
+
+/** Keys 1–6 select the six pitch modes (the Planner desk stays click-only). */
+const KEY_MODES: Mode[] = ["points", "ownership", "swing", "leverage", "correlation", "risk"];
+
+interface WebPayload {
+  players: { elementId: number; webName: string }[];
+  pairs: { a: number; b: number; rho: number }[];
+  meanPoints: Record<number, number>;
+  riskShare: Record<number, number>;
+  portfolioSd: number;
+  effectiveBets: number;
+  draws: number;
+}
 
 export interface FieldDeskProps {
   teamId: number;
@@ -79,6 +95,70 @@ export function FieldClient({
   );
   const model = (data as MatchdayModel | undefined) ?? initialModel;
 
+  // compare state (declared early — the web layer below depends on it)
+  const [rivalPicks, setRivalPicks] = React.useState<RivalPick[] | null>(null);
+  const [rivalError, setRivalError] = React.useState<string | null>(null);
+
+  // ── correlation web (modes 5+6) — fetched only when a mode needs it ─────
+  const wantsWeb = mode === "correlation" || mode === "risk";
+  const { data: web, isLoading: webLoading } = useSWR<WebPayload | null>(
+    wantsWeb ? ["gaffer-web", entry] : null,
+    async ([, e]: [string, number]) => {
+      const res = await fetch(`/api/gaffer/web?entry=${e}`);
+      if (!res.ok) throw new Error(String(res.status));
+      return (await res.json()) as WebPayload | null;
+    },
+    { revalidateOnFocus: false, dedupingInterval: 300_000, keepPreviousData: true },
+  );
+  const webByElement = React.useMemo(() => {
+    if (!web) return null;
+    return {
+      mean: new Map(Object.entries(web.meanPoints).map(([k, v]) => [Number(k), v] as const)),
+      risk: new Map(Object.entries(web.riskShare).map(([k, v]) => [Number(k), v] as const)),
+    };
+  }, [web]);
+
+  // token DOM positions for the arc layer — measured, never re-laid-out
+  const pitchRef = React.useRef<HTMLDivElement | null>(null);
+  const tokenRefs = React.useRef(new Map<number, HTMLLIElement>());
+  const [positions, setPositions] = React.useState<Map<number, { x: number; y: number }>>(new Map());
+  const measure = React.useCallback(() => {
+    const pitch = pitchRef.current;
+    if (!pitch) return;
+    const pr = pitch.getBoundingClientRect();
+    const next = new Map<number, { x: number; y: number }>();
+    for (const [el, node] of tokenRefs.current) {
+      const r = node.getBoundingClientRect();
+      if (r.width === 0) continue;
+      next.set(el, { x: r.left + r.width / 2 - pr.left, y: r.top + r.height / 2 - pr.top });
+    }
+    setPositions(next);
+  }, []);
+  React.useEffect(() => {
+    if (mode !== "correlation" || rivalPicks) {
+      setPositions(new Map());
+      return;
+    }
+    measure();
+    const ro = new ResizeObserver(() => measure());
+    if (pitchRef.current) ro.observe(pitchRef.current);
+    return () => ro.disconnect();
+  }, [mode, rivalPicks, measure, web, model.squad]);
+
+  // keys 1–6 select modes; never while typing in an input
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      const idx = Number(e.key) - 1;
+      if (idx >= 0 && idx < KEY_MODES.length) setMode(KEY_MODES[idx]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // swing + leverage keyed by element for token lookups
   const swingByElement = React.useMemo(
     () => new Map(model.swings.map((s) => [s.element, s])),
@@ -90,8 +170,6 @@ export function FieldClient({
   );
 
   // ── compare mode ──────────────────────────────────────────────────────
-  const [rivalPicks, setRivalPicks] = React.useState<RivalPick[] | null>(null);
-  const [rivalError, setRivalError] = React.useState<string | null>(null);
   const loadRival = async () => {
     const id = Number(rivalIdRaw);
     setRivalError(null);
@@ -187,10 +265,31 @@ export function FieldClient({
         </p>
       )}
 
+      {/* modes 5+6 — the web's headline stats with their honesty wraps */}
+      {wantsWeb && (
+        <p className="text-xs text-ink-mid num-tabular" role="status">
+          {webLoading && !web ? (
+            "Simulating the gameweek — 800 Monte Carlo draws…"
+          ) : web ? (
+            <>
+              <Est method={`${web.draws} Monte Carlo draws · Dixon–Coles copula · seed-fixed`}>
+                {mode === "correlation"
+                  ? `${web.effectiveBets.toFixed(1)} effective bets / ${web.players.length}`
+                  : `portfolio sd ~${web.portfolioSd.toFixed(1)} pts`}
+              </Est>
+              {mode === "correlation" ? " · surge arcs move together · flare arcs offset · thickness is |ρ|" : " · token size is each player's share of that variance"}
+            </>
+          ) : (
+            "The web needs your picks and finished fixtures to lean on — nothing to correlate yet."
+          )}
+        </p>
+      )}
+
       {/* the pitch — broadcast turf: tournament green under the floodlights,
           striped and marked; never a flat rectangle */}
       <section aria-label={`Your team on the pitch, ${mode} mode`} className="rounded-lg has-gloss card-lift overflow-hidden bg-raised p-3 md:p-5">
         <div
+          ref={pitchRef}
           className="relative overflow-hidden rounded-lg px-2 py-4 md:px-6"
           style={{
             background:
@@ -209,6 +308,31 @@ export function FieldClient({
             </g>
           </svg>
 
+          {/* mode 5 — correlation arcs, measured from the live token layout */}
+          {mode === "correlation" && !rivalPicks && web && positions.size > 0 && (
+            <svg aria-hidden className="pointer-events-none absolute inset-0 z-0 h-full w-full">
+              {web.pairs.slice(0, 24).map(({ a, b, rho }) => {
+                const pa = positions.get(a);
+                const pb = positions.get(b);
+                if (!pa || !pb) return null;
+                const lift = Math.min(70, Math.hypot(pb.x - pa.x, pb.y - pa.y) * 0.22);
+                const mx = (pa.x + pb.x) / 2;
+                const my = (pa.y + pb.y) / 2 - lift;
+                return (
+                  <path
+                    key={`${a}-${b}`}
+                    d={`M${pa.x} ${pa.y} Q${mx} ${my} ${pb.x} ${pb.y}`}
+                    fill="none"
+                    stroke={rho > 0 ? "var(--surge)" : "var(--flare)"}
+                    strokeWidth={1 + Math.min(6, Math.abs(rho) * 8)}
+                    strokeOpacity={0.25 + Math.min(0.5, Math.abs(rho) * 0.8)}
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+            </svg>
+          )}
+
           {rivalPicks ? (
             <ComparePitch
               rows={rows} model={model} mode={mode} rivalPicks={rivalPicks}
@@ -219,8 +343,21 @@ export function FieldClient({
               {rows.map((row, i) => (
                 <ul key={i} className="flex flex-wrap items-start justify-center gap-2">
                   {row.map((p) => (
-                    <li key={p.element}>
-                      <ShirtToken row={p} mode={mode} swing={swingByElement.get(p.element)} lev={leverageByElement.get(p.element)} />
+                    <li
+                      key={p.element}
+                      ref={(el) => {
+                        if (el) tokenRefs.current.set(p.element, el);
+                        else tokenRefs.current.delete(p.element);
+                      }}
+                    >
+                      <ShirtToken
+                        row={p}
+                        mode={mode}
+                        swing={swingByElement.get(p.element)}
+                        lev={leverageByElement.get(p.element)}
+                        webMean={webByElement?.mean.get(p.element)}
+                        riskShare={webByElement?.risk.get(p.element)}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -233,7 +370,12 @@ export function FieldClient({
         <ul className="flex flex-wrap gap-2 opacity-70">
           {bench.map((p) => (
             <li key={p.element}>
-              <ShirtToken row={p} mode={mode} swing={swingByElement.get(p.element)} lev={leverageByElement.get(p.element)} />
+              <ShirtToken
+                row={p}
+                mode={mode}
+                swing={swingByElement.get(p.element)}
+                lev={leverageByElement.get(p.element)}
+              />
             </li>
           ))}
         </ul>
@@ -268,7 +410,14 @@ type SquadRow = MatchdayModel["squad"][number];
 type SwingRow = MatchdayModel["swings"][number];
 type LevRow = MatchdayModel["leverage"]["yours"][number];
 
-function modeValue(row: SquadRow, mode: Mode, swing?: SwingRow, lev?: LevRow): { text: string; tone: "volt" | "surge" | "flare" | "ultra" | "plain" } {
+function modeValue(
+  row: SquadRow,
+  mode: Mode,
+  swing?: SwingRow,
+  lev?: LevRow,
+  webMean?: number,
+  riskShare?: number,
+): { text: string; tone: "volt" | "surge" | "flare" | "ultra" | "plain" } {
   switch (mode) {
     case "points": {
       const live = row.fixtureState === "live";
@@ -291,18 +440,29 @@ function modeValue(row: SquadRow, mode: Mode, swing?: SwingRow, lev?: LevRow): {
     case "planner":
       // The planner encodes nothing on the pitch — the desk below carries it.
       return { text: String(row.livePoints), tone: "plain" };
+    case "correlation":
+      // mean simulated points — the prose carries the honesty wrap above
+      return { text: webMean != null ? `~${webMean.toFixed(1)}` : "—", tone: "plain" };
+    case "risk":
+      // neutral colour by spec — size carries the encoding, the pill just states it
+      return { text: riskShare != null ? `${Math.round(riskShare * 100)}%` : "—", tone: "plain" };
   }
 }
 
 /** Club-coloured SVG shirt with sleeve shade, armband, arcs and state rings. */
 export function ShirtToken({
-  row, mode, swing, lev,
-}: { row: SquadRow; mode: Mode; swing?: SwingRow; lev?: LevRow }) {
+  row, mode, swing, lev, webMean, riskShare,
+}: {
+  row: SquadRow; mode: Mode; swing?: SwingRow; lev?: LevRow;
+  webMean?: number; riskShare?: number;
+}) {
   const club = clubOf(row.teamId);
   const done = row.fixtureState === "done";
   const live = row.fixtureState === "live";
-  const val = modeValue(row, mode, swing, lev);
+  const val = modeValue(row, mode, swing, lev, webMean, riskShare);
   const defconPct = row.defconThreshold < 99 ? Math.min(1, row.defconCount / row.defconThreshold) : 0;
+  // risk mode — token SIZE encodes the marginal variance share (neutral colour)
+  const riskScale = mode === "risk" && riskShare != null ? 0.78 + Math.min(0.65, riskShare * 5.5) : 1;
 
   return (
     <div className={cn("relative w-[76px] text-center", done && "opacity-55")} title={`${row.webName} · ${club.name}`}>
@@ -330,8 +490,13 @@ export function ShirtToken({
         </span>
       )}
 
-      {/* shirt */}
-      <svg viewBox="0 0 64 56" className="mx-auto h-11 w-12 drop-shadow-[0_4px_10px_rgba(0,0,0,.45)]" aria-hidden>
+      {/* shirt — scaled by variance share in risk mode (never hue) */}
+      <svg
+        viewBox="0 0 64 56"
+        className="mx-auto h-11 w-12 drop-shadow-[0_4px_10px_rgba(0,0,0,.45)] transition-transform dur-base"
+        style={{ transform: `scale(${riskScale.toFixed(2)})`, transformOrigin: "center bottom" }}
+        aria-hidden
+      >
         <path d="M20 4 L27 1 Q32 4 37 1 L44 4 L58 12 L52 24 L46 21 L46 54 L18 54 L18 21 L12 24 L6 12 Z"
           fill={club.rail} stroke="rgba(0,0,0,.35)" strokeWidth="1" />
         <path d="M44 4 L58 12 L52 24 L46 21 L46 12 Z" fill="color-mix(in oklab, currentColor 100%, black)" style={{ color: club.rail }} opacity="0.22" />
