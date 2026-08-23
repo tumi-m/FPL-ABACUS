@@ -7,22 +7,41 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
+import { BoardDesk, type DeskCandidate, type DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 const POLL_LIVE_MS = 20_000;
 const POLL_IDLE_MS = 300_000;
 
-type Mode = "points" | "ownership" | "swing" | "leverage";
+type Mode = "points" | "ownership" | "swing" | "leverage" | "planner";
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "points", label: "Points", hint: "Live points per player" },
   { id: "ownership", label: "Ownership", hint: "Effective ownership in the selected cohort — template fades, differentials burn" },
   { id: "swing", label: "Swing", hint: "Ranks gained or lost so far, per player" },
   { id: "leverage", label: "Leverage", hint: "Expected rank swing still available" },
+  { id: "planner", label: "Planner", hint: "Stage transfers and chips against your team" },
 ];
+
+export interface FieldDeskProps {
+  teamId: number;
+  squad: DeskSquadRow[];
+  candidates: DeskCandidate[];
+  gws: number[];
+  currentGw: number;
+  wallGw: number | null;
+  chips: { key: string; label: string; stopEvent: number }[];
+  bankTenths: number;
+}
 
 interface RivalPick { element: number; position: number; is_captain: boolean; multiplier: number }
 
-export function FieldClient({ initialModel }: { initialModel: MatchdayModel }) {
+export function FieldClient({
+  initialModel,
+  desk,
+}: {
+  initialModel: MatchdayModel;
+  desk?: FieldDeskProps | null;
+}) {
   const params = useSearchParams();
   const router = useRouter();
   const urlMode = MODES.find((m) => m.id === params.get("mode"))?.id ?? "points";
@@ -120,8 +139,12 @@ export function FieldClient({ initialModel }: { initialModel: MatchdayModel }) {
                 {Math.round(gwTotal).toLocaleString("en-GB")}
               </p>
             </div>
-            <Link href="/field/points" className="pb-1 text-xs text-volt hover:underline">
-              Where they come from →
+            <Link
+              href="/field/points"
+              role="button"
+              className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-volt px-4 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.97]"
+            >
+              <span>Points contribution</span>
             </Link>
           </div>
         );
@@ -163,18 +186,20 @@ export function FieldClient({ initialModel }: { initialModel: MatchdayModel }) {
         </p>
       )}
 
-      {/* the pitch — night-lit, not a green rectangle */}
+      {/* the pitch — broadcast turf: tournament green under the floodlights,
+          striped and marked; never a flat rectangle */}
       <section aria-label={`Your team on the pitch, ${mode} mode`} className="rounded-lg has-gloss card-lift overflow-hidden bg-raised p-3 md:p-5">
         <div
           className="relative overflow-hidden rounded-lg px-2 py-4 md:px-6"
           style={{
             background:
-              "radial-gradient(120% 90% at 50% -10%, rgba(157,240,255,.13), transparent 55%), repeating-linear-gradient(90deg, rgba(157,240,255,.03) 0 64px, transparent 64px 128px), var(--bg-sunk)",
+              "radial-gradient(120% 90% at 50% -10%, rgba(210,255,235,.16), transparent 55%), repeating-linear-gradient(90deg, rgba(6,32,20,.35) 0 64px, rgba(12,52,32,.18) 64px 128px), linear-gradient(178deg, #0B3B24, #062415 82%)",
+            boxShadow: "inset 0 -48px 80px -48px rgba(0,0,0,.75), inset 0 1px 0 rgba(230,248,255,.10)",
           }}
         >
-          {/* 1px markings at 40% */}
+          {/* 1px chalk markings at 40% — white on green, like the real thing */}
           <svg aria-hidden className="pointer-events-none absolute inset-0 h-full w-full opacity-40" preserveAspectRatio="none" viewBox="0 0 100 100">
-            <g fill="none" stroke="var(--line-hi)" strokeWidth="0.25">
+            <g fill="none" stroke="rgba(240,250,245,.85)" strokeWidth="0.25">
               <rect x="4" y="4" width="92" height="92" />
               <line x1="4" y1="50" x2="96" y2="50" />
               <circle cx="50" cy="50" r="9" />
@@ -213,7 +238,27 @@ export function FieldClient({ initialModel }: { initialModel: MatchdayModel }) {
         </ul>
       </section>
 
-      <EOScatter rows={model.squad} />
+      {/* Planner mode — staging ledger + chip lane, same component as the Board */}
+      {mode === "planner" && (
+        desk ? (
+          <BoardDesk
+            teamId={desk.teamId}
+            squad={desk.squad}
+            candidates={desk.candidates}
+            gws={desk.gws}
+            currentGw={desk.currentGw}
+            wallGw={desk.wallGw}
+            chips={desk.chips}
+            bankTenths={desk.bankTenths}
+          />
+        ) : (
+          <p className="rounded-lg bg-surface-1 card-ring p-6 text-center text-sm text-ink-lo">
+            The planner needs your picks for this gameweek.
+          </p>
+        )
+      )}
+
+      {mode !== "planner" && <EOScatter rows={model.squad} />}
     </div>
   );
 }
@@ -242,6 +287,9 @@ function modeValue(row: SquadRow, mode: Mode, swing?: SwingRow, lev?: LevRow): {
       if (!lev) return { text: "—", tone: "plain" };
       return { text: `~${(lev.expected / 1000).toFixed(1)}k`, tone: "ultra" };
     }
+    case "planner":
+      // The planner encodes nothing on the pitch — the desk below carries it.
+      return { text: String(row.livePoints), tone: "plain" };
   }
 }
 

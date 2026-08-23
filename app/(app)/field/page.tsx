@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { FieldClient } from "@/components/gaffer/field/FieldClient";
 import { buildMatchday } from "@/lib/server/buildMatchday";
+import { buildBoardDesk } from "@/lib/server/buildBoardDesk";
 
 export const dynamic = "force-dynamic";
 
@@ -33,5 +34,8 @@ export default async function FieldPage() {
     );
   }
 
-  return <FieldClient initialModel={result.model} />;
+  // Desk props for Planner mode — built alongside, degrades to null quietly.
+  const desk = await buildBoardDesk(teamId).catch(() => null);
+
+  return <FieldClient initialModel={result.model} desk={desk} />;
 }
