@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import Image from "next/image";
 import Link from "next/link";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getPicks } from "@/lib/fpl/endpoints";
@@ -173,6 +174,21 @@ export default async function NewsPage({
           ))}
         </ul>
       )}
+
+      {/* broadcast band — the Premier League badge under the desk */}
+      <section aria-hidden className="relative mt-4 h-24 overflow-hidden rounded-lg card-ring md:h-32">
+        <Image
+          src="/images/pl-badge.jpeg"
+          alt=""
+          fill
+          sizes="(min-width: 768px) 1360px, 100vw"
+          className="object-cover object-center opacity-80"
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(180deg, var(--bg-base) 0%, transparent 28%, transparent 72%, var(--bg-base) 100%)" }}
+        />
+      </section>
     </div>
   );
 }
