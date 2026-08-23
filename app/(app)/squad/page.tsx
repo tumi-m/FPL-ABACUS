@@ -7,6 +7,7 @@ import { getEntry, getPicks } from "@/lib/fpl/endpoints";
 import { formatPrice, POSITION_SHORT, crest } from "@/lib/ui/format";
 import { Badge } from "@/components/primitives/Badge";
 import { KitWeave } from "@/components/generative/KitWeave";
+import { COPY } from "@/lib/copy/deck";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Squad" };
@@ -38,8 +39,8 @@ export default async function SquadPage() {
   } catch {
     return (
       <div className="mx-auto max-w-md rounded-lg bg-surface-1 card-ring p-10 text-center">
-        <h1 className="text-lg font-medium">No squad yet</h1>
-        <p className="mt-2 text-sm text-ink-2">Picks appear once FPL has them for this gameweek.</p>
+        <h1 className="text-lg font-medium">{COPY.noSquadYet.title}</h1>
+        <p className="mt-2 text-sm text-ink-2">{COPY.noSquadYet.body}</p>
       </div>
     );
   }

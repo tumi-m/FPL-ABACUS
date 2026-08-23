@@ -9,6 +9,8 @@ import { LeverageBoard } from "@/components/gaffer/matchday/LeverageBoard";
 import { MatchPitch } from "@/components/gaffer/matchday/MatchPitch";
 import { SquadTable } from "@/components/gaffer/matchday/SquadTable";
 import { FixturesRail } from "@/components/gaffer/matchday/FixturesRail";
+import { MomentToast } from "@/components/gaffer/MomentToast";
+import { weekMoment, type MomentSpec } from "@/lib/engines/weekPhase";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 const POLL_LIVE_MS = 20_000;
@@ -61,9 +63,38 @@ export function MatchdayClient({ initialModel }: { initialModel: MatchdayModel }
   const model = data as MatchdayModel | undefined;
   const current = model ?? initialModel;
 
+  // Week Machine lite — phase-driven emphasis, computed after mount so SSR and
+  // hydration agree. Nav is never gated; every surface stays escapable.
+  const [moment, setMoment] = React.useState<MomentSpec | null>(null);
+  React.useEffect(() => {
+    setMoment(weekMoment(current.phase, Date.now(), current.event.deadlineTime));
+  }, [current.phase, current.event.deadlineTime]);
+
+  // Bonus settle-fade: the moment the GW leaves provisional territory.
+  const settled = current.phase === "bonus_added" || current.phase === "final";
+
+  // Rank-climb moment — fires once per improvement against this GW's best
+  // known rank on this device; dismissible, auto-clears.
+  const [toast, setToast] = React.useState<string | null>(null);
+  const lastClimbRef = React.useRef<number | null>(null);
+  const liveRank = current?.hero.officialLiveRank ?? current?.hero.estimatedLiveRank ?? null;
+  const peakKey = `gaffer_peak_${current.event.id}`;
+  React.useEffect(() => {
+    if (liveRank == null || document.hidden) return;
+    try {
+      const peak = Number(localStorage.getItem(peakKey));
+      if (Number.isFinite(peak) && peak > 0 && liveRank < peak && lastClimbRef.current !== liveRank) {
+        lastClimbRef.current = liveRank;
+        setToast(`Up ${peak - liveRank} places — now #${liveRank.toLocaleString("en-GB")}`);
+      }
+      if (!Number.isFinite(peak) || liveRank < peak) localStorage.setItem(peakKey, String(liveRank));
+    } catch {
+      /* storage blocked — no moment, no harm */
+    }
+  }, [liveRank, peakKey]);
+
   // Atmosphere trend — style guide §10: floodlight bank tint interpolates
   // surge-weighted when your rank is rising, flare-weighted when falling.
-  const liveRank = current?.hero.officialLiveRank ?? current?.hero.estimatedLiveRank ?? null;
   const prevRankRef = React.useRef<number | null>(null);
   React.useEffect(() => {
     const root = document.documentElement;
@@ -93,7 +124,7 @@ export function MatchdayClient({ initialModel }: { initialModel: MatchdayModel }
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
       {/* ── Mobile ─────────────────────────────────────────────── */}
       <div className="space-y-4 lg:hidden">
-        <HeroScore model={current} />
+        <HeroScore model={current} moment={moment} />
         <div role="group" aria-label="Matchday panels" className="grid grid-cols-4 gap-1 rounded-full card-ring p-1">
           {(
             [
@@ -123,7 +154,7 @@ export function MatchdayClient({ initialModel }: { initialModel: MatchdayModel }
         )}
         {panel === "team" && (
           <>
-            {view === "pitch" ? <MatchPitch model={current} /> : <SquadTable model={current} />}
+            {view === "pitch" ? <MatchPitch model={current} /> : <SquadTable model={current} settled={settled} />}
             <PitchTableToggle view={view} choose={chooseView} />
           </>
         )}
@@ -132,10 +163,10 @@ export function MatchdayClient({ initialModel }: { initialModel: MatchdayModel }
 
       {/* ── Desktop ────────────────────────────────────────────── */}
       <div className="hidden space-y-4 lg:block">
-        <HeroScore model={current} />
+        <HeroScore model={current} moment={moment} />
         <RegretMeter {...regretProps} />
         <LeverageBoard model={current} />
-        {view === "pitch" ? <MatchPitch model={current} /> : <SquadTable model={current} />}
+        {view === "pitch" ? <MatchPitch model={current} /> : <SquadTable model={current} settled={settled} />}
         <PitchTableToggle view={view} choose={chooseView} />
         <FixturesRail model={current} />
       </div>
@@ -144,6 +175,7 @@ export function MatchdayClient({ initialModel }: { initialModel: MatchdayModel }
           <SwingFeed model={current} />
         </div>
       </div>
+      <MomentToast message={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

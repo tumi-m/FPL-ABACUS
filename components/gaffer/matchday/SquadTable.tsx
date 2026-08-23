@@ -9,7 +9,7 @@ import { POSITION_SHORT } from "@/lib/ui/format";
 
 type SortKey = "webName" | "minutes" | "livePoints" | "bps" | "defconCount";
 
-export function SquadTable({ model }: { model: MatchdayModel }) {
+export function SquadTable({ model, settled }: { model: MatchdayModel; settled?: boolean }) {
   const [sort, setSort] = React.useState<{ key: SortKey; dir: 1 | -1 }>({ key: "livePoints", dir: -1 });
 
   const rows = [...model.squad].sort((a, b) => {
@@ -69,8 +69,11 @@ export function SquadTable({ model }: { model: MatchdayModel }) {
                 </td>
                 <td className="py-2 px-2 text-right text-ink-2">{r.minutes}</td>
                 <td className="py-2 px-2 text-right font-medium text-ink-1">
-                  {r.livePoints}
-                  {r.provisionalBonus > 0 && <sup className="text-brand">*</sup>}
+                  {/* remount on settle so the wash plays exactly once */}
+                  <span key={settled ? "settled" : "live"} className={settled ? "inline-block settle-wash" : "inline-block"}>
+                    {r.livePoints}
+                  </span>
+                  {!settled && r.provisionalBonus > 0 && <sup className="text-brand">*</sup>}
                 </td>
                 <td className="py-2 px-2 text-right text-ink-2">{r.bps}</td>
                 <td className="w-28 py-2 pl-2">
@@ -85,7 +88,9 @@ export function SquadTable({ model }: { model: MatchdayModel }) {
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-2xs text-ink-3">* includes projected bonus — final when FPL adds official bonus.</p>
+      <p className="mt-3 text-2xs text-ink-3">
+        {settled ? "Bonus settled by FPL." : "* includes projected bonus — final when FPL adds official bonus."}
+      </p>
     </section>
   );
 }

@@ -64,11 +64,20 @@ Seven assistant intents, all router-first, all numbers from engines:
       h-11, Drop/Clear get 44px hit areas (pseudo-element expansion / real buttons);
       Fixture grid + Blanks & doubles section headers as upper-labels.
 
-### V5-G — UX depth (next)
-- [ ] Week Machine lite: phase-driven home emphasis + nav order (Autopsy/Workshop/War Room/
-      Reveal/Match/Wait), always escapable.
-- [ ] Moments: settle-fade when bonus confirms; passed-rival toast (once, dismissible).
-- [ ] Copy deck consolidation into `lib/copy/*.ts`.
+### V5-G — UX depth ✅ (this commit)
+- [x] Week Machine lite: `lib/engines/weekPhase.ts` maps the existing `GwPhase` onto
+      Autopsy/Workshop/War Room(≤36h to deadline)/Reveal/Match/Wait with headline + focus
+      surface (8 tests incl. `getGwPhase` ordering pins). LiveBar now reports every phase;
+      HeroScore carries the moment line with an escape hatch link. Nav is never gated —
+      always escapable.
+- [x] Moments: bonus settle-wash plays once when the GW leaves provisional (remount-keyed,
+      killed by prefers-reduced-motion); projected-bonus footnote swaps to "settled".
+      MomentToast primitive + rank-climb moment (once per improvement vs device peak,
+      dismissible, auto-clears 8s). True passed-rival detection waits for the rivals tab.
+- [x] Copy deck consolidated into `lib/copy/deck.ts`; nine scattered error/empty-state
+      strings now import from it.
+
+## v5 COMPLETE — remaining deferred items live in §Deferred until scale; v4 screen specs next.
 
 ### Deferred until scale (explicitly NOT now)
 Accounts/payments, alerts/push, manager_index name search + crawl, club-theme generator rollout,
