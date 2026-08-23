@@ -92,6 +92,100 @@ ${context}`;
 }
 
 /**
+ * The context the gaffer sees (v6-C): the question, the gameweek state, the
+ * team structure and the resolved card. Numbers live in the facts so the
+ * advice is actionable — the constraints still forbid stating them; figures
+ * render beside the bubble from the resolver, always.
+ */
+export interface ArcadeFacts {
+  question: string;
+  gw: number;
+  phase?: string;
+  team?: {
+    name: string;
+    points: number;
+    played: number;
+    toPlay: number;
+    captain: string | null;
+    benchByPos: Record<string, number>;
+    threats: string[];
+    rankNow: number | null;
+    rankDelta: number | null;
+  };
+  card?: { component: string; title: string; prose: string; props: Record<string, unknown> | null };
+}
+
+export interface ArcadeMatchdayLite {
+  phase: string;
+  eventId: number;
+  teamName: string;
+  points: number;
+  played: number;
+  toPlay: number;
+  captain: string | null;
+  benchByPos: Record<string, number>;
+  threats: string[];
+  rankNow: number | null;
+  rankDelta: number | null;
+}
+
+/** Pure, testable facts composer — no network, all inputs in hand. */
+export function arcadeFacts(
+  question: string,
+  matchday: ArcadeMatchdayLite | null,
+  card: ResolvedCardLike | null,
+): ArcadeFacts {
+  const facts: ArcadeFacts = {
+    question: question.slice(0, 200),
+    gw: matchday?.eventId ?? 0,
+    phase: matchday?.phase,
+    team: matchday
+      ? {
+          name: matchday.teamName,
+          points: matchday.points,
+          played: matchday.played,
+          toPlay: matchday.toPlay,
+          captain: matchday.captain,
+          benchByPos: matchday.benchByPos,
+          threats: matchday.threats.slice(0, 4),
+          rankNow: matchday.rankNow,
+          rankDelta: matchday.rankDelta,
+        }
+      : undefined,
+  };
+  if (card) {
+    facts.card = {
+      component: card.component,
+      title: card.title,
+      prose: card.prose,
+      props: card.props,
+    };
+  }
+  return facts;
+}
+
+/** Subset of the resolved card the arcade prompt needs. */
+export interface ResolvedCardLike {
+  component: string;
+  title: string;
+  prose: string;
+  props: Record<string, unknown> | null;
+}
+
+/** Serialise facts for the prompt — compact JSON, bounded size. */
+export function factsToPromptContext(facts: ArcadeFacts): string {
+  return JSON.stringify(facts, null, 0).slice(0, 1600);
+}
+
+/** Strip anything that looks like a stated figure — the rule is absolute. */
+export function scrubFigures(text: string): string {
+  let out = text.replace(/\d[\d.,]*\s*(pts?|points?|%|k|m|x|xG|GW\d*)/gi, "");
+  out = out.replace(/[\d][\d.,]*[kKmM]?/g, "");
+  out = out.replace(/\s{2,}/g, " ").replace(/\s+([,.!?])/g, "$1").trim();
+  return out;
+}
+
+/**
  * Deterministic fallback when the gateway is down. Contains no numbers by
  * construction — the resolver's figures still render beside it.
  */

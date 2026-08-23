@@ -3,9 +3,13 @@ import {
   DEFAULT_PERSONA,
   GAFFER_CONSTRAINTS,
   PERSONAS,
+  arcadeFacts,
+  factsToPromptContext,
   personaById,
   personaFallback,
   personaPrompt,
+  scrubFigures,
+  type ArcadeMatchdayLite,
 } from "@/lib/ai/personas";
 
 describe("persona registry — the four arcade gaffers", () => {
@@ -70,5 +74,72 @@ describe("personaFallback — deterministic and number-free", () => {
     expect(personaFallback(personaById("kofi"))).toMatch(/differential/i);
     expect(personaFallback(personaById("mei"))).toMatch(/budget/i);
     expect(personaFallback(personaById("ana"))).toMatch(/fixture/i);
+  });
+});
+
+describe("arcadeFacts — v6-C context passing", () => {
+  const matchday: ArcadeMatchdayLite = {
+    phase: "live",
+    eventId: 14,
+    teamName: "The Test XI",
+    points: 44,
+    played: 6,
+    toPlay: 3,
+    captain: "Haaland",
+    benchByPos: { GK: 1, DEF: 2, MID: 1, FWD: 0 },
+    threats: ["Watkins 40% EO live", "Saka differential live"],
+    rankNow: 40210,
+    rankDelta: 5120,
+  };
+
+  it("carries the gameweek state, team structure and the resolved card", () => {
+    const facts = arcadeFacts("should I take a hit?", matchday, {
+      component: "transfer-sim",
+      title: "Transfer simulation",
+      prose: "payback never pays back",
+      props: { out: null, in: null },
+    });
+    expect(facts.question).toBe("should I take a hit?");
+    expect(facts.gw).toBe(14);
+    expect(facts.phase).toBe("live");
+    expect(facts.team?.captain).toBe("Haaland");
+    expect(facts.team?.benchByPos.DEF).toBe(2);
+    expect(facts.team?.rankDelta).toBe(5120);
+    expect(facts.card?.component).toBe("transfer-sim");
+  });
+
+  it("works with no matchday (guest) and no card", () => {
+    const facts = arcadeFacts("hello", null, null);
+    expect(facts.question).toBe("hello");
+    expect(facts.team).toBeUndefined();
+    expect(facts.card).toBeUndefined();
+  });
+
+  it("serialises compactly and stays bounded", () => {
+    const facts = arcadeFacts("cap this", matchday, null);
+    const ctx1 = factsToPromptContext(facts);
+    expect(ctx1.length).toBeGreaterThan(40);
+    expect(ctx1.length).toBeLessThanOrEqual(1600);
+  });
+});
+
+describe("scrubFigures — the strict-numbers rule applied to prose", () => {
+  it("strips points, percentages, ranks and prices", () => {
+    const dirty = "Haaland has 12.4 points, 84% ownership, rank 4,210 tonight";
+    const clean = scrubFigures(dirty);
+    expect(clean).not.toMatch(/\d/);
+    expect(clean).toMatch(/Haaland/);
+  });
+
+  it("keeps plain prose intact", () => {
+    const clean = scrubFigures("trust the template");
+    expect(clean).toBe("trust the template");
+  });
+
+  it("punctuation reattaches after stripping", () => {
+    const dirty = "salad leads with 9 pts, then gabriel";
+    const clean = scrubFigures(dirty);
+    expect(clean).not.toMatch(/\b9\b/);
+    expect(clean).toContain("leads");
   });
 });
