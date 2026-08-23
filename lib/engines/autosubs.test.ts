@@ -20,7 +20,11 @@ function player(id: number, pos: Pos, minutes: number, fixturesFinished = true):
       played: minutes > 0,
       fixturesFinished,
       defcon: { count: 0, threshold: 10, hit: false },
-      stats: { bps: 0, saves: 0, goalsScored: 0, assists: 0, cleanSheets: 0, conceded: 0, ownGoals: 0, penMissed: 0, cards: 0 },
+      stats: { bps: 0, saves: 0, goalsScored: 0, assists: 0, cleanSheets: 0, conceded: 0, ownGoals: 0, penMissed: 0,
+      yellowCards: 0,
+      redCards: 0,
+      xg: 0,
+      xa: 0, cards: 0 },
     },
   ];
 }

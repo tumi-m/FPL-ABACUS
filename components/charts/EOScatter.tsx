@@ -31,6 +31,7 @@ export function EOScatter({
     x: Math.max(0, Math.min(100, r.eo)),
     y: r.multiplier - r.eo / 100,
     captain: r.isCaptain && r.multiplier >= 2,
+    bench: r.onBench && !(r.isCaptain && r.multiplier >= 2),
   }));
 
   const x = scaleLinear().domain([0, 100]).range([M.left, W - M.right]);
@@ -41,7 +42,7 @@ export function EOScatter({
     headers: ["Player", "EO %", "Your mult", "Active"],
     rows: [...pts]
       .sort((a, b) => b.y - a.y)
-      .map((p) => [p.name, p.x.toFixed(1), p.captain ? "2+" : "1", p.y.toFixed(2)]),
+      .map((p) => [p.name, p.x.toFixed(1), p.bench ? "bench" : p.captain ? "2+" : "1", p.y.toFixed(2)]),
   };
 
   return (
@@ -55,6 +56,7 @@ export function EOScatter({
           items={[
             { name: "Your players", colorVar: "var(--series-1)" },
             { name: "Captain", colorVar: "var(--volt)" },
+            { name: "Bench (hollow)", colorVar: "var(--series-1)" },
           ]}
         />
       }
@@ -93,6 +95,14 @@ export function EOScatter({
         <text x={(W + M.left) / 2} y={H - 4} textAnchor="middle" fontSize="10" className="fill-(--ink-mid)">
           Effective ownership % →
         </text>
+        {/* y-axis name — the metric is active weight: your multiplier minus EO */}
+        <text
+          textAnchor="middle" fontSize="10" className="fill-(--ink-mid)"
+          transform={`rotate(-90 12 ${(H - M.bottom + M.top) / 2})`}
+          x={12} y={(H - M.bottom + M.top) / 2}
+        >
+          Active weight (your multiplier − EO) →
+        </text>
 
         {/* dots — 2px surface gaps via stroke; taps peek the player */}
         {pts.map((p) => (
@@ -101,14 +111,14 @@ export function EOScatter({
             cx={x(p.x)}
             cy={y(Math.max(-yMax, Math.min(yMax, p.y)))}
             r={p.captain ? 6 : 4.5}
-            fill={p.captain ? "var(--volt)" : "var(--series-1)"}
-            stroke="var(--bg-raised)"
+            fill={p.bench ? "var(--bg-raised)" : p.captain ? "var(--volt)" : "var(--series-1)"}
+            stroke={p.bench ? "var(--series-1)" : "var(--bg-raised)"}
             strokeWidth="2"
-            opacity={p.captain ? 1 : 0.85}
+            opacity={p.bench ? 0.55 : p.captain ? 1 : 0.85}
             onClick={onSelect ? () => onSelect(p.el) : undefined}
             className={onSelect ? "cursor-pointer" : undefined}
           >
-            <title>{`${p.name} — EO ${p.x.toFixed(1)}%, active ${p.y >= 0 ? "+" : ""}${p.y.toFixed(2)}`}</title>
+            <title>{`${p.name}${p.bench ? " (bench)" : p.captain ? " (captain)" : ""} — EO ${p.x.toFixed(1)}%, active ${p.y >= 0 ? "+" : ""}${p.y.toFixed(2)}`}</title>
           </circle>
         ))}
       </svg>

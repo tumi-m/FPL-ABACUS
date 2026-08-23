@@ -9,6 +9,7 @@ import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { BoardDesk, type DeskCandidate, type DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
 import { PeekSheet } from "@/components/gaffer/field/PeekSheet";
+import { PositionContribution, Availability, BpsLeaders, CaptainShare } from "@/components/gaffer/field/FieldCharts";
 import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
 import { Est } from "@/components/gaffer/Est";
 import { COPY } from "@/lib/copy/deck";
@@ -495,7 +496,15 @@ export function FieldClient({
       )}
 
       {mode !== "planner" && (
-        <EOScatter rows={model.squad} onSelect={(el) => setPeekElement(el)} />
+        <>
+          <EOScatter rows={model.squad} onSelect={(el) => setPeekElement(el)} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <PositionContribution rows={model.squad} />
+            <Availability rows={model.squad} />
+            <BpsLeaders rows={model.squad} />
+            <CaptainShare rows={model.squad} />
+          </div>
+        </>
       )}
 
       <PeekSheet

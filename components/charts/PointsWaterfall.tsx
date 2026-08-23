@@ -99,6 +99,25 @@ export function PointsWaterfall({
               >
                 <title>{`${b.name}${b.captain ? " (captain)" : ""} — ${b.pts} pts`}</title>
               </rect>
+              {/* the point value rides centred in the bar (above it when thin) */}
+              {height >= 16 ? (
+                <text
+                  x={cx} y={top + height / 2 + 4}
+                  textAnchor="middle" fontSize="12" fontWeight="800"
+                  fill="#fff" opacity={0.95}
+                  style={{ fontVariationSettings: '"wdth" 110' }}
+                >
+                  {b.pts}
+                </text>
+              ) : (
+                <text
+                  x={cx} y={top - 5}
+                  textAnchor="middle" fontSize="11" fontWeight="800"
+                  className="fill-(--ink-mid)"
+                >
+                  {b.pts}
+                </text>
+              )}
               {b.captain && (
                 <text x={cx} y={top - 12} textAnchor="middle" fontSize="9" className="fill-(--volt)" fontWeight="800">
                   C
@@ -108,15 +127,16 @@ export function PointsWaterfall({
           );
         })}
 
-        {/* the total — volt identity mark */}
+        {/* the total — volt identity mark with its value centred inside */}
         <rect
           x={x("total")} y={y(running)} width={bw} height={Math.max(2, y(0) - y(running))}
           rx="3" fill="var(--volt)"
         />
         <text
-          x={(x("total") ?? 0) + bw / 2} y={y(running) - 8}
-          textAnchor="middle" fontSize="15" fontWeight="800" fontStyle="italic"
-          className="fill-(--ink-hi)" style={{ fontVariationSettings: '"wdth" 110' }}
+          x={(x("total") ?? 0) + bw / 2} y={(y(running) + y(0)) / 2 + 5}
+          textAnchor="middle" fontSize="15" fontWeight="800"
+          className="fill-(--on-accent)"
+          style={{ fontVariationSettings: '"wdth" 110' }}
         >
           {Math.round(running)}
         </text>

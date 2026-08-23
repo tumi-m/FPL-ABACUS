@@ -88,6 +88,8 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
       fixtureState: state,
       fixtureMinute: fx?.minutes ?? 0,
       subbedInFor: subbedIn ? subbedIn.out : null,
+      photo: meta?.photo ?? "",
+      liveStats: player?.stats ?? null,
       teamId: meta?.team ?? 0,
       // ownership is *your* exposure — the rival view never shows it
       eo: 0,
