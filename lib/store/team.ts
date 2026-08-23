@@ -2,6 +2,7 @@
 
 const RECENT_KEY = "gaffer_recent_teams";
 const COOKIE = "gaffer_team";
+const CLUB_KEY = "gaffer_club";
 
 export interface RecentTeam {
   id: number;
@@ -40,6 +41,29 @@ export function forgetTeam(id: number): RecentTeam[] {
     return list;
   } catch {
     return [];
+  }
+}
+
+/** Favourite club — recolours chrome accents app-wide; null falls back to the default look. */
+export function getFavClub(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CLUB_KEY);
+    const n = raw ? Number(raw) : NaN;
+    return Number.isFinite(n) && n >= 1 && n <= 20 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setFavClub(id: number | null): void {
+  try {
+    if (id == null) localStorage.removeItem(CLUB_KEY);
+    else localStorage.setItem(CLUB_KEY, String(id));
+    if (id == null) delete document.documentElement.dataset.club;
+    else document.documentElement.dataset.club = String(id);
+  } catch {
+    // storage unavailable — session-only
   }
 }
 

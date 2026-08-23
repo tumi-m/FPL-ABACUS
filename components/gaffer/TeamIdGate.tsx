@@ -8,8 +8,9 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
 import { X } from "@/components/primitives/icons";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
 import { formatCompactRank } from "@/lib/ui/format";
-import { forgetTeam, getRecentTeams, parseGateInput, rememberTeam, type RecentTeam } from "@/lib/store/team";
+import { forgetTeam, getFavClub, getRecentTeams, parseGateInput, rememberTeam, setFavClub, type RecentTeam } from "@/lib/store/team";
 import { COPY } from "@/lib/copy/deck";
+import { CLUB } from "@/config/clubs";
 
 type Stage = "form" | "checking" | "confirm" | "league";
 
@@ -133,6 +134,7 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
   function confirm() {
     if (!confirmInfo) return;
     rememberTeam({ id: confirmInfo.id, name: confirmInfo.teamName, rank: confirmInfo.rank });
+    if (confirmInfo.favouriteTeam != null) setFavClub(confirmInfo.favouriteTeam);
     // Only follow internal destinations — a crafted ?next must not leave the app.
     router.push(next.startsWith("/") && !next.startsWith("//") ? next : "/live");
   }
@@ -306,6 +308,8 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
         </div>
       )}
 
+      {!compact && <ClubCarousel />}
+
       {/* ID explainer — the three routes to your number */}
       <Sheet open={explainOpen} onOpenChange={setExplainOpen}>
         {explainOpen && (
@@ -361,6 +365,72 @@ function AddressBar({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-2 overflow-x-auto whitespace-nowrap rounded-md bg-sunk card-ring px-3 py-2 text-xs text-ink-mid num-tabular">
       {children}
+    </div>
+  );
+}
+
+/**
+ * Favourite-club carousel — ◀ ▶ steps through the twenty crests; selecting
+ * recolours chrome accents app-wide via [data-club]. No selection = the
+ * default floodlight look.
+ */
+function ClubCarousel() {
+  const clubs = React.useMemo(() => Object.values(CLUB).filter((c) => c.id >= 1 && c.id <= 20), []);
+  const [fav, setFav] = React.useState<number | null>(null);
+  const [idx, setIdx] = React.useState(0);
+
+  React.useEffect(() => {
+    const stored = getFavClub();
+    setFav(stored);
+    if (stored != null) {
+      const i = clubs.findIndex((c) => c.id === stored);
+      if (i >= 0) setIdx(i);
+    }
+  }, [clubs]);
+
+  const club = clubs[idx];
+  const selected = fav === club?.id;
+
+  const pick = (id: number | null) => {
+    setFav(id);
+    setFavClub(id);
+  };
+
+  return (
+    <div className="mt-5 w-full max-w-md rounded-lg bg-surface-1/70 card-ring px-4 py-3">
+      <p className="upper-label text-2xs text-ink-lo">Your club — tints the chrome</p>
+      <div className="mt-2 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => setIdx((i) => (i - 1 + clubs.length) % clubs.length)}
+          aria-label="Previous club"
+          className="skewed grid h-9 w-9 place-items-center rounded-sm card-ring text-ink-mid transition-colors dur-instant hover:text-ink-hi"
+        >
+          <span className="text-sm">◀</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => pick(selected ? null : club.id)}
+          aria-pressed={selected}
+          aria-label={selected ? `Clear ${club.name} — back to the default look` : `Tint chrome to ${club.name}`}
+          className="flex min-w-[120px] flex-col items-center gap-1 rounded-md px-3 py-1.5 transition-transform dur-instant hover:-translate-y-0.5"
+          style={selected ? { boxShadow: `inset 0 0 0 1.5px ${club.rail}, var(--lift)` } : undefined}
+        >
+          <CrestTile teamId={club.id} />
+          <span className="text-xs font-semibold text-ink-hi">{club.name}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setIdx((i) => (i + 1) % clubs.length)}
+          aria-label="Next club"
+          className="skewed grid h-9 w-9 place-items-center rounded-sm card-ring text-ink-mid transition-colors dur-instant hover:text-ink-hi"
+        >
+          <span className="text-sm">▶</span>
+        </button>
+      </div>
+      <p className="mt-1.5 text-center text-2xs text-ink-lo">
+        {selected ? `${club.name} tint on — tap again to clear` : "Skip it and the default floodlight look stays"}
+      </p>
     </div>
   );
 }

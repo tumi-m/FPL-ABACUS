@@ -375,6 +375,32 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   Favourite-club chrome — [data-club] recolours chrome accents only
+   (--brand family + atmos tints). Data encodings (--volt live/you, --surge,
+   --flare, heat ramp, chart series) never move. Default = no data-club.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root[data-club="1"]  { --brand: var(--club-ars); --brand-wash: color-mix(in oklab, var(--club-ars) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-ars) 12%, transparent); }
+:root[data-club="2"]  { --brand: var(--club-avl); --brand-wash: color-mix(in oklab, var(--club-avl) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-avl) 12%, transparent); }
+:root[data-club="3"]  { --brand: var(--club-bou); --brand-wash: color-mix(in oklab, var(--club-bou) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-bou) 12%, transparent); }
+:root[data-club="4"]  { --brand: var(--club-bre); --brand-wash: color-mix(in oklab, var(--club-bre) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-bre) 12%, transparent); }
+:root[data-club="5"]  { --brand: var(--club-bha); --brand-wash: color-mix(in oklab, var(--club-bha) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-bha) 12%, transparent); }
+:root[data-club="6"]  { --brand: var(--club-che); --brand-wash: color-mix(in oklab, var(--club-che) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-che) 12%, transparent); }
+:root[data-club="7"]  { --brand: var(--club-cov); --brand-wash: color-mix(in oklab, var(--club-cov) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-cov) 12%, transparent); }
+:root[data-club="8"]  { --brand: var(--club-cry); --brand-wash: color-mix(in oklab, var(--club-cry) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-cry) 12%, transparent); }
+:root[data-club="9"]  { --brand: var(--club-eve); --brand-wash: color-mix(in oklab, var(--club-eve) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-eve) 12%, transparent); }
+:root[data-club="10"] { --brand: var(--club-ful); --brand-wash: color-mix(in oklab, var(--club-ful) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-ful) 12%, transparent); }
+:root[data-club="11"] { --brand: var(--club-hul); --brand-wash: color-mix(in oklab, var(--club-hul) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-hul) 12%, transparent); }
+:root[data-club="12"] { --brand: var(--club-ips); --brand-wash: color-mix(in oklab, var(--club-ips) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-ips) 12%, transparent); }
+:root[data-club="13"] { --brand: var(--club-lee); --brand-wash: color-mix(in oklab, var(--club-lee) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-lee) 12%, transparent); }
+:root[data-club="14"] { --brand: var(--club-liv); --brand-wash: color-mix(in oklab, var(--club-liv) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-liv) 12%, transparent); }
+:root[data-club="15"] { --brand: var(--club-mci); --brand-wash: color-mix(in oklab, var(--club-mci) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-mci) 12%, transparent); }
+:root[data-club="16"] { --brand: var(--club-mun); --brand-wash: color-mix(in oklab, var(--club-mun) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-mun) 12%, transparent); }
+:root[data-club="17"] { --brand: var(--club-new); --brand-wash: color-mix(in oklab, var(--club-new) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-new) 12%, transparent); }
+:root[data-club="18"] { --brand: var(--club-nfo); --brand-wash: color-mix(in oklab, var(--club-nfo) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-nfo) 12%, transparent); }
+:root[data-club="19"] { --brand: var(--club-tot); --brand-wash: color-mix(in oklab, var(--club-tot) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-tot) 12%, transparent); }
+:root[data-club="20"] { --brand: var(--club-sun); --brand-wash: color-mix(in oklab, var(--club-sun) 14%, transparent); --flare-r: color-mix(in oklab, var(--club-sun) 12%, transparent); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
    The atmosphere layer — floodlight banks + stadium vignette + 115° mesh.
    One fixed element behind everything. It never scrolls.
    Drive trend from a data attribute set by the live poller.
