@@ -58,6 +58,15 @@ describe("bestGuess — model-free fallback ladder", () => {
     expect(bestGuess("chips")!.component).toBe("chip-timeline");
     expect(bestGuess("injuries")!.component).toBe("injury-list");
   });
+
+  it("routes the market lens — crowding and paired WPA (v3-18/19)", () => {
+    expect(route("where is the alpha this week")!.component).toBe("crowding");
+    expect(route("how crowded are midfields")!.component).toBe("crowding");
+    const wpa = route("what are my odds of beating 1851681 this week");
+    expect(wpa!.component).toBe("wpa");
+    expect(wpa!.params).toEqual({ rivalEntry: 1851681 });
+    expect(route("win probability vs my rival")!.component).toBe("wpa");
+  });
 });
 
 describe("extractPlayerName", () => {
@@ -76,6 +85,7 @@ describe("registry integrity", () => {
       "xg-vs-actual", "rank-projection", "swing-impact", "exposure-scatter",
       "chip-timeline", "injury-list", "news-search",
       "squad-generator", "transfer-watch", "chip-timing", "review",
+      "crowding", "wpa",
     ]) {
       expect(isValidComponent(key)).toBe(true);
       expect(REGISTRY[key].engine.length).toBeGreaterThan(3);

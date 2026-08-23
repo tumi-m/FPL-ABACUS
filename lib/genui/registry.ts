@@ -126,6 +126,19 @@ export const REGISTRY: Record<string, GenUIComponent> = {
     title: "Gameweek review",
     engine: "matchdayModel facts composed into template prose — hero, swings, regret",
   },
+  crowding: {
+    key: "crowding",
+    title: "Crowding",
+    engine:
+      "per-position ownership concentration → HHI, effective picks (1/HHI), entropy (v3-18)",
+  },
+  wpa: {
+    key: "wpa",
+    title: "Win probability added",
+    engine:
+      "paired Dixon–Coles copula sim of your XI vs a league rival → leave-one-out win-prob swings (v3-19); model sets the rival entry only",
+    params: z.object({ rivalEntry: z.number().int().min(1).max(99_999_999).optional() }).optional(),
+  },
 };
 
 export const COMPONENT_KEYS = Object.keys(REGISTRY);

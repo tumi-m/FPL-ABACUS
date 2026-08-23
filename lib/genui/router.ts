@@ -225,6 +225,27 @@ const SHAPES: Shape[] = [
       /\bwhat happened (to me |last week)\b/i,
     ],
   },
+  // ── v3 Q5 extras: the market lens ───────────────────────────────────────
+  {
+    intent: "market.crowding",
+    component: "crowding",
+    patterns: [
+      /\bcrowding\b/i, /\bwhere (is|'s) (the )?(alpha|edge)\b/i,
+      /\btemplate or differential\b/i, /\beffective picks\b/i, /\bhow crowded\b/i,
+    ],
+  },
+  {
+    intent: "market.wpa",
+    component: "wpa",
+    patterns: [
+      /\bwin prob(ability)?\b/i, /\bwpa\b/i, /\bhead.?to.?head\b/i,
+      /\bodds of beating\b/i, /\bwill i beat\b/i, /\bh2h\b/i,
+    ],
+    extract: (q) => {
+      const m = q.match(/(?:vs\.?|against|versus|beat(?:ing)?)\s*#?(\d{3,8})\b/i);
+      return m ? { rivalEntry: Number(m[1]) } : {};
+    },
+  },
 ];
 
 export function route(query: string): RouteResult | null {

@@ -23,18 +23,32 @@ export interface CorrelationWebPayload {
   draws: number;
 }
 
-export async function buildCorrelationWeb(teamId: number, gw?: number): Promise<CorrelationWebPayload | null> {
+export interface WebContext {
+  fit: ReturnType<typeof fitDixonColes>;
+  players: WebPlayer[];
+  fixtures: { elementId: number; homeTeam: number; awayTeam: number; isHome: boolean }[];
+  /** FPL pick multipliers (captain 2×) for the XI. */
+  multipliers: Map<number, number>;
+  currentGw: number;
+}
+
+/**
+ * The Dixon–Coles web context for one entry's XI — shared by the correlation
+ * modes, the effective-bets card and the paired WPA engine.
+ */
+export async function buildWebContext(teamId: number, gw?: number): Promise<WebContext | null> {
   const boot = await getBootstrapLite();
   const currentGw = gw ?? boot.events.find((e) => e.is_current)?.id ?? boot.events.find((e) => e.is_next)?.id ?? 1;
 
-  let squadIds: number[] = [];
+  let picks: Awaited<ReturnType<typeof getPicks>>;
   try {
-    const picks = await getPicks(teamId, currentGw, true);
-    squadIds = picks.picks.map((p) => p.element);
+    picks = await getPicks(teamId, currentGw, true);
   } catch {
     return null;
   }
+  const squadIds = picks.picks.map((p) => p.element);
   if (!squadIds.length) return null;
+  const multipliers = new Map(picks.picks.filter((p) => p.position <= 11).map((p) => [p.element, p.multiplier]));
 
   const fixtures = await getFixturesAll().catch(() => [] as Awaited<ReturnType<typeof getFixturesAll>>);
 
@@ -70,7 +84,15 @@ export async function buildCorrelationWeb(teamId: number, gw?: number): Promise<
     });
     webFixtures.push({ elementId: id, homeTeam: fx.team_h, awayTeam: fx.team_a, isHome: fx.team_h === el.team });
   }
-  if (webPlayers.length < 3) return null;
+  if (webPlayers.length < 1) return null;
+  return { fit, players: webPlayers, fixtures: webFixtures, multipliers, currentGw };
+}
+
+export async function buildCorrelationWeb(teamId: number, gw?: number): Promise<CorrelationWebPayload | null> {
+  const boot = await getBootstrapLite();
+  const ctx = await buildWebContext(teamId, gw);
+  if (!ctx || ctx.players.length < 3) return null;
+  const { players: webPlayers, fixtures: webFixtures, fit } = ctx;
 
   const web = simulateWeb(webPlayers, webFixtures, fit, undefined, { M: 800, seed: 2026 });
   const risk = marginalRisk(webPlayers, web.correlation, web.variance);

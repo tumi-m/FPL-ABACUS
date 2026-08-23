@@ -379,6 +379,66 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
         </div>
       );
     }
+    case "crowding": {
+      const rows = props.rows as {
+        posLabel: string; effectivePicks: number; players: number; topName: string | null; topShare: number;
+      }[];
+      return (
+        <div className="rounded-lg bg-surface-1 card-ring p-4">
+          <div className="upper-label text-2xs text-ink-lo">Effective picks by position</div>
+          <table className="mt-2 w-full text-sm num-tabular">
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.posLabel} className="border-b border-hairline last:border-0">
+                  <td className="py-1.5 text-ink-hi">{r.posLabel}</td>
+                  <td className="py-1.5 text-right fig-num">{r.effectivePicks.toFixed(1)}</td>
+                  <td className="w-28 py-1.5 pl-3 text-right text-xs text-ink-lo">
+                    {r.topName != null ? `${r.topName} ${Math.round(r.topShare * 100)}%` : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-2 text-2xs leading-relaxed text-ink-lo">
+            1/HHI over the field&apos;s ownership shares — low means the market collapsed onto
+            one template, high means genuine disagreement to attack.
+          </p>
+        </div>
+      );
+    }
+    case "wpa": {
+      const winProb = props.winProb as number;
+      const rivalName = props.rivalName as string;
+      const moments = props.moments as { name: string; side: "you" | "them"; wpa: number }[];
+      return (
+        <div className="rounded-lg bg-surface-1 card-ring p-4">
+          <div className="flex items-baseline justify-between">
+            <div className="upper-label text-2xs text-ink-lo">Win probability</div>
+            <div className="text-2xs uppercase-label text-ink-lo">vs {rivalName}</div>
+          </div>
+          <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-surface-3">
+            <span className="block h-full rounded-l-full" style={{ width: `${winProb}%`, background: "var(--surge)" }} />
+          </div>
+          <div className="mt-1.5 flex items-baseline justify-between">
+            <span className="fig-num text-sm text-surge">{winProb}%</span>
+            <span className="text-2xs text-ink-lo">paired simulations — shared fixtures drawn once</span>
+          </div>
+          <ul className="mt-3 space-y-1">
+            {moments.map((m) => (
+              <li key={`${m.side}-${m.name}`} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-ink-hi">
+                  {m.name}
+                  <span className="ml-1.5 text-2xs uppercase-label text-ink-lo">{m.side === "you" ? "yours" : "theirs"}</span>
+                </span>
+                <span className={`fig-num text-xs ${m.wpa >= 0 ? "text-surge" : "text-flare"}`}>
+                  {m.wpa >= 0 ? "+" : "−"}{Math.abs(m.wpa).toFixed(1)}pp
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
     default:
       return null;
   }
