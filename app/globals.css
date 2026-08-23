@@ -281,7 +281,7 @@
     color-scheme: light;
     --bg-base:#EFF7FF; --bg-sunk:#E2EDF8; --bg-raised:#FAFEFF; --bg-overlay:#FFFFFF;
     --line:#CCDDEE; --line-hi:#A5BDD7;
-    --ink-hi:#0B1D36; --ink-mid:#3D516B; --ink-lo:#5C748E;
+    --ink-hi:#0B1D36; --ink-mid:#3D516B; --ink-lo:#4E6681;
     --volt:#0076B7; --ice:#008FB3; --surge:#008D61; --flare:#CE0B23;
     --ultra:#6A35D9; --amber:#BC7400; --magenta:#B82989; --on-accent:#FFFFFF;
     --heat-1:#6A53BD; --heat-2:#5778DF; --heat-3:#3BA6F5;
@@ -319,7 +319,7 @@
   color-scheme: light;
   --bg-base:#EFF7FF; --bg-sunk:#E2EDF8; --bg-raised:#FAFEFF; --bg-overlay:#FFFFFF;
   --line:#CCDDEE; --line-hi:#A5BDD7;
-  --ink-hi:#0B1D36; --ink-mid:#3D516B; --ink-lo:#5C748E;
+  --ink-hi:#0B1D36; --ink-mid:#3D516B; --ink-lo:#4E6681;
   --volt:#0076B7; --ice:#008FB3; --surge:#008D61; --flare:#CE0B23;
   --ultra:#6A35D9; --amber:#BC7400; --magenta:#B82989; --on-accent:#FFFFFF;
   --heat-1:#6A53BD; --heat-2:#5778DF; --heat-3:#3BA6F5;
