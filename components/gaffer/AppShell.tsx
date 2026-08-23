@@ -115,7 +115,7 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
                 "flex h-14 min-w-[44px] flex-col items-center justify-center gap-0.5 text-2xs transition-colors dur-instant",
                 MORE.some((m) => isActive(m.href))
                   ? "text-brand font-semibold [box-shadow:inset_0_2px_0_var(--volt)]"
-                  : "text-ink-mid hover:text-ink-hi",
+                  : "text-ink-hi",
               )}
             >
               More
