@@ -8,6 +8,7 @@ import { Meter } from "@/components/charts/Meter";
 import { formatPrice, POSITION_SHORT, playerImg } from "@/lib/ui/format";
 import { COPY } from "@/lib/copy/deck";
 import { PageHeader } from "@/components/gaffer/PageHeader";
+import { BackLink } from "@/components/gaffer/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-4">
-      <Link href="/players" className="text-xs text-ink-3 hover:text-ink-1">← All players</Link>
+      <BackLink href="/players" label="All players" />
 
       <PageHeader
         title={el.web_name}

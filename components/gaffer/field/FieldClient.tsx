@@ -189,9 +189,39 @@ export function FieldClient({
 
   // ── compare mode — the rival's gameweek through the same engine ───────
   const loadRival = async (raw?: string | number) => {
-    const id = Number(raw ?? rivalIdRaw);
+    const input = String(raw ?? rivalIdRaw).trim();
     setRivalError(null);
-    if (!Number.isFinite(id) || id <= 0) return;
+    if (!input) return;
+
+    // numeric → entry id; otherwise resolve the manager name first
+    const asId = Number(input);
+    if (Number.isFinite(asId) && asId > 0 && /^\d+$/.test(input)) {
+      await loadRivalById(asId);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/gaffer/rival/resolve?q=${encodeURIComponent(input)}`);
+      const json = (await res.json()) as { ok: boolean; matches?: { entry: number; entryName: string }[] };
+      const matches = json.matches ?? [];
+      if (matches.length === 0) {
+        setRival(null);
+        setRivalError(`No manager matching “${input}” in the cohort league — try an entry id.`);
+        return;
+      }
+      if (matches.length > 1) {
+        setRival(null);
+        setRivalError(`Several match “${input}”: ${matches.slice(0, 3).map((m) => m.entryName).join(", ")}${matches.length > 3 ? "…" : ""} — be more specific.`);
+        return;
+      }
+      await loadRivalById(matches[0].entry);
+    } catch {
+      setRival(null);
+      setRivalError(COPY.picksUnavailable);
+    }
+  };
+
+  const loadRivalById = async (id: number) => {
+    setRivalIdRaw(String(id));
     try {
       const res = await fetch(`/api/gaffer/rival?entry=${id}&gw=${gw}`);
       if (!res.ok) throw new Error(String(res.status));
@@ -290,10 +320,9 @@ export function FieldClient({
             value={rivalIdRaw}
             onChange={(e) => setRivalIdRaw(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && loadRival()}
-            placeholder="Compare entry id"
-            inputMode="numeric"
-            className="h-7 w-36 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi placeholder:text-ink-lo focus:outline-none focus-visible:outline focus-visible:outline-volt"
-            aria-label="Rival entry id"
+            placeholder="Compare id or name"
+            className="h-7 w-40 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi placeholder:text-ink-lo focus:outline-none focus-visible:outline focus-visible:outline-volt"
+            aria-label="Rival entry id or manager name"
           />
           <button
             onClick={() => (rival ? clearRival() : loadRival())}
