@@ -8,6 +8,7 @@ import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { BoardDesk, type DeskCandidate, type DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
+import { COPY } from "@/lib/copy/deck";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 const POLL_LIVE_MS = 20_000;
@@ -102,7 +103,7 @@ export function FieldClient({
       setRivalPicks(json.picks);
     } catch {
       setRivalPicks(null);
-      setRivalError("Couldn't load that entry's picks.");
+      setRivalError(COPY.picksUnavailable);
     }
   };
 

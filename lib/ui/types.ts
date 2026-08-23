@@ -7,4 +7,6 @@ export interface LiveBarData {
   gwPoints?: number | null;
   /** Season-to-date total for the entry. */
   seasonTotal?: number | null;
+  /** Week Machine lite moment for this point in the week. */
+  moment?: { key: string; label: string };
 }

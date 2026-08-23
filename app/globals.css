@@ -406,6 +406,16 @@
   text-transform: uppercase;
 }
 
+/* Moment — bonus settle wash (v5-G): plays once when the GW leaves
+   provisional territory; the global reduced-motion switch stops it. */
+.settle-wash{
+  animation: gaffer-settle 900ms cubic-bezier(.22,1,.36,1) 1;
+}
+@keyframes gaffer-settle{
+  from{ opacity:.25 }
+  to{ opacity:1 }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Chrome recipes — bevel, gloss, lift, glow. Skew applies to chrome only:
    chips, badges, buttons, tabs, meters, fixture cells, crest tiles, club flags.

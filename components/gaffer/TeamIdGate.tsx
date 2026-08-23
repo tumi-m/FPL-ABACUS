@@ -7,6 +7,7 @@ import { Button } from "@/components/primitives/Button";
 import { X } from "@/components/primitives/icons";
 import { formatCompactRank } from "@/lib/ui/format";
 import { forgetTeam, getRecentTeams, parseTeamInput, rememberTeam, type RecentTeam } from "@/lib/store/team";
+import { COPY } from "@/lib/copy/deck";
 
 export function TeamIdGate({ compact = false, next = "/live" }: { compact?: boolean; next?: string }) {
   const router = useRouter();
@@ -37,7 +38,7 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
       router.push(next.startsWith("/") && !next.startsWith("//") ? next : "/live");
     } catch {
       setState("error");
-      setError("No team with that ID. Check the number on your FPL Points page.");
+      setError(COPY.teamIdInvalid);
     }
   }
 

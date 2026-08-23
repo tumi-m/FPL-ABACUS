@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { PointsWaterfall } from "@/components/charts/PointsWaterfall";
 import { buildMatchday } from "@/lib/server/buildMatchday";
+import { COPY } from "@/lib/copy/deck";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +20,9 @@ export default async function FieldPointsPage() {
   if (!result.ok) {
     return (
       <div className="mx-auto max-w-md rounded-lg bg-surface-1 card-ring p-10 text-center">
-        <h1 className="text-xl font-semibold tracking-tight">Nothing to attribute yet</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{COPY.nothingToAttribute.title}</h1>
         <p className="mt-2 text-sm text-ink-2">
-          {result.reason === "picks-not-set"
-            ? "Set your squad in the official game — attribution appears once picks exist."
-            : "FPL's servers aren't responding. Try again shortly."}
+          {result.reason === "picks-not-set" ? COPY.nothingToAttribute.picksBody : `${COPY.upstreamDown.title}. ${COPY.upstreamDown.body}`}
         </p>
       </div>
     );

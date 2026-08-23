@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getStandings } from "@/lib/fpl/endpoints";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { ClubFlag } from "@/components/gaffer/ClubCrest";
+import { COPY } from "@/lib/copy/deck";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/primitives/Table";
 
 export const dynamic = "force-dynamic";
@@ -76,7 +77,7 @@ export default async function LeagueDetail({
           ← All leagues
         </Link>
         <p className="rounded-lg bg-surface-1 card-ring p-10 text-center text-sm text-ink-lo">
-          Couldn&apos;t load standings for this league right now — FPL may be busy. Try again shortly.
+          {COPY.standingsDown.title} — {COPY.standingsDown.body}
         </p>
       </div>
     );

@@ -2,6 +2,7 @@ import "server-only";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getEventStatus, getFixtures, getLive } from "@/lib/fpl/endpoints";
 import { getGwPhase, bonusAddedDays } from "@/lib/engines/matchState";
+import { weekMoment } from "@/lib/engines/weekPhase";
 import type { EventStatus, Fixture, FplEvent, GwPhase, Live } from "@/lib/fpl/schemas";
 import type { BootstrapLite } from "@/lib/fpl/bootstrapLite";
 import type { LiveBarData } from "@/lib/ui/types";
@@ -36,5 +37,12 @@ export function liveBarData(ctx: GwContext): LiveBarData {
   for (const f of inPlay) {
     if (f.minutes > 0 && (latestMinute === null || f.minutes > latestMinute)) latestMinute = f.minutes;
   }
-  return { phase: ctx.phase, gameweek: ctx.event.id, fixturesInPlay: inPlay.length, latestMinute };
+  const moment = weekMoment(ctx.phase, Date.now(), ctx.event.deadline_time);
+  return {
+    phase: ctx.phase,
+    gameweek: ctx.event.id,
+    fixturesInPlay: inPlay.length,
+    latestMinute,
+    moment: { key: moment.key, label: moment.label },
+  };
 }

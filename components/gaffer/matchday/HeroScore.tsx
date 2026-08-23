@@ -3,6 +3,8 @@
 import { Badge } from "@/components/primitives/Badge";
 import { Est } from "@/components/gaffer/Est";
 import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
+import { COPY } from "@/lib/copy/deck";
+import type { MomentSpec } from "@/lib/engines/weekPhase";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 import { formatCompactRank, formatSignedRank } from "@/lib/ui/format";
 import { ArrowDown, ArrowUp } from "@/components/primitives/icons";
@@ -14,7 +16,7 @@ const CHIP_LABEL: Record<string, string> = {
   wildcard: "Wildcard",
 };
 
-export function HeroScore({ model }: { model: MatchdayModel }) {
+export function HeroScore({ model, moment }: { model: MatchdayModel; moment?: MomentSpec | null }) {
   const hero = model.hero;
   const officialRank = hero.officialLiveRank;
   const deltaText = formatSignedRank(hero.rankDeltaSinceLastPoll);
@@ -83,9 +85,22 @@ export function HeroScore({ model }: { model: MatchdayModel }) {
         </div>
       )}
 
+      {moment && (
+        <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-2">
+          <span className="upper-label text-2xs font-semibold text-ink-lo">{moment.label}</span>
+          <span aria-hidden>·</span>
+          <span>{moment.headline}</span>
+          {moment.focus !== "/live" && (
+            <a href={moment.focus} className="text-volt transition-colors dur-instant hover:underline">
+              {moment.focus === "/board" ? "Open the Board →" : "Where the points went →"}
+            </a>
+          )}
+        </p>
+      )}
+
       {model.upstreamDegraded && (
         <p role="status" className="mt-4 rounded-md bg-warning/10 px-3 py-2 text-xs text-warning">
-          FPL&rsquo;s servers aren&rsquo;t responding. Showing the last good data.
+          {COPY.upstreamDown.title}. {COPY.upstreamDown.inline}
         </p>
       )}
     </section>

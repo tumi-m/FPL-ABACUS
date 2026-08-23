@@ -6,6 +6,7 @@ import { getElementSummary } from "@/lib/fpl/endpoints";
 import { Badge } from "@/components/primitives/Badge";
 import { Meter } from "@/components/charts/Meter";
 import { formatPrice, POSITION_SHORT, crest, playerImg } from "@/lib/ui/format";
+import { COPY } from "@/lib/copy/deck";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +98,7 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
                 </tr>
               ))}
               {history.length === 0 && (
-                <tr><td colSpan={7} className="py-6 text-center text-sm text-ink-3">No match history yet this season.</td></tr>
+                <tr><td colSpan={7} className="py-6 text-center text-sm text-ink-3">{COPY.noMatchHistory}</td></tr>
               )}
             </tbody>
           </table>
