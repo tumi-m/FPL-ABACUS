@@ -52,7 +52,17 @@ export interface FieldDeskProps {
   bankTenths: number;
 }
 
-interface RivalPick { element: number; position: number; is_captain: boolean; multiplier: number }
+type RivalRow = SquadRow;
+interface RivalPayload {
+  ok: boolean;
+  reason?: string;
+  entry: number;
+  gw: number;
+  teamName: string | null;
+  rows: RivalRow[];
+  totals: { gw: number; bench: number };
+  subs: { out: number; in: number }[];
+}
 
 export function FieldClient({
   initialModel,
@@ -98,8 +108,10 @@ export function FieldClient({
   const model = (data as MatchdayModel | undefined) ?? initialModel;
 
   // compare state (declared early — the web layer below depends on it)
-  const [rivalPicks, setRivalPicks] = React.useState<RivalPick[] | null>(null);
+  const [rival, setRival] = React.useState<RivalPayload | null>(null);
   const [rivalError, setRivalError] = React.useState<string | null>(null);
+  const [rivalView, setRivalView] = React.useState<"field" | "table">("field");
+  const rivalLoadedRef = React.useRef(false);
 
   // peek — ONE shared sheet for token taps (v4 spec)
   const [peekElement, setPeekElement] = React.useState<number | null>(null);
@@ -140,7 +152,7 @@ export function FieldClient({
     setPositions(next);
   }, []);
   React.useEffect(() => {
-    if (mode !== "correlation" || rivalPicks) {
+    if (mode !== "correlation" || rival) {
       setPositions(new Map());
       return;
     }
@@ -148,7 +160,7 @@ export function FieldClient({
     const ro = new ResizeObserver(() => measure());
     if (pitchRef.current) ro.observe(pitchRef.current);
     return () => ro.disconnect();
-  }, [mode, rivalPicks, measure, web, model.squad]);
+  }, [mode, rival, measure, web, model.squad]);
 
   // keys 1–6 select modes; never while typing in an input
   React.useEffect(() => {
@@ -174,21 +186,45 @@ export function FieldClient({
     [model.leverage.yours],
   );
 
-  // ── compare mode ──────────────────────────────────────────────────────
-  const loadRival = async () => {
-    const id = Number(rivalIdRaw);
+  // ── compare mode — the rival's gameweek through the same engine ───────
+  const loadRival = async (raw?: string | number) => {
+    const id = Number(raw ?? rivalIdRaw);
     setRivalError(null);
     if (!Number.isFinite(id) || id <= 0) return;
     try {
-      const res = await fetch(`/api/fpl/entry/${id}/event/${gw}/picks`);
-      if (!res.ok) throw new Error();
-      const json = (await res.json()) as { picks: RivalPick[] };
-      setRivalPicks(json.picks);
+      const res = await fetch(`/api/gaffer/rival?entry=${id}&gw=${gw}`);
+      if (!res.ok) throw new Error(String(res.status));
+      const json = (await res.json()) as RivalPayload;
+      if (!json.ok) {
+        setRival(null);
+        setRivalError("No picks visible for that entry this gameweek yet.");
+        return;
+      }
+      setRival(json);
     } catch {
-      setRivalPicks(null);
+      setRival(null);
       setRivalError(COPY.picksUnavailable);
     }
   };
+  const clearRival = () => {
+    setRival(null);
+    setRivalError(null);
+    setRivalIdRaw("");
+    router.replace(`/field?mode=${mode}`, { scroll: false });
+  };
+
+  // deep-link ?compare={entryId} — league rows land here
+  const urlCompare = params.get("compare");
+  React.useEffect(() => {
+    const id = Number(urlCompare);
+    if (rivalLoadedRef.current) return;
+    if (Number.isFinite(id) && id > 0) {
+      rivalLoadedRef.current = true;
+      setRivalIdRaw(String(id));
+      void loadRival(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlCompare]);
 
   const starters = model.squad.filter((s) => !s.onBench);
   const rows = [1, 2, 3, 4].map((pos) =>
@@ -196,7 +232,8 @@ export function FieldClient({
   );
   const bench = model.squad.filter((s) => s.onBench);
 
-  const rivalSet = React.useMemo(() => new Set(rivalPicks?.map((p) => p.element) ?? []), [rivalPicks]);
+  const rivalSet = React.useMemo(() => new Set(rival?.rows.map((p) => p.element) ?? []), [rival]);
+  const yourTotal = model.squad.filter((s) => !s.onBench).reduce((sum, s) => sum + s.livePoints, 0);
 
   return (
     <div className="space-y-4">
@@ -257,17 +294,52 @@ export function FieldClient({
             className="h-7 w-36 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi placeholder:text-ink-lo focus:outline-none focus-visible:outline focus-visible:outline-volt"
             aria-label="Rival entry id"
           />
-          <button onClick={loadRival} className="skewed rounded-sm bg-raised px-2.5 py-1 text-xs uppercase-label text-ink-mid hover:text-ink-hi">
-            <span>{rivalPicks ? "Clear" : "Compare"}</span>
+          <button
+            onClick={() => (rival ? clearRival() : loadRival())}
+            className="skewed rounded-sm bg-raised px-2.5 py-1 text-xs uppercase-label text-ink-mid hover:text-ink-hi"
+          >
+            <span>{rival ? "Clear" : "Compare"}</span>
           </button>
         </div>
       </div>
 
       {rivalError && <p role="alert" className="text-sm text-flare">{rivalError}</p>}
-      {rivalPicks && (
-        <p className="text-xs text-ink-mid num-tabular">
-          Compare mode — shared players sit on the halfway line, dimmed. Yours near, theirs far.
-        </p>
+
+      {/* head-to-head header — two totals, one gap, both engine-sourced */}
+      {rival && (
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-lg bg-surface-1 card-ring px-4 py-3">
+          <div className="flex items-baseline gap-2">
+            <span className="upper-label text-2xs text-ink-lo">You</span>
+            <span className="fig-num text-2xl leading-none">{Math.round(yourTotal)}</span>
+          </div>
+          <div
+            className={`fig-num text-sm ${yourTotal >= rival.totals.gw ? "text-surge" : "text-flare"}`}
+            aria-label={`You are ${Math.abs(Math.round(yourTotal - rival.totals.gw))} points ${
+              yourTotal >= rival.totals.gw ? "ahead" : "behind"
+            }`}
+          >
+            {yourTotal === rival.totals.gw ? "level" : `${yourTotal > rival.totals.gw ? "+" : "−"}${Math.abs(Math.round(yourTotal - rival.totals.gw))}`}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="fig-num text-2xl leading-none">{rival.totals.gw}</span>
+            <span className="upper-label text-2xs text-ink-lo">{rival.teamName ?? `Entry ${rival.entry}`}</span>
+          </div>
+          <div role="group" aria-label="Compare view" className="flex gap-1 rounded-md card-ring p-1">
+            {(["field", "table"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setRivalView(v)}
+                aria-pressed={rivalView === v}
+                className={cn(
+                  "skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
+                  rivalView === v ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
+                )}
+              >
+                <span>{v}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* modes 5+6 — the web's headline stats with their honesty wraps */}
@@ -314,7 +386,7 @@ export function FieldClient({
           </svg>
 
           {/* mode 5 — correlation arcs, measured from the live token layout */}
-          {mode === "correlation" && !rivalPicks && web && positions.size > 0 && (
+          {mode === "correlation" && !rival && web && positions.size > 0 && (
             <svg aria-hidden className="pointer-events-none absolute inset-0 z-0 h-full w-full">
               {web.pairs.slice(0, 24).map(({ a, b, rho }) => {
                 const pa = positions.get(a);
@@ -338,11 +410,13 @@ export function FieldClient({
             </svg>
           )}
 
-          {rivalPicks ? (
+          {rival && rivalView === "field" ? (
             <ComparePitch
-              rows={rows} model={model} mode={mode} rivalPicks={rivalPicks}
+              rows={rows} mode={mode} rival={rival}
               swingByElement={swingByElement} leverageByElement={leverageByElement} rivalSet={rivalSet}
             />
+          ) : rival && rivalView === "table" ? (
+            <CompareTable rows={model.squad} rival={rival} />
           ) : (
             <div className="relative space-y-2.5">
               {rows.map((row, i) => (
@@ -567,67 +641,106 @@ export function ShirtToken({
   );
 }
 
-/** Two XIs on one pitch — yours near half, rival far half, shared dimmed on halfway. */
+/** Two XIs on one pitch — yours near half, theirs far, shared dimmed on halfway. */
 function ComparePitch({
-  rows, model, mode, rivalPicks, swingByElement, leverageByElement, rivalSet,
+  rows, mode, rival, swingByElement, leverageByElement, rivalSet,
 }: {
-  rows: SquadRow[][]; model: MatchdayModel; mode: Mode; rivalPicks: RivalPick[];
+  rows: SquadRow[][]; mode: Mode; rival: RivalPayload;
   swingByElement: Map<number, SwingRow>; leverageByElement: Map<number, LevRow>; rivalSet: Set<number>;
 }) {
-  const rivalStarters = rivalPicks.filter((p) => p.position <= 11).map((p) => p.element);
-  const rivalRows = [1, 2, 3, 4].map((pos) =>
-    rivalPicks.filter((p) => p.position <= 11 && posBand(p.element, model) === pos).map((p) => p.element),
-  );
-  void rows;
+  const rivalStarters = rival.rows.filter((r) => !r.onBench);
+  const rivalBands = [1, 2, 3, 4].map((pos) => rivalStarters.filter((r) => r.pos === pos));
   return (
     <div className="relative space-y-2.5">
-      {/* far half — rival (reversed order so GK sits at the far end) */}
-      {[...rivalRows].reverse().map((row, i) => (
-        <ul key={`rv${i}`} className="flex flex-wrap items-start justify-center gap-2 opacity-80">
-          {row.map((el) => (
-            <li key={el} className={cn(rivalSet.has(el) && "opacity-40 blur-[0.4px]")}>
-              <GhostToken element={el} model={model} isShared={false} />
+      {/* far half — the rival's XI with real live data (reversed so GK sits far) */}
+      {[...rivalBands].reverse().map((band, i) => (
+        <ul key={`rv${i}`} className="flex flex-wrap items-start justify-center gap-2 opacity-90">
+          {band.map((r) => (
+            <li key={r.element} className={cn(rivalSet.has(r.element) && "opacity-40 blur-[0.4px]")}>
+              <ShirtToken row={r} mode="points" />
             </li>
           ))}
         </ul>
       ))}
       {/* halfway line */}
       <div className="relative my-1 h-px bg-line-hi/60" />
-      {/* near half — you, shared players pulled to the line and dimmed */}
+      {/* near half — you, shared players dimmed to the line */}
       {rows.map((row, i) => (
         <ul key={`me${i}`} className="flex flex-wrap items-start justify-center gap-2">
           {row.map((p) => (
             <li key={p.element} className={rivalSet.has(p.element) ? "opacity-40" : ""}>
-              {rivalSet.has(p.element)
-                ? <GhostToken element={p.element} model={model} isShared />
-                : <ShirtToken row={p} mode={mode} swing={swingByElement.get(p.element)} lev={leverageByElement.get(p.element)} />}
+              <ShirtToken row={p} mode={mode} swing={swingByElement.get(p.element)} lev={leverageByElement.get(p.element)} />
             </li>
           ))}
         </ul>
       ))}
       <p className="pt-1 text-center text-2xs text-ink-lo num-tabular">
-        {rivalStarters.filter((e) => rivalSet.has(e)).length ? "" : ""}
-        Shared: {[...rivalSet].length} of 15 overlap · rival shown flat until picks load live data
+        Shared: {[...rivalSet].length} of 15 overlap · auto-subs and provisional bonus included
       </p>
     </div>
   );
 }
 
-function posBand(element: number, model: MatchdayModel): number {
-  return model.squad.find((s) => s.element === element)?.pos ?? 4;
+/** Compare, table view — You | Them with live points, subs and bonus. */
+function CompareTable({ rows, rival }: { rows: SquadRow[]; rival: RivalPayload }) {
+  const order = (a: SquadRow, b: SquadRow) =>
+    Number(a.onBench) - Number(b.onBench) || a.pos - b.pos || b.livePoints - a.livePoints;
+  const yours = [...rows].sort(order);
+  const theirs = [...rival.rows].sort(order);
+  return (
+    <div className="relative grid gap-4 md:grid-cols-2">
+      <CompareColumn title="You" rows={yours} tone="volt" />
+      <CompareColumn title={rival.teamName ?? `Entry ${rival.entry}`} rows={theirs} tone="ultra" />
+    </div>
+  );
 }
 
-/** Minimal token for rival players we don't hold live data for. */
-function GhostToken({ element, model, isShared }: { element: number; model: MatchdayModel; isShared: boolean }) {
-  const meta = model.squad.find((s) => s.element === element);
-  const club = clubOf(meta?.teamId);
+function CompareColumn({ title, rows, tone }: { title: string; rows: SquadRow[]; tone: "volt" | "ultra" }) {
   return (
-    <div className="w-[76px] text-center" title={meta?.webName ?? `#${element}`}>
-      <svg viewBox="0 0 64 56" className="mx-auto h-11 w-12 opacity-90" aria-hidden>
-        <path d="M20 4 L27 1 Q32 4 37 1 L44 4 L58 12 L52 24 L46 21 L46 54 L18 54 L18 21 L12 24 L6 12 Z"
-          fill={isShared ? "var(--line)" : club.rail} stroke="rgba(0,0,0,.35)" strokeWidth="1" />
-      </svg>
-      <span className="mt-0.5 block truncate text-2xs font-medium text-ink-mid">{meta?.webName ?? `#${element}`}</span>
+    <div>
+      <div className="mb-1.5 flex items-baseline justify-between">
+        <h4 className="upper-label text-2xs text-ink-lo">{title}</h4>
+        <span className={`text-2xs uppercase-label ${tone === "volt" ? "text-volt" : "text-ultra"}`}>live</span>
+      </div>
+      <table className="w-full text-xs num-tabular">
+        <thead>
+          <tr className="border-b border-hairline text-left">
+            {["Player", "Fx", "Pts", ""].map((h) => (
+              <th key={h} className="px-1.5 py-1.5 text-2xs font-semibold uppercase tracking-wide text-ink-3">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr
+              key={r.element}
+              className={`border-b border-hairline last:border-0 ${r.onBench ? "opacity-55" : ""}`}
+            >
+              <td className="px-1.5 py-1.5 font-medium text-ink-hi">
+                {r.webName}
+                {r.isCaptain && r.multiplier >= 2 && (
+                  <span className={`ml-1 inline-grid h-4 w-4 place-items-center rounded-full align-[1px] text-[9px] font-bold ${
+                    tone === "volt" ? "bg-volt text-on-accent" : "bg-ultra text-on-accent"
+                  }`}>
+                    C
+                  </span>
+                )}
+                {r.onBench && <span className="ml-1 text-2xs uppercase tracking-wide text-ink-lo">bench</span>}
+              </td>
+              <td className="px-1.5 py-1.5 text-ink-2">
+                {r.opponentShort}
+                {r.fixtureState !== "pre" && ` · ${Math.min(r.fixtureMinute, 90)}′`}
+              </td>
+              <td className="px-1.5 py-1.5 text-right font-semibold text-ink-hi">
+                {r.livePoints}
+                {r.provisionalBonus > 0 && <sup className="text-amber">*</sup>}
+              </td>
+              <td className="px-1.5 py-1.5 text-right text-ultra">{r.subbedInFor !== null ? "⇅" : ""}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-1.5 text-2xs text-ink-3">* provisional bonus · ⇅ projected auto-sub</p>
     </div>
   );
 }

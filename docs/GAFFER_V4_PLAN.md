@@ -64,12 +64,19 @@
 - [ ] Top sticky strip removed; moment-aware pill bottom-right (desktop) / bottom-centre
       above thumb bar (mobile); MomentToast stacks above it; content from v5-G weekMoment.
 
-### V4-E — League rival compare ⬜
-- [ ] League detail rows deep-link `/field?mode=points&compare={entryId}`.
-- [ ] `lib/server/buildRivalSquad.ts`: rival picks → `buildLiveSquad` + `projectAutoSubs` +
-      `effectiveMultipliers` (engines already exist).
-- [ ] Side-by-side You|Them panel: Field view (two half-pitches) OR Table view (player ·
-      fixture · live pts · bonus · subs ⇅ · captain C) with gap header.
+### V4-E — League rival compare ✅ (this commit)
+- [x] League rows deep-link `/field?mode=points&compare={entryId}` (you-row exempt) with a
+      header hint "tap a manager to compare"; FieldClient auto-loads `?compare=` once.
+- [x] `lib/server/buildRivalSquad.ts` + `/api/gaffer/rival`: the rival's picks through the
+      same `buildLiveSquad` pipeline (projected auto-subs, effective multipliers, provisional
+      bonus, transfer costs) returning SquadRow-shaped rows — the Field renders them with the
+      same token. Ownership is your exposure and stays yours-only (rival rows carry eo: 0 and
+      always render in points mode).
+- [x] Head-to-head header: You total · signed gap (surge/flare) · rival total from their real
+      entry name, plus a Field/Table toggle. Field view = two XIs on one pitch with live rival
+      tokens (captain arcs, bonus dots, sub glyphs, shared dimmed on halfway); Table view =
+      You|Them columns with fixture state, live points, provisional-bonus asterisk, ⇅ and C.
+- [x] e2e pins the deep-link and the honest no-picks fallback (54✓).
 
 ### V4-F — v3 debt carried into the queue ⬜
 - [ ] Feature 18 Crowding index + 19 WPA engines (pure TS, tested, ask-card wired).

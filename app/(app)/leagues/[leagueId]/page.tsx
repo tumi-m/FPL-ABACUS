@@ -120,7 +120,7 @@ export default async function LeagueDetail({
             <p className="upper-label mt-1.5 text-2xs text-ink-lo">
               GW{currentGw}
               {memberCount != null && memberCount > 0 ? ` · ${memberCount.toLocaleString("en-GB")} managers` : ""} ·
-              showing {rows.length}
+              showing {rows.length} · tap a manager to compare
             </p>
           </div>
           {/* summary strip */}
@@ -174,11 +174,21 @@ export default async function LeagueDetail({
                     <span className="pl-2">{r.rank}</span>
                   </TableCell>
                   <TableCell className="font-medium text-ink-hi">
-                    {r.entry_name}
-                    {you && (
-                      <span className="upper-label ml-2 inline-block rounded-[3px] bg-volt px-1.5 py-0.5 align-middle text-[9px] font-bold text-on-accent">
-                        You
-                      </span>
+                    {you ? (
+                      <>
+                        {r.entry_name}
+                        <span className="upper-label ml-2 inline-block rounded-[3px] bg-volt px-1.5 py-0.5 align-middle text-[9px] font-bold text-on-accent">
+                          You
+                        </span>
+                      </>
+                    ) : (
+                      <Link
+                        href={`/field?mode=points&compare=${r.entry}`}
+                        title="Compare head-to-head on the Field"
+                        className="transition-colors dur-instant hover:text-volt"
+                      >
+                        {r.entry_name}
+                      </Link>
                     )}
                     <span className="block text-xs font-normal text-ink-lo">{r.player_name}</span>
                   </TableCell>
