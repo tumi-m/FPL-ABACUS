@@ -12,6 +12,8 @@ import { PeekSheet } from "@/components/gaffer/field/PeekSheet";
 import { PositionContribution, Availability, BpsLeaders, CaptainShare } from "@/components/gaffer/field/FieldCharts";
 import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
 import { Est } from "@/components/gaffer/Est";
+import { CrestTile } from "@/components/gaffer/ClubCrest";
+import { playerImg } from "@/lib/ui/format";
 import { COPY } from "@/lib/copy/deck";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
@@ -84,11 +86,15 @@ export function FieldClient({
   }, [urlMode, mode]);
   const setMode = (m: Mode) => {
     setModeState(m);
-    router.replace(`/field?mode=${m}`, { scroll: false });
+    router.replace(historical ? `/field?gw=${gw}&mode=${m}` : `/field?mode=${m}`, { scroll: false });
+  };
+  const setGw = (n: number | null) => {
+    router.replace(n == null ? `/field?mode=${mode}` : `/field?gw=${n}&mode=${mode}`, { scroll: false });
   };
   const [rivalIdRaw, setRivalIdRaw] = React.useState("");
   const entry = initialModel.entry.id;
   const gw = initialModel.event.id;
+  const historical = params.get("gw") != null;
 
   const { data } = useSWR<MatchdayModel>(
     ["gaffer-live", entry],
@@ -172,7 +178,7 @@ export function FieldClient({
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       const idx = Number(e.key) - 1;
-      if (idx >= 0 && idx < KEY_MODES.length) setMode(KEY_MODES[idx]);
+      if (idx >= 0 && idx < KEY_MODES.length && !(historical && KEY_MODES[idx] !== "points")) setMode(KEY_MODES[idx]);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -275,9 +281,42 @@ export function FieldClient({
         <div className="lower3-flag bg-volt" />
         <div className="lower3-body">
           <h1 className="fig-num text-[22px] leading-none">The Field</h1>
-          <span className="text-2xs uppercase-label text-ink-lo">GW{gw} · {model.phase}</span>
+          {/* gameweek stepper — past GWs render the points view only */}
+          <div className="flex items-center gap-1.5" role="group" aria-label="Gameweek">
+            <button
+              type="button"
+              onClick={() => setGw(Math.max(1, gw - 1))}
+              disabled={gw <= 1}
+              aria-label="Previous gameweek"
+              className="skewed grid h-7 w-7 place-items-center rounded-sm card-ring text-ink-mid transition-colors dur-instant hover:text-ink-hi disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <span className="text-xs">◀</span>
+            </button>
+            <span className="upper-label min-w-10 text-center text-2xs text-ink-lo num-tabular">
+              GW{gw}
+            </span>
+            <button
+              type="button"
+              onClick={() => setGw(gw + 1)}
+              disabled={!historical}
+              aria-label="Next gameweek"
+              className="skewed grid h-7 w-7 place-items-center rounded-sm card-ring text-ink-mid transition-colors dur-instant hover:text-ink-hi disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <span className="text-xs">▶</span>
+            </button>
+            {historical && (
+              <button
+                type="button"
+                onClick={() => setGw(null)}
+                className="skewed rounded-sm bg-volt px-2 py-1 text-2xs uppercase-label text-on-accent"
+              >
+                <span>Back to current</span>
+              </button>
+            )}
+          </div>
+          <span className="hidden text-2xs uppercase-label text-ink-lo sm:inline">{model.phase}</span>
           <span className="ml-auto hidden text-2xs text-ink-lo sm:inline">
-            {MODES.find((m) => m.id === mode)?.hint}
+            {historical ? "Historical view — points mode only" : MODES.find((m) => m.id === mode)?.hint}
           </span>
         </div>
       </div>
@@ -306,17 +345,25 @@ export function FieldClient({
 
       {/* mode segmented control — skewed chrome */}
       <div role="group" aria-label="Field mode" className="flex flex-wrap gap-1 rounded-md card-ring p-1">
-        {MODES.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => setMode(m.id)}
-            aria-pressed={mode === m.id}
-            className={cn("skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
-              mode === m.id ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi")}
-          >
-            <span>{m.label}</span>
-          </button>
-        ))}
+        {MODES.map((m) => {
+          const gated = historical && m.id !== "points";
+          return (
+            <button
+              key={m.id}
+              onClick={() => !gated && setMode(m.id)}
+              disabled={gated}
+              aria-pressed={mode === m.id}
+              title={gated ? "Historical gameweeks show points only" : undefined}
+              className={cn(
+                "skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
+                mode === m.id ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
+                gated && "cursor-not-allowed opacity-40",
+              )}
+            >
+              <span>{m.label}</span>
+            </button>
+          );
+        })}
         <div className="ml-auto flex items-center gap-1.5 pr-1">
           <input
             value={rivalIdRaw}
@@ -596,7 +643,7 @@ function modeValue(
   }
 }
 
-/** Club-coloured SVG shirt with sleeve shade, armband, arcs and state rings. */
+/** Player face in a club-rail frame with armband, DEFCON arc and state ring. */
 export function ShirtToken({
   row, mode, swing, lev, webMean, riskShare,
 }: {
@@ -614,17 +661,23 @@ export function ShirtToken({
   return (
     <div
       className={cn(
-        "relative w-[76px] text-center transition-opacity duration-[600ms] focus-visible:outline-none",
-        done && "opacity-55",
+        "relative w-[76px] text-center transition-transform duration-[600ms] focus-visible:outline-none",
       )}
       title={`${row.webName} · ${club.name}`}
     >
-      {/* yet-to-play soft ring / live pulse */}
+      {/* state ring — live pulses volt, yet-to-play is a hollow volt ring, done is a settled surge band */}
       {!done && (
         <span
           aria-hidden
           className={cn("absolute -inset-1 rounded-lg", live && "animate-[gaffer-live-ring_2s_infinite]")}
           style={{ boxShadow: live ? undefined : "inset 0 0 0 1.5px color-mix(in oklab, var(--volt) 45%, transparent)" }}
+        />
+      )}
+      {done && (
+        <span
+          aria-hidden
+          className="absolute -inset-1 rounded-lg"
+          style={{ boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--surge) 40%, transparent)" }}
         />
       )}
       {/* DEFCON progress arc */}
@@ -643,18 +696,43 @@ export function ShirtToken({
         </span>
       )}
 
-      {/* shirt — scaled by variance share in risk mode (never hue) */}
-      <svg
-        viewBox="0 0 64 56"
-        className="mx-auto h-11 w-12 drop-shadow-[0_4px_10px_rgba(0,0,0,.45)] transition-transform dur-base"
+      {/* face — club rail frame, scaled by variance share in risk mode */}
+      <span
+        className="relative mx-auto block h-12 w-12 overflow-hidden rounded-md transition-transform dur-base"
         style={{ transform: `scale(${riskScale.toFixed(2)})`, transformOrigin: "center bottom" }}
-        aria-hidden
       >
-        <path d="M20 4 L27 1 Q32 4 37 1 L44 4 L58 12 L52 24 L46 21 L46 54 L18 54 L18 21 L12 24 L6 12 Z"
-          fill={club.rail} stroke="rgba(0,0,0,.35)" strokeWidth="1" />
-        <path d="M44 4 L58 12 L52 24 L46 21 L46 12 Z" fill="color-mix(in oklab, currentColor 100%, black)" style={{ color: club.rail }} opacity="0.22" />
-        {row.isCaptain && <path d="M25 15 Q32 20 39 15" fill="none" stroke="var(--volt)" strokeWidth="3.5" strokeLinecap="round" />}
-      </svg>
+        <span
+          aria-hidden
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(180deg, color-mix(in oklab, ${club.rail} 22%, var(--surface-2)), var(--surface-2))` }}
+        />
+        {row.photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={playerImg(row.photo)}
+            alt=""
+            className="relative h-full w-full object-cover object-top"
+            loading="lazy"
+          />
+        ) : (
+          <span aria-hidden className="grid h-full w-full place-items-center">
+            <CrestTile teamId={row.teamId} />
+          </span>
+        )}
+        <span
+          aria-hidden
+          className="absolute inset-0 rounded-md"
+          style={{ boxShadow: "inset 0 0 0 1px color-mix(in oklab, " + club.rail + " 35%, transparent), inset 0 -10px 12px -8px rgba(0,0,0,.5)" }}
+        />
+        {row.isCaptain && (
+          <span
+            aria-label="Captain"
+            className="absolute -bottom-1 left-1/2 z-10 -translate-x-1/2 rounded-full bg-volt px-1 text-[9px] font-bold leading-none text-on-accent"
+          >
+            C
+          </span>
+        )}
+      </span>
 
       {row.subbedInFor !== null && (
         <span aria-label="Projected auto-substitute" title="Projected auto-sub in" className="absolute right-0 top-7 text-xs font-bold text-ultra">⇅</span>
@@ -662,15 +740,16 @@ export function ShirtToken({
 
       <span className="mt-0.5 block truncate text-2xs font-semibold text-ink-hi">{row.webName}</span>
 
-      {/* value pill on the shoulder — points count up + wash on poll diffs */}
+      {/* value pill on the shoulder — points count up + wash on poll diffs; done fills, live pulses, pre outlines */}
       <span
         className={cn(
           "mt-0.5 inline-block min-w-7 skewed rounded-sm px-1 py-px text-2xs font-extrabold num-tabular",
-          val.tone === "volt" && "bg-volt text-on-accent",
-          val.tone === "surge" && "bg-transparent text-surge",
-          val.tone === "flare" && "bg-transparent text-flare",
-          val.tone === "ultra" && "bg-transparent text-ultra",
-          val.tone === "plain" && "bg-overlay text-ink-mid card-ring",
+          done && "bg-surge text-on-accent",
+          live && val.tone === "volt" && "bg-volt text-on-accent",
+          !done && !live && "bg-overlay text-ink-mid card-ring",
+          val.tone === "surge" && !done && "bg-transparent text-surge",
+          val.tone === "flare" && !done && "bg-transparent text-flare",
+          val.tone === "ultra" && !done && "bg-transparent text-ultra",
         )}
       >
         {mode === "points" ? (
