@@ -28,7 +28,21 @@ export function GafferBubble({
 }) {
   const [shown, setShown] = React.useState(0);
   const [talking, setTalking] = React.useState(false);
+  const [talkIdx, setTalkIdx] = React.useState(0);
   const doneRef = React.useRef(false);
+
+  // Talking animation — flip the sprite's talk frames at ~3.5fps while the
+  // text types; reduced-motion keeps a static idle frame.
+  React.useEffect(() => {
+    if (!talking || persona.avatarTalk.length === 0) {
+      setTalkIdx(-1);
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    setTalkIdx(0);
+    const iv = setInterval(() => setTalkIdx((i) => (i + 1) % persona.avatarTalk.length), 280);
+    return () => clearInterval(iv);
+  }, [talking, persona]);
 
   React.useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -61,8 +75,8 @@ export function GafferBubble({
   }, [text, blipsOn, onDone]);
 
   return (
-    <div className="flex items-start gap-3" aria-live="polite">
-      {/* avatar — breathing idle, bounce while talking; transform only */}
+    <div className="flex items-start gap-3 md:gap-4" aria-live="polite">
+      {/* avatar — idle sprite breathes; talk frames flip while speaking */}
       <div
         className={cn(
           "shrink-0 select-none",
@@ -71,11 +85,12 @@ export function GafferBubble({
         aria-hidden
       >
         <Image
-          src={persona.avatar}
+          src={talkIdx >= 0 ? persona.avatarTalk[talkIdx] ?? persona.avatarIdle : persona.avatarIdle}
           alt=""
-          width={64}
-          height={84}
-          className="h-[84px] w-16 rounded-md object-cover object-top"
+          width={128}
+          height={128}
+          sizes="(min-width: 768px) 128px, 96px"
+          className="h-24 w-24 rounded-lg card-ring object-cover object-top md:h-32 md:w-32"
           unoptimized
         />
       </div>
