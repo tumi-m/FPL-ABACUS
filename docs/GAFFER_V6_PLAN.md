@@ -33,21 +33,27 @@
 
 ## Phases
 
-### V6-A — persona registry ⬜ (next)
-- [ ] `lib/ai/personas.ts`: id, name, role, region, accent tokens, system-prompt fragment per
-      gaffer; `personaPrompt(persona, context)` composes voice + constraints + resolved facts.
-- [ ] Tests pin: every persona prompt carries the no-numbers line, the 40-word cap line, and
-      its distinct analytical lens.
+### V6-A — persona registry ✅ (this commit)
+- [x] `lib/ai/personas.ts`: canon ids/names/regions, identity accent tokens
+      (`--persona-*` in globals.css, name-paired, never meaning-coded), prompt fragments with
+      distinct lenses, `personaPrompt(persona, context)` (voice + pinned GAFFER_CONSTRAINTS +
+      resolved facts), deterministic `personaFallback` (number-free by construction). 9 tests.
 
-### V6-B — arcade console in the AskBar sheet ⬜
-- [ ] Character-select strip: four skewed tiles, volt ring on the active gaffer, choice
-      persisted (localStorage `gaffer_gaffer`).
-- [ ] Speech bubble: pixel-border chrome (chrome only — stat chips stay flat), persona prose
-      streams token-by-token from the existing NDJSON pipeline with punctuation pauses.
-- [ ] Stat chips render resolver figures beside the bubble — the only numbers on screen.
-- [ ] Breathing idle / talking bounce states on cropped mockup stills; static under
-      reduced-motion.
-- [ ] WebAudio blips while streaming, pause at punctuation, persisted mute toggle.
+### V6-B — arcade console in the AskBar sheet ✅ (this commit)
+- [x] Character-select strip: four skewed tiles with avatar stills (cropped from the owner's
+      mockups into `public/avatars/`), volt ring on the active gaffer, accent rail, choice
+      persisted (`gaffer_gaffer`).
+- [x] Speech bubble: pixel-border chrome (accent rail + hard shadow, skew-free content),
+      token-by-token typewriter (18ms/char, 130ms punctuation pause) mapped from the NDJSON
+      stream; blinking caret; breathing idle / talking bounce avatar states.
+- [x] Stat chips — resolver cards render below the bubble untouched; persona prose never
+      carries figures (`scrubFigures` server-side strips slips before they can ship).
+- [x] WebAudio blips while typing (square-wave chirp, punctuation tick), pause at
+      punctuation, toggle persisted (`gaffer_blips_muted=1` mutes; default on — the Ask
+      submit is the user gesture unlocking the AudioContext). Reduced-motion: instant text,
+      no blips, static avatar.
+- [x] `/api/ask` accepts `persona`, streams `{type:"gaffer"}` before the card; mobile Ask
+      trigger added (44px, header). e2e pins strip, selection, bubble + API persona (58✓).
 
 ### V6-C — context passing ⬜
 - [ ] `/api/ask` accepts the persona id; resolver context summary (GW, team structure, rank)

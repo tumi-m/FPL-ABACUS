@@ -7,6 +7,7 @@ import { COMPONENT_KEYS, coerceParams, REGISTRY, isValidComponent } from "@/lib/
 import { bestGuess, route } from "@/lib/genui/router";
 import { resolveCard, type ResolvedCard } from "@/lib/genui/resolve";
 import { buildMatchday } from "@/lib/server/buildMatchday";
+import { personaById, personaFallback, personaPrompt } from "@/lib/ai/personas";
 
 export const maxDuration = 30;
 
@@ -15,6 +16,8 @@ const RATE_WINDOW_S = 3600;
 
 interface AskBody {
   q?: string;
+  /** v6 — which arcade gaffer speaks. Unknown ids fall back to the default. */
+  persona?: string;
 }
 
 function ipOf(req: NextRequest): string {
@@ -29,6 +32,51 @@ async function loadMatchday(teamId: number | null) {
   if (!teamId) return null;
   const result = await buildMatchday(teamId);
   return result.ok ? result.model : null;
+}
+
+/**
+ * v6 gaffer voice: the persona restates the resolved card in its own lens.
+ * The strict-numbers rule holds — prompts forbid figures; any model slip is
+ * scrubbed before it can reach the bubble. Falls back to the deterministic
+ * persona line when the gateway is down.
+ */
+async function gafferVoice(
+  personaId: string | undefined,
+  q: string,
+  card: ResolvedCard | null,
+  gw: number,
+): Promise<{ persona: string; text: string }> {
+  const persona = personaById(personaId ?? null);
+  if (!card || !aiEnabled()) {
+    return { persona: persona.id, text: personaFallback(persona) };
+  }
+  const facts = JSON.stringify(
+    { question: q, gw, card: { component: card.component, title: card.title, prose: card.prose, props: card.props } },
+    null,
+    0,
+  ).slice(0, 1600);
+  try {
+    const raw = await chat(
+      [
+        { role: "system", content: personaPrompt(persona, facts) },
+        { role: "user", content: q.slice(0, 200) },
+      ],
+      { timeoutMs: 5000, maxTokens: 120, temperature: 0.4 },
+    );
+    const cleaned = scrubFigures(raw);
+    if (!cleaned) return { persona: persona.id, text: personaFallback(persona) };
+    return { persona: persona.id, text: cleaned };
+  } catch {
+    return { persona: persona.id, text: personaFallback(persona) };
+  }
+}
+
+/** Strip anything that looks like a stated figure — the rule is absolute. */
+function scrubFigures(text: string): string {
+  let out = text.replace(/\d[\d.,]*\s*(pts?|points?|%|k|m|x|xG|GW\d*)/gi, "");
+  out = out.replace(/[\d][\d.,]*[kKmM]?/g, "");
+  out = out.replace(/\s{2,}/g, " ").replace(/\s+([,.!?])/g, "$1").trim();
+  return out;
 }
 
 /** The model names a component; it never supplies numbers. */
@@ -143,11 +191,16 @@ export async function POST(req: NextRequest) {
         );
 
         if (!card) {
+          const gaffer = await gafferVoice(body.persona, q, null, currentGw);
+          await send({ type: "gaffer", ...gaffer }, 60);
           await send({
             type: "prose",
             text: `No grounded ${REGISTRY[routed.component]?.title ?? "card"} available right now — upstream may be quiet.`,
           });
         } else {
+          // the gaffer speaks first; the grounded card follows
+          const gaffer = await gafferVoice(body.persona, q, card, currentGw);
+          await send({ type: "gaffer", ...gaffer }, 60);
           await send({ type: "prose", text: card.prose }, 60);
           if (card.props) {
             await send({ type: "card", component: card.component, title: card.title, props: card.props, note: card.note }, 60);

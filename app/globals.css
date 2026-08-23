@@ -427,6 +427,34 @@
   to{ opacity:1 }
 }
 
+/* Arcade gaffers (v6) — 2-frame-feel motion from transforms only:
+   breathing idle, talking bounce, blinking caret. The global
+   reduced-motion kill switch stops all three. */
+.gaffer-breathe{
+  animation: gaffer-breathe 2.6s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+@keyframes gaffer-breathe{
+  0%, 100%{ transform: scaleY(1) }
+  50%{ transform: scaleY(.985) }
+}
+.gaffer-talk{
+  animation: gaffer-talk 240ms ease-in-out infinite;
+  transform-origin: center bottom;
+}
+@keyframes gaffer-talk{
+  0%, 100%{ transform: translateY(0) }
+  50%{ transform: translateY(-2.5%) }
+}
+.gaffer-caret{
+  animation: gaffer-caret 800ms steps(1) infinite;
+  opacity: 1;
+}
+@keyframes gaffer-caret{
+  0%, 50%{ opacity: 1 }
+  51%, 100%{ opacity: 0 }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Chrome recipes — bevel, gloss, lift, glow. Skew applies to chrome only:
    chips, badges, buttons, tabs, meters, fixture cells, crest tiles, club flags.

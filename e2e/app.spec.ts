@@ -247,6 +247,35 @@ test("ask bar routes captaincy questions without a model", async ({ request }) =
   expect(text).toContain('"intent":"captain.pick"');
 });
 
+test("arcade gaffer console: select strip, persona voice, sound toggle", async ({ page }) => {
+  await asTeam(page);
+  await page.goto("/live");
+  await page.getByRole("button", { name: "Open Ask" }).click();
+  // the four gaffers are on the strip
+  await expect(page.getByRole("radiogroup", { name: "Choose your gaffer" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /KOFI/ })).toBeVisible();
+  // pick the maverick — selection sticks
+  await page.getByRole("radio", { name: /KOFI/ }).click();
+  await expect(page.getByRole("radio", { name: /KOFI/ })).toHaveAttribute("aria-checked", "true");
+  // ask — the gaffer bubble speaks (deterministic fallback when no gateway key)
+  await page.getByLabel("Your question").fill("should I take a hit?");
+  await page.getByRole("button", { name: "Ask" }).last().click();
+  await expect(page.getByText(/KOFI · The Maverick/)).toBeVisible({ timeout: 20_000 });
+  // the persona line names the active gaffer
+  await expect(page.getByText(/KOFI · The Maverick — voice only/)).toBeVisible();
+});
+
+test("the gaffer voice is persona-flavoured on the API", async ({ request }) => {
+  const res = await request.post("/api/ask", {
+    data: { q: "should I take a hit?", persona: "mei" },
+    headers: { cookie: `gaffer_team=${TEAM_ID}` },
+  });
+  expect(res.status()).toBe(200);
+  const text = await res.text();
+  expect(text).toContain('"type":"gaffer"');
+  expect(text).toContain('"persona":"mei"');
+});
+
 test("the film renders the season archive with sigil", async ({ page }) => {
   await asTeam(page);
   const res = await page.goto("/film");
