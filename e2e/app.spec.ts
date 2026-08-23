@@ -66,12 +66,41 @@ test.describe("authenticated routes", () => {
     await expect(page.getByRole("columnheader", { name: "Manager" })).toBeVisible();
   });
 
-  test("field renders the pitch with the four mode controls", async ({ page }) => {
+  test("league pagination appends the next page", async ({ page }) => {
+    await asTeam(page);
+    // Pick the first league the index offers (314 is empty pre-GW1).
+    await page.goto("/leagues");
+    const firstLeague = page.locator('a[href^="/leagues/"]').first();
+    if ((await firstLeague.count()) === 0) return; // no leagues on this account — nothing to test
+    const href = await firstLeague.getAttribute("href");
+    await page.goto(href!); // page 1
+    const dataRows = await page.locator("tbody tr").count();
+    if (dataRows >= 50) {
+      const more = page.getByRole("button", { name: /load 50 more/i });
+      await expect(more).toBeVisible();
+      await more.click();
+      // SPA navigation: the old button stays mounted while page 2 loads, so
+      // poll for a real outcome — more rows rendered or the honest end state.
+      await expect(page).toHaveURL(/[?&]page=2/);
+      await expect
+        .poll(async () => {
+          if ((await page.getByText(/End of standings/).count()) > 0) return "ended";
+          return (await page.locator("tbody tr").count()) > dataRows ? "rows" : "waiting";
+        }, { timeout: 20_000 })
+        .not.toBe("waiting");
+    } else {
+      // small league: exhausted list shows its honest end state
+      await expect(page.getByText(/End of standings|publish after GW1/)).toBeVisible();
+    }
+  });
+
+  test("field renders the pitch with the five mode controls", async ({ page }) => {
     await asTeam(page);
     const res = await page.goto("/field");
     expect(res?.status()).toBe(200);
     await expect(page.getByRole("group", { name: "Field mode" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Ownership" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Planner" })).toBeVisible();
   });
 
   test("board renders the fixture grid with URL-state controls", async ({ page }) => {
