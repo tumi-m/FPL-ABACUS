@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
-import { BoardDesk, type DeskCandidate, type DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
+import { BoardDesk, type DeskCandidate, type DeskSquadRow, type GwMarker } from "@/components/gaffer/board/BoardDesk";
 import { PeekSheet } from "@/components/gaffer/field/PeekSheet";
 import { PositionContribution, Availability, BpsLeaders, CaptainShare } from "@/components/gaffer/field/FieldCharts";
 import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
@@ -52,6 +52,7 @@ export interface FieldDeskProps {
   chips: { key: string; label: string; stopEvent: number }[];
   bankTenths: number;
   freeTransfers: number;
+  markers?: Record<number, GwMarker>;
 }
 
 type RivalRow = SquadRow;
@@ -518,6 +519,7 @@ export function FieldClient({
             chips={desk.chips}
             bankTenths={desk.bankTenths}
             freeTransfers={desk.freeTransfers}
+            markers={desk.markers}
           />
         ) : (
           <p className="rounded-lg bg-surface-1 card-ring p-6 text-center text-sm text-ink-lo">

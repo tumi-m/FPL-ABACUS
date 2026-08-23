@@ -60,8 +60,8 @@
 - [x] e2e: hint chip, confirmation flow, explainer sheet, trophy+ball imagery (52✓).
       Deferred: header multi-team switcher (recents cover switching via landing).
 
-### V4-D — LiveBar relocation ⬜
-- [ ] Top sticky strip removed; moment-aware pill bottom-right (desktop) / bottom-centre
+### V4-D — LiveBar relocation ✅ (`5c859e8`)
+- [x] Top sticky strip removed; moment-aware pill bottom-right (desktop) / bottom-centre
       above thumb bar (mobile); MomentToast stacks above it; content from v5-G weekMoment.
 
 ### V4-E — League rival compare ✅ (this commit)
