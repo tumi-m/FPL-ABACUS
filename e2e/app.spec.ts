@@ -191,6 +191,14 @@ test.describe("authenticated routes", () => {
     await expect(page).toHaveURL(/h=10&c=fdr/);
   });
 
+  test("field renders the pitch with faces and the gameweek stepper", async ({ page }) => {
+    await asTeam(page);
+    const res = await page.goto("/field");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("group", { name: "Gameweek" })).toBeVisible();
+    await expect(page.locator('img[src*="photos/players"]').first()).toBeVisible();
+  });
+
   test("board desk keeps independent plan slots", async ({ page }) => {
     await asTeam(page);
     await page.goto("/board");

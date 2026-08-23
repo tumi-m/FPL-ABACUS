@@ -9,13 +9,19 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Field" };
 
-export default async function FieldPage() {
+export default async function FieldPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ gw?: string }>;
+}) {
   const store = await cookies();
   const raw = store.get("gaffer_team")?.value;
   const teamId = raw && /^\d+$/.test(raw) ? Number(raw) : null;
   if (!teamId) redirect("/?next=/field");
 
-  const result = await buildMatchday(teamId);
+  const params = await searchParams;
+  const gwParam = params.gw != null && /^\d+$/.test(params.gw) ? Number(params.gw) : undefined;
+  const result = await buildMatchday(teamId, gwParam);
   if (!result.ok) {
     if (result.reason === "picks-not-set") {
       return (
@@ -34,7 +40,7 @@ export default async function FieldPage() {
   }
 
   // Desk props for Planner mode — built alongside, degrades to null quietly.
-  const desk = await buildBoardDesk(teamId).catch(() => null);
+  const desk = gwParam == null ? await buildBoardDesk(teamId).catch(() => null) : null;
 
   return <FieldClient initialModel={result.model} desk={desk} />;
 }

@@ -14,9 +14,10 @@ export type BuildResult =
   | { ok: false; reason: "picks-not-set" | "compose-failed"; message?: string };
 
 /** Shared pipeline for the /api/gaffer/live route and the /live RSC page. */
-export async function buildMatchday(entryId: number): Promise<BuildResult> {
-  const ctx = await loadGwContext();
+export async function buildMatchday(entryId: number, gw?: number): Promise<BuildResult> {
+  const ctx = await loadGwContext(gw);
   const deadlinePassed = new Date(ctx.event.deadline_time).getTime() < Date.now();
+  const historical = gw != null && gw !== ctx.boot.events.find((e) => e.is_current)?.id;
 
   let picks;
   try {
@@ -28,7 +29,12 @@ export async function buildMatchday(entryId: number): Promise<BuildResult> {
     return { ok: false, reason: "compose-failed", message: String(err) };
   }
 
-  const [entry, bundle] = await Promise.all([getEntry(entryId), getRankCurveBundle(ctx.event.id)]);
+  const [entry, bundle] = await Promise.all([
+    getEntry(entryId),
+    historical
+      ? Promise.resolve({ curve: null, fieldAvg: 0, fieldSd: 0, sampleSize: 0 })
+      : getRankCurveBundle(ctx.event.id),
+  ]);
   let transfersThisGw: Awaited<ReturnType<typeof getTransfers>> = [];
   try {
     transfersThisGw = (await getTransfers(entryId)).filter((t) => t.event === ctx.event.id);
@@ -36,15 +42,17 @@ export async function buildMatchday(entryId: number): Promise<BuildResult> {
     transfersThisGw = [];
   }
 
-  const rawEvents = await collectEvents(ctx.event.id, ctx.fixtures);
+  const rawEvents = historical ? [] : await collectEvents(ctx.event.id, ctx.fixtures);
 
   const snapKey = `gaffer:lastsnap:${entryId}:${ctx.event.id}`;
   let previousSnapshot: { officialLiveRank: number | null; estRank: number | null } | null = null;
-  try {
-    const raw = await cacheStore().get(snapKey);
-    if (raw) previousSnapshot = JSON.parse(raw);
-  } catch {
-    previousSnapshot = null;
+  if (!historical) {
+    try {
+      const raw = await cacheStore().get(snapKey);
+      if (raw) previousSnapshot = JSON.parse(raw);
+    } catch {
+      previousSnapshot = null;
+    }
   }
 
   const { model, snapshot } = composeMatchdayModel({
@@ -64,7 +72,9 @@ export async function buildMatchday(entryId: number): Promise<BuildResult> {
     cohortEo: await getCohortEO(ctx.event.id),
   });
 
-  await cacheStore().set(snapKey, JSON.stringify(snapshot), 60 * 60 * 6);
+  if (!historical) {
+    await cacheStore().set(snapKey, JSON.stringify(snapshot), 60 * 60 * 6);
+  }
 
   return { ok: true, model: { ...model, upstreamDegraded: (await breakerMsLeft()) > 0 } };
 }
