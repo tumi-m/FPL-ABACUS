@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { PointsWaterfall } from "@/components/charts/PointsWaterfall";
 import { buildMatchday } from "@/lib/server/buildMatchday";
 import { COPY } from "@/lib/copy/deck";
+import { PageHeader } from "@/components/gaffer/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -33,16 +34,15 @@ export default async function FieldPointsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="lower3">
-        <div className="lower3-flag bg-volt" />
-        <div className="lower3-body">
-          <h1 className="fig-num text-[22px] leading-none">Points attribution</h1>
-          <span className="text-2xs uppercase-label text-ink-lo">GW{model.event.id} · where the score comes from</span>
-          <Link href="/field" className="ml-auto text-xs text-volt hover:underline">
+      <PageHeader
+        title="Points attribution"
+        meta={`GW${model.event.id} · where the score comes from`}
+        action={
+          <Link href="/field" className="text-xs text-volt hover:underline">
             ← Back to the Field
           </Link>
-        </div>
-      </div>
+        }
+      />
 
       <div className="flex items-end gap-4 rounded-lg has-gloss card-lift bg-raised p-5">
         <div>

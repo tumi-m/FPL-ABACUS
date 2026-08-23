@@ -63,8 +63,8 @@ export default async function SquadPage() {
       <div className="relative overflow-hidden rounded-lg has-gloss card-lift bg-raised px-5 py-4">
         <KitWeave teamIds={squadTeamIds} />
         <header className="relative flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-xl font-semibold tracking-tight">Your 15</h1>
-          <p className="text-sm text-ink-2 num-tabular">
+          <h1 className="fig-num text-[22px] leading-none">Your 15</h1>
+          <p className="upper-label text-2xs text-ink-lo num-tabular">
             Value £{(value / 10).toFixed(1)}m · Bank £{(bank / 10).toFixed(1)}m · Transfers {totalTransfers}
           </p>
         </header>

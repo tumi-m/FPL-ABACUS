@@ -4,6 +4,7 @@ import { getEntry, getHistory, getTransfers } from "@/lib/fpl/endpoints";
 import { computeDna } from "@/lib/engines/dna";
 import type { DnaInput } from "@/lib/engines/dna";
 import { SeasonFingerprint } from "@/components/generative/SeasonFingerprint";
+import { PageHeader } from "@/components/gaffer/PageHeader";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Manager DNA" };
@@ -68,13 +69,10 @@ export default async function DnaPage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">{entry.name}</h1>
-        <p className="text-sm text-ink-3 num-tabular">
-          {entry.summary_overall_rank ? `OR ${entry.summary_overall_rank.toLocaleString()}` : ""} · best OR{" "}
-          {Number.isFinite(bestRank) ? bestRank.toLocaleString() : "—"}
-        </p>
-      </header>
+      <PageHeader
+        title={entry.name}
+        meta={`Overall rank ${entry.summary_overall_rank ? entry.summary_overall_rank.toLocaleString() : "—"} · best ${Number.isFinite(bestRank) ? bestRank.toLocaleString() : "—"}`}
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card label="Bench cost" value={`${dna.benchCost.points}`} note="points left on your bench this season" />

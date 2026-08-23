@@ -6,6 +6,7 @@ import { ClubFlag } from "@/components/gaffer/ClubCrest";
 import { COPY } from "@/lib/copy/deck";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/primitives/Table";
 import { LeagueFilters } from "./LeagueFilters";
+import { PageHeader } from "@/components/gaffer/PageHeader";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "League" };
@@ -172,18 +173,11 @@ export default async function LeagueDetail({
       </Link>
 
       {/* broadcast lower-third — match-graphic header per style guide §7 */}
-      <header className="flex overflow-hidden rounded-[4px] card-lift" aria-label={`${leagueName} standings`}>
-        <span aria-hidden className="skewed w-[12px] shrink-0 scale-x-[1.4]" style={{ background: "var(--volt)" }} />
-        <div className="flex flex-1 flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 md:px-5" style={{ background: "linear-gradient(180deg,var(--bg-overlay),var(--bg-raised))" }}>
-          <div className="min-w-0">
-            <h1 className="fig-num truncate text-[22px] leading-none">{leagueName}</h1>
-            <p className="upper-label mt-1.5 text-2xs text-ink-lo">
-              GW{currentGw}
-              {memberCount != null && memberCount > 0 ? ` · ${memberCount.toLocaleString("en-GB")} managers` : ""} ·
-              showing {rows.length} · tap a manager to compare
-            </p>
-          </div>
-          {/* summary strip — reflects the active view's metric */}
+      <PageHeader
+        ariaLabel={`${leagueName} standings`}
+        title={leagueName}
+        meta={`GW${currentGw}${memberCount != null && memberCount > 0 ? ` · ${memberCount.toLocaleString("en-GB")} managers` : ""} · showing ${rows.length} · tap a manager to compare`}
+        action={
           <dl className="flex items-end gap-6 md:gap-8">
             <div>
               <dt className="upper-label text-2xs text-ink-lo">Avg {metricName === "Gameweek" ? "GW" : metricName.split(" · ")[0]}</dt>
@@ -204,8 +198,8 @@ export default async function LeagueDetail({
               </dd>
             </div>
           </dl>
-        </div>
-      </header>
+        }
+      />
 
       {/* view toggle — season / gameweek / month; prize filters ride along */}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">

@@ -26,17 +26,17 @@ export function HeroScore({ model, moment }: { model: MatchdayModel; moment?: Mo
     <section aria-label="Live score" className="rounded-lg bg-surface-1 card-ring p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-2xs font-semibold uppercase tracking-wide text-ink-3">
+          <div className="upper-label text-2xs text-ink-lo">
             GW{model.event.id} · live points
           </div>
           <AnimatedNumber
             value={hero.gwPoints}
-            className="block font-semibold text-hero leading-none tracking-hero text-ink-1"
+            className="fig-num block text-[clamp(40px,5.5vw,58px)] leading-none tracking-hero text-ink-hi"
           />
         </div>
         <div className="text-right">
-          <div className="text-2xs font-semibold uppercase tracking-wide text-ink-3">Overall rank</div>
-          <div className="font-semibold text-3xl leading-tight tracking-hero text-ink-1 num-tabular">
+          <div className="upper-label text-2xs text-ink-lo">Overall rank</div>
+          <div className="fig-num text-3xl leading-tight tracking-hero text-ink-hi num-tabular">
             {rankIsExact ? (
               formatCompactRank(officialRank)
             ) : hero.estimatedLiveRank !== null ? (
