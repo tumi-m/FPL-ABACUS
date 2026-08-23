@@ -17,6 +17,7 @@ import {
 } from "@/lib/engines/fixtureModel";
 import type { Pos } from "@/lib/engines/types";
 import { BoardDesk, type DeskCandidate, type DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
+import { computeFreeTransfers, fixtureRun } from "@/lib/server/buildBoardDesk";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "The Board" };
@@ -168,6 +169,9 @@ export default async function BoardPage({
 
   // Desk props — staging + chip lane.
   const squadSet = new Set(squadIds);
+  const shortOf = (tid: number) => boot.teams.find((t) => t.id === tid)?.short_name ?? "?";
+  const runFor = (clubId: number) =>
+    fixtureRun(clubId, allFixtures, horizonGws.map((g) => g.id), shortOf);
   const deskSquad: DeskSquadRow[] = workRows.map(({ el }) => ({
     element: el.id,
     webName: el.web_name,
@@ -175,6 +179,7 @@ export default async function BoardPage({
     nowCost: el.now_cost,
     sellPrice: sellPrices.get(el.id) ?? null,
     epNext: el.ep_next,
+    runLabel: runFor(el.team),
   }));
   const deskCandidates: DeskCandidate[] = Object.values(boot.elements)
     .filter((e) => !squadSet.has(e.id))
@@ -186,12 +191,15 @@ export default async function BoardPage({
       pos: e.element_type,
       nowCost: e.now_cost,
       epNext: e.ep_next,
+      runLabel: runFor(e.team),
     }));
 
   let bankTenths = 0;
+  let freeTransfers = 1;
   try {
     const history = await getHistory(teamId);
     bankTenths = history.current[history.current.length - 1]?.bank ?? 0;
+    freeTransfers = computeFreeTransfers(history.current, history.chips, currentGw);
   } catch {
     bankTenths = 0;
   }
@@ -284,6 +292,7 @@ export default async function BoardPage({
         wallGw={wallGw}
         chips={chipKeys}
         bankTenths={bankTenths}
+        freeTransfers={freeTransfers}
       />
     </div>
   );

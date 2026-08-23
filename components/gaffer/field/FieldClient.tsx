@@ -51,6 +51,7 @@ export interface FieldDeskProps {
   wallGw: number | null;
   chips: { key: string; label: string; stopEvent: number }[];
   bankTenths: number;
+  freeTransfers: number;
 }
 
 type RivalRow = SquadRow;
@@ -516,6 +517,7 @@ export function FieldClient({
             wallGw={desk.wallGw}
             chips={desk.chips}
             bankTenths={desk.bankTenths}
+            freeTransfers={desk.freeTransfers}
           />
         ) : (
           <p className="rounded-lg bg-surface-1 card-ring p-6 text-center text-sm text-ink-lo">
