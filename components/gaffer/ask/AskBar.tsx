@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
 import { cn } from "@/lib/ui/cn";
 import { GafferStrip, useGafferPersona } from "@/components/gaffer/ask/GafferStrip";
 import { GafferBubble } from "@/components/gaffer/ask/GafferBubble";
-import { personaById } from "@/lib/ai/personas";
+import { PERSONAS, personaById, type PersonaId } from "@/lib/ai/personas";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { PriceGauge } from "@/components/charts/PriceGauge";
 import { FixtureSwing } from "@/components/charts/FixtureSwing";
@@ -38,7 +38,6 @@ const PROMPTS_BY_SCREEN: Record<string, string[]> = {
   "/live": ["Which event moved my rank most?", "Where am I exposed to the template?"],
   "/field": ["Should I captain Salah or Haaland?", "Does Gabriel hit 10 defcon?"],
   "/board": ["How are Isak's fixtures looking?", "When should I play my wildcard?"],
-  "/news": ["Any injury news on Trent?", "What's the latest gossip?"],
   "/planner": ["Is it worth taking a hit?", "Will Mbeumo rise tonight?"],
   DEFAULT: ["Who should I captain?", "Will anyone rise tonight?", "Any injury doubts in my squad?"],
 };
@@ -104,6 +103,17 @@ export function AskBar() {
     if (open) setTimeout(() => inputRef.current?.focus(), 80);
   }, [open]);
 
+  // Any surface can summon the gaffers — landing showcase, arcade cards, etc.
+  React.useEffect(() => {
+    const onOpenAsk = (e: Event) => {
+      const persona = (e as CustomEvent<{ persona?: string }>).detail?.persona;
+      if (persona && PERSONAS.some((p) => p.id === persona)) choosePersona(persona as PersonaId);
+      setOpen(true);
+    };
+    window.addEventListener("gaffer:open-ask", onOpenAsk);
+    return () => window.removeEventListener("gaffer:open-ask", onOpenAsk);
+  }, [choosePersona]);
+
   const suggestions =
     Object.entries(PROMPTS_BY_SCREEN).find(([k]) => k !== "DEFAULT" && pathname.startsWith(k))?.[1] ??
     PROMPTS_BY_SCREEN.DEFAULT;
@@ -164,17 +174,17 @@ export function AskBar() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Open Ask"
+        aria-label="Ask the Gaffer"
         className="hidden sm:inline-flex h-8 items-center gap-2 rounded-full card-ring px-3 text-xs text-ink-lo transition-colors dur-instant hover:text-ink-hi"
       >
-        Ask
+        Ask the Gaffer
         <kbd className="rounded bg-surface-3 px-1 py-0.5 text-2xs num-tabular">⌘K</kbd>
       </button>
       {/* mobile trigger — 44px icon beside the theme toggle */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Open Ask"
+        aria-label="Ask the Gaffer"
         className="relative grid h-11 w-11 place-items-center rounded-full card-ring text-ink-lo transition-colors dur-instant after:absolute after:inset-0 after:content-[''] hover:text-ink-hi sm:hidden"
       >
         <span aria-hidden className="text-sm font-bold">?</span>

@@ -182,6 +182,11 @@
   --persona-mei:#E85A5A;   /* soft red — The Scout                */
   --persona-ana:#E8C83F;   /* gold — The Fixture Specialist       */
 
+  /* landing floodlight ramp — stadium turf green into floodlit teal */
+  --landing-a:#123B27;     /* turf green under the lights         */
+  --landing-b:#07271A;     /* tunnel shade                        */
+  --landing-c:#03211F;     /* floodlit teal-black edge            */
+
   /* fixture heat — blue-forward sequential, hard → easy */
   --heat-1:#4A3191; --heat-2:#3A55B1; --heat-3:#0080CC;
   --heat-4:#00B3D4; --heat-5:#00DCCA; --heat-6:#5EF8B1;

@@ -14,8 +14,14 @@ export interface Persona {
   accentVar: string;
   /** Still avatar art (owner-supplied mockup crops). */
   avatar: string;
+  /** Idle sprite frame — the resting pose. */
+  avatarIdle: string;
+  /** Talking sprite frames — flipped while the bubble speaks. */
+  avatarTalk: string[];
   /** One-line pitch for the select strip. */
   blurb: string;
+  /** Select-screen speech bubble — deterministic, number-free, arcade tone. */
+  intro: string;
   /** System-prompt fragment: voice + analytical lens. */
   voice: string;
 }
@@ -28,7 +34,10 @@ export const PERSONAS: Persona[] = [
     region: "Europe",
     accentVar: "var(--persona-oleg)",
     avatar: "/avatars/oleg.png",
+    avatarIdle: "/avatars/oleg-idle.png",
+    avatarTalk: ["/avatars/oleg-talk1.png"],
     blurb: "Template picks, proven quality, xG-led captaincy.",
+    intro: "Proven quality first. The reliable route wins seasons — watch the expected goals and take the safe haul.",
     voice:
       "You are the template player. You trust proven quality: high-ownership captaincy, expected goals, reliable clean-sheet odds. Measured, boardroom-confident, allergic to punts.",
   },
@@ -39,7 +48,10 @@ export const PERSONAS: Persona[] = [
     region: "Africa",
     accentVar: "var(--persona-kofi)",
     avatar: "/avatars/kofi.png",
+    avatarIdle: "/avatars/kofi-idle.png",
+    avatarTalk: ["/avatars/kofi-talk1.png"],
     blurb: "Differentials, explosive captains, aggressive hits.",
+    intro: "Everyone plays it safe — that is your edge. Find the differential the crowd ignores and swing big.",
     voice:
       "You are the differential hunter. You chase low-ownership gems, explosive captain picks and aggressive point hits. Bold, hungry, always hunting the big haul.",
   },
@@ -50,7 +62,10 @@ export const PERSONAS: Persona[] = [
     region: "Asia",
     accentVar: "var(--persona-mei)",
     avatar: "/avatars/mei.png",
+    avatarIdle: "/avatars/mei-idle.png",
+    avatarTalk: ["/avatars/mei-talk1.png", "/avatars/mei-talk2.png", "/avatars/mei-talk3.png"],
     blurb: "Budget enablers, value defenders, bench structure.",
+    intro: "Value decides seasons. The budget route keeps your structure flexible and your bench useful. Spend wisely.",
     voice:
       "You are the budget enabler. You obsess over value: cheap defenders with strong underlying numbers, smart bench structure, points per million. Precise, thrifty, never wasteful.",
   },
@@ -61,7 +76,10 @@ export const PERSONAS: Persona[] = [
     region: "South America",
     accentVar: "var(--persona-ana)",
     avatar: "/avatars/ana.png",
+    avatarIdle: "/avatars/ana-idle.png",
+    avatarTalk: ["/avatars/ana-talk1.png"],
     blurb: "Fixture swings, blanks, doubles, chip timing.",
+    intro: "The calendar decides before you do. Read the fixture swings, plan the doubles, time your chips early.",
     voice:
       "You are the fixture specialist. You live in the fixture calendar: swings, blanks, doubles and long-horizon chip timing. Forward-looking, always three gameweeks ahead.",
   },
