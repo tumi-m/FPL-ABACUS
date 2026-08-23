@@ -14,7 +14,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const themeScript = `(function(){try{var m=localStorage.getItem('gaffer_theme')||'system';var d=m==='dark'||(m!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.dataset.theme=d?'dark':'light';r.dataset.themeMode=m;}catch(e){}})()`;
+const themeScript = `(function(){try{var m=localStorage.getItem('gaffer_theme')||'system';var d=m==='dark'||(m!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.dataset.theme=d?'dark':'light';r.dataset.themeMode=m;var c=localStorage.getItem('gaffer_club');if(c&&/^[1-9]|^1[0-9]$|^20$/.test(c))r.dataset.club=c;}catch(e){}})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

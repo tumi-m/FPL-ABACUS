@@ -35,6 +35,15 @@ test.describe("team ID gate flow", () => {
     await expect(page.getByText("Is this you?")).toBeVisible();
   });
 
+  test("the club carousel tints chrome accents and clears back to default", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: /tint chrome to/i })).toBeVisible();
+    await page.getByRole("button", { name: /tint chrome to/i }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-club", /^\d+$/);
+    await page.getByRole("button", { name: /clear .* back to the default look/i }).click();
+    await expect(page.locator("html")).not.toHaveAttribute("data-club", /./);
+  });
+
   test("valid ID confirms, lands on Matchday and persists the session cookie", async ({ page }) => {
     await page.goto("/");
     await page.getByLabel("Your FPL team ID").fill(TEAM_ID);
