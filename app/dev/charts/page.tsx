@@ -187,6 +187,8 @@ function squadFixture() {
     subbedInFor: null,
     teamId: n.teamId,
     eo: n.eo,
+    xg90: null,
+    xgc90: null,
     photo: "",
     liveStats: null,
   }));

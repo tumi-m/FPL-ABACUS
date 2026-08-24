@@ -1,8 +1,9 @@
 import "server-only";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
-import { getEntry, getEventStatus, getFixtures, getLive, getPicks } from "@/lib/fpl/endpoints";
+import { getEntry, getEventStatus, getFixtures, getFixturesAll, getLive, getPicks } from "@/lib/fpl/endpoints";
 import { bonusAddedDays } from "@/lib/engines/matchState";
 import { buildLiveSquad } from "@/lib/engines/liveSquad";
+import { buildFixtureModel, projectFixture } from "@/lib/engines/fixtureModel";
 import type { SquadRow } from "@/lib/engines/matchdayModel";
 import type { Fixture } from "@/lib/fpl/schemas";
 
@@ -41,8 +42,9 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
     return { ok: false, reason: "picks-not-set" };
   }
 
-  const [fixtures, live, status, entry] = await Promise.all([
+  const [fixtures, allFixtures, live, status, entry] = await Promise.all([
     getFixtures(eventId).catch(() => [] as Fixture[]),
+    getFixturesAll().catch(() => [] as Fixture[]),
     getLive(eventId),
     getEventStatus().catch(() => null),
     getEntry(entryId).catch(() => null),
@@ -51,6 +53,7 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
 
   const squadState = buildLiveSquad({ picks, live, fixtures, boot, bonusAddedDays: addedDays });
   const teamById = new Map(boot.teams.map((t) => [t.id, t]));
+  const fxModel = buildFixtureModel(allFixtures.length ? allFixtures : fixtures, { upToGw: eventId });
 
   const rows: SquadRow[] = picks.picks.map((p) => {
     const player = squadState.players.get(p.element);
@@ -91,6 +94,11 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
       photo: meta?.photo ?? "",
       liveStats: player?.stats ?? null,
       teamId: meta?.team ?? 0,
+      xg90: meta?.xg90 ?? null,
+      xgc90:
+        meta && fx && oppId
+          ? Math.round(projectFixture(fxModel, meta.team, oppId, isHome).xgAgainst * 100) / 100
+          : null,
       // ownership is *your* exposure — the rival view never shows it
       eo: 0,
     };

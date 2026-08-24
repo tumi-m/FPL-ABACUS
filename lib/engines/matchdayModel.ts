@@ -1,4 +1,5 @@
 import { buildLiveSquad, type LiveSquad } from "@/lib/engines/liveSquad";
+import { buildFixtureModel, projectFixture } from "@/lib/engines/fixtureModel";
 import { fallbackEO } from "@/lib/engines/eo";
 import { ranksPerPoint, liveRank as computeLiveRank, type RankCurve } from "@/lib/engines/rankModel";
 import { swingForEvent, reconcile } from "@/lib/engines/swing";
@@ -38,6 +39,10 @@ export interface SquadRow {
   eo: number;
   /** Headshot photo code from bootstrap (playerImg key), empty when unknown. */
   photo: string;
+  /** Season xG per 90 (shrunk) — the scoring expectation under the face. */
+  xg90: number | null;
+  /** Team expected goals conceded for this fixture (fixture model, per 90). */
+  xgc90: number | null;
   /** Per-GW live stat line from the event feed — null before a player is involved. */
   liveStats: import("@/lib/engines/types").LiveStatsLite | null;
 }
@@ -128,6 +133,8 @@ export function composeMatchdayModel(deps: {
   boot: BootstrapLite;
   live: Live;
   fixtures: Fixture[];
+  /** Season fixture list — the xGC fixture model's input (falls back to fixtures). */
+  allFixtures?: Fixture[];
   status: EventStatus;
   phase: GwPhase;
   addedDays: Set<string>;
@@ -151,6 +158,10 @@ export function composeMatchdayModel(deps: {
   const scoring = parseScoring(boot.scoring);
   const mostCaptained = boot.events.find((e) => e.id === deps.eventId)?.most_captained ?? null;
   const teamById = new Map(boot.teams.map((t) => [t.id, t]));
+  // Fixture model for the per-face xGC — team expected goals conceded this GW.
+  const fxModel = buildFixtureModel(deps.allFixtures?.length ? deps.allFixtures : fixtures, {
+    upToGw: deps.eventId,
+  });
 
   // EO: sampled cohort when available, estimated prior otherwise.
   const eoOf = (elementId: number): number => {
@@ -208,6 +219,11 @@ export function composeMatchdayModel(deps: {
       teamId: meta?.team ?? 0,
       eo: round1(eoOf(p.element)),
       photo: meta?.photo ?? "",
+      xg90: meta?.xg90 ?? null,
+      xgc90:
+        meta && fx && oppId
+          ? Math.round(projectFixture(fxModel, meta.team, oppId, isHome).xgAgainst * 100) / 100
+          : null,
       liveStats: player?.stats ?? null,
     };
   });
