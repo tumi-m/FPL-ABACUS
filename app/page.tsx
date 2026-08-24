@@ -13,9 +13,12 @@ export default async function Landing({
   const target = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
   return (
     <div
-      className="min-h-dvh"
+      className="relative min-h-dvh overflow-hidden"
       style={{ background: "linear-gradient(180deg,var(--landing-a),var(--landing-b) 46%,var(--landing-c))" }}
     >
+      {/* FIFA-menu atmosphere — diagonal electric sweeps over the floodlight ramp */}
+      <div aria-hidden className="landing-atmos" />
+
       {/* floodlit hero — the 4K trophy under the wordmark and gate */}
       <section className="relative flex flex-col items-center justify-center overflow-hidden px-4 pb-6 pt-[14dvh] text-center md:pt-[16dvh]">
         <div aria-hidden className="absolute inset-0">
@@ -42,6 +45,8 @@ export default async function Landing({
                 "radial-gradient(120% 90% at 50% 34%, transparent 38%, color-mix(in oklab, var(--landing-b) 78%, transparent) 100%)",
             }}
           />
+          {/* the menu cuts ride over the photo — softer than the page field */}
+          <div aria-hidden className="landing-atmos opacity-70" />
         </div>
         <div className="relative z-10 flex w-full flex-col items-center">
           <Wordmark className="text-4xl drop-shadow-[0_4px_18px_rgba(0,0,0,.55)] md:text-6xl" />
@@ -67,6 +72,7 @@ export default async function Landing({
           sizes="100vw"
           className="object-cover object-center"
         />
+        <div aria-hidden className="landing-atmos opacity-60" />
         <div
           className="absolute inset-0"
           style={{

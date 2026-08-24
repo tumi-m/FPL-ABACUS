@@ -419,6 +419,35 @@
 [data-trend="down"] .atmos{ --flare-r: rgba(255,82,91,.13); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   Landing atmosphere — the FIFA-menu pass over the floodlight ramp: big
+   diagonal electric sweeps (ultra · volt · surge) bleeding across the turf,
+   angled gloss "menu cuts" on the 115° axis, and a slow ambient drift.
+   Chrome only — sits behind every landing band and never touches data.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.landing-atmos{ position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.landing-atmos::before{
+  content:""; position:absolute; inset:-18%;
+  background:
+    radial-gradient(58% 46% at 16% 6%,  color-mix(in oklab, var(--ultra) 22%, transparent), transparent 64%),
+    radial-gradient(64% 50% at 88% 20%, color-mix(in oklab, var(--volt) 17%, transparent), transparent 62%),
+    radial-gradient(72% 58% at 46% 112%, color-mix(in oklab, var(--surge) 15%, transparent), transparent 68%);
+  animation:gaffer-landing-drift 26s ease-in-out infinite alternate;
+}
+.landing-atmos::after{
+  content:""; position:absolute; inset:-24%;
+  background:
+    linear-gradient(115deg, transparent 34%, color-mix(in oklab, var(--ice) 5%, transparent) 43%, color-mix(in oklab, var(--ice) 9%, transparent) 45%, transparent 54%),
+    linear-gradient(115deg, transparent 60%, color-mix(in oklab, var(--magenta) 6%, transparent) 68%, transparent 76%),
+    repeating-linear-gradient(115deg, var(--mesh) 0 1px, transparent 1px 7px);
+  mix-blend-mode:screen;
+  animation:gaffer-landing-drift 34s ease-in-out infinite alternate-reverse;
+}
+@keyframes gaffer-landing-drift{
+  from{ transform:translate3d(-1.6%,-1%,0); }
+  to{   transform:translate3d(1.6%,1%,0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    Typography — every figure italic Saira on its width axis; every name
    upright Barlow. Tabular numerals in tables and axes only.
    ═══════════════════════════════════════════════════════════════════════════ */
