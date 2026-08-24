@@ -38,6 +38,22 @@ Gates: typecheck/lint/vitest 294✓/build/e2e 68✓.
 
 ## Outstanding
 
-- Solver-lite (rank-priced payback across the horizon) — see
-  `docs/PLANNER_RESEARCH.md` §Next candidates.
 - Manifold (17) Python escape hatch — deferred until scale.
+
+### V8-F — solver-lite: rank-priced horizon payback ✅ (`this commit`)
+The one open item from `docs/PLANNER_RESEARCH.md` lands:
+- `lib/engines/solverLite.ts` (+14 tests): per-player 6-GW projection from the
+  Board's fixture model keyed to position (attackers scale by opposition
+  defence, defenders by bluntness of opposition attack; own-team quality stays
+  in the form×ep_next base so nothing double counts), blanks zero, doubles
+  stack; `priceMove` finds the first cumulative-gain GW that covers a hit and
+  converts net points into **rank swing** via ranks-per-point at the hero's
+  season total; `deskVerdict` sums net points + ranks for the whole ledger.
+- `buildSolverContext`/`rankPrice` shared server helpers feed both composition
+  sites (Board page + `buildBoardDesk` → Field planner). Horizon arrays ride
+  on DeskSquadRow/DeskCandidate; pricing runs client-side per staged pair.
+- BoardDesk ledger: Payback column becomes **Horizon** — payback marker from
+  cumulative gain over real fixtures (not ep_next ÷ 4), each hit row shows its
+  Est rank swing, and the footer gains the plan-level "+X pts · ±Y ranks"
+  verdict. All estimates wrapped in `<Est>` with method text.
+Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.

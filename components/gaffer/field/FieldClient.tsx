@@ -55,6 +55,7 @@ export interface FieldDeskProps {
   bankTenths: number;
   freeTransfers: number;
   markers?: Record<number, GwMarker>;
+  ranksPerPoint?: number | null;
 }
 
 type RivalRow = SquadRow;
@@ -567,6 +568,7 @@ export function FieldClient({
             bankTenths={desk.bankTenths}
             freeTransfers={desk.freeTransfers}
             markers={desk.markers}
+            ranksPerPoint={desk.ranksPerPoint ?? null}
           />
         ) : (
           <p className="rounded-lg bg-surface-1 card-ring p-6 text-center text-sm text-ink-lo">

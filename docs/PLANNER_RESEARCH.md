@@ -41,6 +41,11 @@ Grounding for GAFFER's BoardDesk/planner UX. Sources surveyed Aug 2026: OneFPL, 
   counts) fed by `computeGwProfiles` in `buildBoardDesk`; the same profile now also renders the
   Board footer honestly ("full slate" vs doubles + blanks).
 
-## Next candidates (not built)
+## Shipped since (solver-lite, V8-F)
 
-- Solver-lite: rank-priced payback across the full 6-GW horizon rather than ep_next delta.
+- **Rank-priced horizon payback** — staged moves priced by 6-GW fixture-model
+  projection (position-aware, doubles stacked, blanks zero), payback = first GW
+  where cumulative gain covers the hit, every row and the plan footer carry an
+  Est rank swing via ranks-per-point at the hero's season total. `lib/engines/solverLite.ts`.
+
+## Next candidates (not built)

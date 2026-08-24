@@ -17,7 +17,14 @@ import {
 } from "@/lib/engines/fixtureModel";
 import type { Pos } from "@/lib/engines/types";
 import { BoardDesk, type DeskCandidate, type DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
-import { computeFreeTransfers, computeGwProfiles, fixtureRun, markerMap } from "@/lib/server/buildBoardDesk";
+import {
+  buildSolverContext,
+  computeFreeTransfers,
+  computeGwProfiles,
+  fixtureRun,
+  markerMap,
+  rankPrice,
+} from "@/lib/server/buildBoardDesk";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "The Board" };
@@ -163,6 +170,16 @@ export default async function BoardPage({
   const shortOf = (tid: number) => boot.teams.find((t) => t.id === tid)?.short_name ?? "?";
   const runFor = (clubId: number) =>
     fixtureRun(clubId, allFixtures, horizonGws.map((g) => g.id), shortOf);
+  const solver = buildSolverContext(allFixtures, horizonGws.map((g) => g.id), currentGw);
+  const project = (el: (typeof boot.elements)[number]) =>
+    solver.project({
+      pos: el.element_type,
+      teamId: el.team,
+      epNext: el.ep_next,
+      form: el.form,
+      status: el.status,
+      chanceOfPlaying: el.chance_of_playing_this_round,
+    });
   const deskSquad: DeskSquadRow[] = workRows.map(({ el }) => ({
     element: el.id,
     webName: el.web_name,
@@ -171,6 +188,7 @@ export default async function BoardPage({
     sellPrice: sellPrices.get(el.id) ?? null,
     epNext: el.ep_next,
     runLabel: runFor(el.team),
+    horizon: project(el),
   }));
   const deskCandidates: DeskCandidate[] = Object.values(boot.elements)
     .filter((e) => !squadSet.has(e.id))
@@ -183,6 +201,7 @@ export default async function BoardPage({
       nowCost: e.now_cost,
       epNext: e.ep_next,
       runLabel: runFor(e.team),
+      horizon: project(e),
     }));
 
   let bankTenths = 0;
@@ -290,6 +309,7 @@ export default async function BoardPage({
         bankTenths={bankTenths}
         freeTransfers={freeTransfers}
         markers={markerMap(gwProfiles)}
+        ranksPerPoint={await rankPrice(teamId, currentGw)}
       />
     </div>
   );

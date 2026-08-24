@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 import { Est } from "@/components/gaffer/Est";
+import { deskVerdict, priceMove } from "@/lib/engines/solverLite";
 import {
   MAX_PLANS,
   activePlan,
@@ -24,6 +25,8 @@ export interface DeskSquadRow {
   epNext: number | null;
   /** Next-three fixture run, e.g. "lei(H) mun(A) —". */
   runLabel?: string;
+  /** Solver-lite projected xP per horizon GW (blanks zero, doubles stacked). */
+  horizon?: number[];
 }
 export interface DeskCandidate {
   id: number;
@@ -32,6 +35,7 @@ export interface DeskCandidate {
   nowCost: number;
   epNext: number | null;
   runLabel?: string;
+  horizon?: number[];
 }
 
 export interface GwMarker {
@@ -63,6 +67,7 @@ export function BoardDesk({
   bankTenths,
   freeTransfers = 1,
   markers,
+  ranksPerPoint = null,
 }: {
   teamId: number;
   squad: DeskSquadRow[];
@@ -77,6 +82,8 @@ export function BoardDesk({
   freeTransfers?: number;
   /** Blank/double flags per horizon GW. */
   markers?: Record<number, GwMarker>;
+  /** Ranks per extra point at the hero's season total — null without a curve. */
+  ranksPerPoint?: number | null;
 }) {
   const storageKey = `gaffer_board_v2_${teamId}`;
   const legacyKey = `gaffer_board_v1_${teamId}`;
@@ -104,7 +111,6 @@ export function BoardDesk({
 
   const squadById = React.useMemo(() => new Map(squad.map((s) => [s.element, s])), [squad]);
   const candById = React.useMemo(() => new Map(candidates.map((c) => [c.id, c])), [candidates]);
-
   // Affordability: FPL's selling price when exposed (else current price) + bank.
   const bank = bankTenths / 10;
   const canAfford = (cand: DeskCandidate | undefined, outEl: DeskSquadRow | undefined): boolean => {
@@ -129,6 +135,24 @@ export function BoardDesk({
   const FREE_FT = freeTransfers;
   const hits = Math.max(0, plan.moves.length - FREE_FT);
   const hitTotal = hits * HIT_COST;
+
+  // Solver-lite verdict — rank-priced across the full horizon, not ep-next deltas.
+  const verdict = React.useMemo(
+    () =>
+      deskVerdict(
+        plan.moves.map((m, i) => {
+          const o = squadById.get(m.out);
+          const n = candById.get(m.in);
+          return o?.horizon && n?.horizon
+            ? priceMove(o.horizon, n.horizon, {
+                hitCost: i >= FREE_FT ? HIT_COST : 0,
+                ranksPerPoint,
+              })
+            : { gain: 0, hitCost: 0, paybackGw: null, rankSwing: null };
+        }),
+      ),
+    [plan.moves, squadById, candById, FREE_FT, ranksPerPoint],
+  );
 
   const assignChip = (key: string, gw: number | null) => {
     persist(
@@ -270,7 +294,7 @@ export function BoardDesk({
         <table className="w-full text-xs num-tabular">
           <thead>
             <tr className="border-b border-hairline text-left">
-              {["Out", "In", "Payback", ""].map((h) => (
+              {["Out", "In", "Horizon", ""].map((h) => (
                 <th key={h} className="px-2 py-1.5 text-2xs font-semibold uppercase tracking-wide text-ink-3">
                   {h}
                 </th>
@@ -281,10 +305,13 @@ export function BoardDesk({
             {state.moves.map((m, i) => {
               const o = squadById.get(m.out);
               const n = candById.get(m.in);
-              const gain = (n?.epNext ?? 0) - (o?.epNext ?? 0);
               const beyondFt = i >= FREE_FT;
-              const payback =
-                gain > 0 ? Math.ceil(HIT_COST / gain) : null;
+              const hitCost = beyondFt ? HIT_COST : 0;
+              const price =
+                o?.horizon && n?.horizon
+                  ? priceMove(o.horizon, n.horizon, { hitCost, ranksPerPoint })
+                  : null;
+              const payback = price?.paybackGw ?? null;
               const paybackLabel =
                 payback != null ? `pays back in ~${payback} GW` : "never pays back";
               return (
@@ -298,16 +325,26 @@ export function BoardDesk({
                     {n?.runLabel && <span className="block text-2xs text-ink-lo">{n.runLabel}</span>}
                   </td>
                   <td className="px-2 py-1.5">
-                    {beyondFt ? (
-                      payback != null && payback <= 6 ? (
-                        <Est method={`xP-next delta ${gain.toFixed(1)} vs −${HIT_COST} hit`}>
-                          {paybackLabel}
-                        </Est>
-                      ) : (
-                        <span className="text-flare">{paybackLabel}</span>
-                      )
-                    ) : (
+                    {!beyondFt ? (
                       <span className="text-surge">free</span>
+                    ) : payback != null && payback <= gws.length ? (
+                      <Est method={`6-GW fixture-model projection ${price?.gain.toFixed(1) ?? "?"} pts vs −${HIT_COST} hit`}>
+                        {paybackLabel}
+                      </Est>
+                    ) : (
+                      <span className="text-flare">{paybackLabel}</span>
+                    )}
+                    {price?.rankSwing != null && (
+                      <span
+                        className={cn(
+                          "mt-0.5 block w-fit text-2xs",
+                          price.rankSwing >= 0 ? "text-surge" : "text-flare",
+                        )}
+                      >
+                        <Est method="net horizon points × ranks-per-point at your season total">
+                          {`${price.rankSwing >= 0 ? "+" : "−"}${Math.abs(price.rankSwing).toLocaleString("en-GB")} ranks`}
+                        </Est>
+                      </span>
                     )}
                   </td>
                   <td className="px-2 py-1.5 text-right">
@@ -327,6 +364,13 @@ export function BoardDesk({
             <tr>
               <td colSpan={2} className="px-2 pt-2 text-2xs uppercase-label text-ink-lo">
                 {state.moves.length} staged · {hits} hit{hits === 1 ? "" : "s"}
+                {verdict.netRankSwing != null && (
+                  <span className="ml-2 normal-case">
+                    <Est method="sum of net horizon points × ranks-per-point at your season total">
+                      {`${verdict.netPoints >= 0 ? "+" : "−"}${Math.abs(verdict.netPoints).toFixed(1)} pts · ${verdict.netRankSwing >= 0 ? "+" : "−"}${Math.abs(verdict.netRankSwing).toLocaleString("en-GB")} ranks`}
+                    </Est>
+                  </span>
+                )}
               </td>
               <td colSpan={2} className={cn("px-2 pt-2 text-right fig-num text-sm", hitTotal > 0 ? "text-flare" : "text-surge")}>
                 −{hitTotal}
