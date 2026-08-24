@@ -145,3 +145,23 @@ export const newsItem = pgTable(
   },
   (t) => [unique("news_url_hash").on(t.urlHash), index("news_published").on(t.publishedAt)],
 );
+
+/**
+ * Entry directory — the managers Gaffer has actually seen (league pages,
+ * cohort sweeps, confirmations). Powers gate name search: team name or
+ * manager name → entry id. Grows as the app is used; never fabricated.
+ */
+export const entryDirectory = pgTable(
+  "entry_directory",
+  {
+    entry: integer("entry").primaryKey(),
+    teamName: varchar("team_name", { length: 160 }).notNull(),
+    managerName: varchar("manager_name", { length: 160 }).notNull().default(""),
+    /** Overall rank when last seen — better matches sort first. */
+    rank: integer("rank"),
+    /** Where the row came from: league page, cohort sweep, or a confirmation. */
+    source: varchar("source", { length: 12 }).notNull(),
+    seenAt: timestamp("seen_at").defaultNow().notNull(),
+  },
+  (t) => [index("entry_dir_team").on(t.teamName), index("entry_dir_manager").on(t.managerName)],
+);

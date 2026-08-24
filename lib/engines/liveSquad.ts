@@ -33,6 +33,7 @@ function liteStats(stats: Live["elements"][number]["stats"]): LiveStatsLite {
     redCards: stats.red_cards,
     xg: stats.expected_goals,
     xa: stats.expected_assists,
+    xgc: stats.expected_goals_conceded,
   };
 }
 

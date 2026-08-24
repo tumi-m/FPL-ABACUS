@@ -76,6 +76,18 @@ test.describe("team ID gate flow", () => {
     await page.getByRole("button", { name: "Close" }).click();
     await expect(page.getByRole("dialog")).toBeHidden();
   });
+
+  test("gate name search toggles team/manager and degrades honestly", async ({ page }) => {
+    await page.goto("/");
+    const toggle = page.getByRole("group", { name: "Name search mode" });
+    await expect(toggle).toBeVisible();
+    await toggle.getByRole("button", { name: "Manager name" }).click();
+    await expect(toggle.getByRole("button", { name: "Manager name" })).toHaveAttribute("aria-pressed", "true");
+    await page.getByLabel("Your FPL team ID").fill("Some FC");
+    await page.getByRole("button", { name: "Go" }).click();
+    // no directory in the test environment — the honest fallback message
+    await expect(page.getByText("Name search needs the Gaffer directory")).toBeVisible();
+  });
 });
 
 test.describe("authenticated routes", () => {

@@ -35,6 +35,8 @@ export interface LiveStatsLite {
   redCards: number;
   xg: number;
   xa: number;
+  /** Live expected goals conceded — the real number for the GW in play. */
+  xgc: number;
 }
 
 export interface LivePlayer {

@@ -24,7 +24,8 @@ function player(id: number, pos: Pos, minutes: number, fixturesFinished = true):
       yellowCards: 0,
       redCards: 0,
       xg: 0,
-      xa: 0, cards: 0 },
+      xa: 0,
+      xgc: 0, cards: 0 },
     },
   ];
 }

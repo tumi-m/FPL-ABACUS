@@ -67,14 +67,48 @@ export async function GET(_req: NextRequest, ctx: Params): Promise<NextResponse>
           throw err;
         }
       }
-      return NextResponse.json(await getEntry(id), { headers: { "Cache-Control": NO_STORE } });
+      const entry = await getEntry(id);
+      // A confirmed look-up is the strongest directory signal (best-effort).
+      try {
+        const { rememberEntries } = await import("@/lib/server/entryDirectory");
+        await rememberEntries(
+          [
+            {
+              entry: id,
+              teamName: entry.name ?? "",
+              managerName: `${entry.player_first_name ?? ""} ${entry.player_last_name ?? ""}`.trim(),
+              rank: entry.summary_overall_rank ?? null,
+            },
+          ],
+          "confirm",
+        );
+      } catch {
+        /* directory is best-effort */
+      }
+      return NextResponse.json(entry, { headers: { "Cache-Control": NO_STORE } });
     }
 
     if (segments[0] === "standings" && segments[1]) {
       const leagueId = Number(segments[1]);
       const page = segments[2] ? Number(segments[2]) : 1;
       if (!Number.isFinite(leagueId)) return NextResponse.json({ error: "bad league" }, { status: 400 });
-      return NextResponse.json(await getStandings(leagueId, page), { headers: { "Cache-Control": NO_STORE } });
+      const res = await getStandings(leagueId, page);
+      // Every league page seen grows the name directory (best-effort).
+      try {
+        const { rememberEntries } = await import("@/lib/server/entryDirectory");
+        await rememberEntries(
+          (res.standings?.results ?? []).map((r) => ({
+            entry: r.entry,
+            teamName: r.entry_name ?? "",
+            managerName: r.player_name ?? "",
+            rank: r.rank ?? null,
+          })),
+          "league",
+        );
+      } catch {
+        /* directory is best-effort — the standings response stands */
+      }
+      return NextResponse.json(res, { headers: { "Cache-Control": NO_STORE } });
     }
 
     if (segments[0] === "element-summary" && segments[1]) {
