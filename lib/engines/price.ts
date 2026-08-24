@@ -72,3 +72,49 @@ export function pressure(
 
   return { net, today, progress, velocityOk, pRise, etaDays };
 }
+
+/** Per-interval net-transfer deltas across the trailing 24h window, oldest
+ *  first — the feed for the PriceGauge velocity sparkline. */
+export function velocitySeries(snapshotsRaw: PriceSnapshot[], now: Date = new Date()): number[] {
+  const cutoff = now.getTime() - 86_400_000;
+  const sorted = [...snapshotsRaw].sort((a, b) => a.capturedAt.getTime() - b.capturedAt.getTime());
+  const window = sorted.filter((s) => s.capturedAt.getTime() >= cutoff);
+  const out: number[] = [];
+  for (let i = 1; i < window.length; i++) out.push(netBetween(window[i - 1], window[i]));
+  return out;
+}
+
+export interface TonightRow {
+  element: number;
+  /** Modelled probability of a rise before the next deadline, 0..1 (0 when
+   *  the player has no stored snapshot history — see covered). */
+  pRise: number;
+  direction: "up" | "down";
+  /** Cumulative net transfers since the last confirmed change. */
+  net: number;
+  /** False when there is not enough snapshot history to run the model. */
+  covered: boolean;
+}
+
+/** Tonight-list ranking: sort by |p(rise)| descending so the players closest
+ *  to a move — in either direction — sit on top. Uncovered candidates stay in
+ *  the list at zero so the UI can show them greyed rather than silently drop. */
+export function rankTonight(
+  candidates: { element: number; snapshots: PriceSnapshot[]; lastChangeAt: Date | null }[],
+): TonightRow[] {
+  return candidates
+    .map(({ element, snapshots, lastChangeAt }) => {
+      if (snapshots.length < 2) {
+        return { element, pRise: 0, direction: "down" as const, net: 0, covered: false };
+      }
+      const p = pressure(snapshots, lastChangeAt);
+      return {
+        element,
+        pRise: p.pRise,
+        direction: p.net >= 0 ? ("up" as const) : ("down" as const),
+        net: p.net,
+        covered: true,
+      };
+    })
+    .sort((a, b) => Math.abs(b.pRise) - Math.abs(a.pRise));
+}

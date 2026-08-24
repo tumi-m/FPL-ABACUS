@@ -9,6 +9,8 @@ import "server-only";
 import { getBootstrapLite, type ElementLite } from "@/lib/fpl/bootstrapLite";
 import { getElementSummary, getEntry, getFixturesAll, getHistory, getPicks, getStandings } from "@/lib/fpl/endpoints";
 import { buildFixtureModel, easiness, projectFixture } from "@/lib/engines/fixtureModel";
+import { pressure, rankTonight, velocitySeries } from "@/lib/engines/price";
+import { loadChangeLedger, loadSnapshots } from "@/lib/server/priceStore";
 import { buildCorrelationWeb, buildWebContext } from "@/lib/server/buildCorrelationWeb";
 import { crowding } from "@/lib/quant/crowding";
 import { wpaPaired } from "@/lib/quant/wpa";
@@ -74,7 +76,7 @@ export async function resolveCard(
     case "exposure-scatter":
       return exposureScatter(ctx);
     case "price-gauge":
-      return priceGauge(params);
+      return priceGauge(params, ctx);
     case "fixture-run":
       return fixtureRun(params, ctx);
     case "defcon-check":
@@ -158,15 +160,9 @@ async function exposureScatter(ctx: ResolveContext): Promise<ResolvedCard | null
   };
 }
 
-async function priceGauge(params: Record<string, unknown>): Promise<ResolvedCard | null> {
-  const boot = await getBootstrapLite();
-  const el =
-    findElement(boot, params.playerName) ??
-    [...Object.values(boot.elements)].sort(
-      (a, b) =>
-        b.transfersInEvent - b.transfersOutEvent - (a.transfersInEvent - a.transfersOutEvent),
-    )[0];
-  if (!el) return null;
+/** Fallback when no stored snapshot history covers the player yet — event net
+ *  transfers only, labelled as an estimate. */
+function estimatedPriceGauge(el: ElementLite): ResolvedCard {
   const net = el.transfersInEvent - el.transfersOutEvent;
   return {
     component: "price-gauge",
@@ -178,7 +174,89 @@ async function priceGauge(params: Record<string, unknown>): Promise<ResolvedCard
       riseProbability: Math.min(0.95, Math.abs(net) / 220_000),
       velocity24h: [net],
     },
-    note: "Velocity history needs more price snapshots.",
+    note: "Stored hourly snapshots have not covered this player yet — gameweek net transfers only.",
+  };
+}
+
+async function priceGauge(
+  params: Record<string, unknown>,
+  ctx: ResolveContext,
+): Promise<ResolvedCard | null> {
+  const boot = await getBootstrapLite();
+  const focus = findElement(boot, params.playerName);
+
+  // Named player → the gauge, grounded in stored snapshot history.
+  if (focus) {
+    const [snaps, ledger] = await Promise.all([loadSnapshots([focus.id]), loadChangeLedger()]);
+    const series = snaps.get(focus.id) ?? [];
+    if (series.length < 2) return estimatedPriceGauge(focus);
+    const p = pressure(series, ledger.lastByElement.get(focus.id)?.at ?? null);
+    const eta =
+      p.etaDays != null
+        ? ` — about ${p.etaDays} day${p.etaDays === 1 ? "" : "s"} to the threshold at today's pace`
+        : "";
+    return {
+      component: "price-gauge",
+      title: "Price watch",
+      prose: `${focus.web_name}: ${p.net >= 0 ? "+" : ""}${Math.round(p.net).toLocaleString("en-GB")} net transfers of stored pressure${eta}.`,
+      props: {
+        playerName: focus.web_name,
+        netTransfers: Math.round(p.net),
+        riseProbability: p.pRise,
+        velocity24h: velocitySeries(series),
+      },
+      note: `From ${series.length} stored hourly snapshots through the rise model.`,
+    };
+  }
+
+  // Unnamed → the Tonight list: squad ranked by |p(move)| (falls back to the
+  // field's most-transferred players when you have no squad in context).
+  let ids = await squadIdsFor(ctx);
+  let scope = "your squad";
+  if (!ids.length) {
+    scope = "the field's most-transferred players";
+    ids = Object.values(boot.elements)
+      .sort(
+        (a, b) =>
+          b.transfersInEvent - b.transfersOutEvent - (a.transfersInEvent - a.transfersOutEvent),
+      )
+      .slice(0, 8)
+      .map((e) => e.id);
+  }
+  const [snapMap, ledger] = await Promise.all([loadSnapshots(ids), loadChangeLedger()]);
+  const rows = rankTonight(
+    ids.flatMap((id) => {
+      const el = boot.elements[id];
+      if (!el) return [];
+      return [
+        {
+          element: id,
+          snapshots: snapMap.get(id) ?? [],
+          lastChangeAt: ledger.lastByElement.get(id)?.at ?? null,
+        },
+      ];
+    }),
+  );
+  if (!rows.some((r) => r.covered)) {
+    const top = boot.elements[ids[0]];
+    return top
+      ? { ...estimatedPriceGauge(top), note: `No stored snapshot history yet. ${estimatedPriceGauge(top).note}` }
+      : null;
+  }
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const today = ledger.byDay.get(todayKey) ?? { rises: [], falls: [] };
+  const topRow = rows[0];
+  return {
+    component: "price-gauge",
+    title: "Tonight",
+    prose: `Closest to a move across ${scope}: ${boot.elements[topRow.element]?.web_name ?? "?"} at ${Math.round(topRow.pRise * 100)}%. Today so far: ${today.rises.length} rise${today.rises.length === 1 ? "" : "s"}, ${today.falls.length} fall${today.falls.length === 1 ? "" : "s"}.`,
+    props: {
+      tonight: rows.slice(0, 6).map((r) => ({ ...r, name: boot.elements[r.element]?.web_name ?? `#${r.element}` })),
+      scope,
+      todayRises: today.rises.length,
+      todayFalls: today.falls.length,
+    },
+    note: "Rise model on stored hourly snapshots; probabilities are estimates.",
   };
 }
 
