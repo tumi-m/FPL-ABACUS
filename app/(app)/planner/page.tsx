@@ -1,6 +1,36 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { TransferPlanner } from "@/components/gaffer/planner/TransferPlanner";
+import { buildPlanner } from "@/lib/server/buildPlanner";
 
-// The Board replaced the planner in Phase E — keep old links alive.
-export default function PlannerPage() {
-  redirect("/board");
+export const dynamic = "force-dynamic";
+export const metadata = {
+  title: "Transfer Planner",
+  description:
+    "Plan your transfers over the next six gameweeks: projected points per player per week, the full player market, the fixture ticker and price watch.",
+};
+
+export default async function PlannerPage() {
+  const store = await cookies();
+  const raw = store.get("gaffer_team")?.value;
+  const teamId = raw && /^\d+$/.test(raw) ? Number(raw) : null;
+  if (!teamId) redirect("/?next=/planner");
+
+  const data = await buildPlanner(teamId);
+  const window = data.gws.length;
+
+  return (
+    <div className="space-y-4">
+      <header>
+        <h1 className="fig-num text-[22px] leading-none">Transfer Planner</h1>
+        <p className="mt-1 max-w-[70ch] text-2xs uppercase-label text-ink-lo">
+          {window > 0
+            ? `GW${data.gws[0].id}–${data.gws[window - 1].id} · projected points, the market, the ticker`
+            : "Projected points, the market, the ticker"}
+        </p>
+      </header>
+
+      <TransferPlanner data={data} />
+    </div>
+  );
 }

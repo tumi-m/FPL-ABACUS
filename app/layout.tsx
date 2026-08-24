@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { brand } from "@/config/brand";
+import { fontClassName } from "@/config/fonts";
 import { Providers } from "@/components/primitives/Providers";
 import "./globals.css";
 
@@ -18,16 +19,12 @@ const themeScript = `(function(){try{var m=localStorage.getItem('gaffer_theme')|
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={fontClassName} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* FLOODLIGHT rev-02 type system: Saira carries every figure (italic, width axis),
-            Barlow carries everything you read. See architecture/GAFFER_STYLE_GUIDE.md §5. */}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Saira:ital,wdth,wght@0,75..125,300..900;1,75..125,400..900&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,600&display=swap"
-        />
+        {/* Player faces and club crests are the heaviest third-party images on
+            every screen — warm the connection while the document parses. */}
+        <link rel="preconnect" href="https://resources.premierleague.com" />
+        <link rel="dns-prefetch" href="https://resources.premierleague.com" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="font-sans">

@@ -2,7 +2,7 @@
 
 FPL analytics app. Next.js 15 App Router, React 19, TS strict, Tailwind v4, drizzle/postgres.js, Vitest + Playwright.
 
-**Current work:** v2 FLOODLIGHT overhaul — resume from `docs/GAFFER_V2_PLAN.md` (phase status + locked decisions live there).
+**Current work:** v9 — resume from `docs/GAFFER_V9_PLAN.md`. The design system is still v2 FLOODLIGHT (`docs/GAFFER_V2_PLAN.md` for the locked decisions).
 
 ## Design system (read before touching any component)
 
@@ -31,3 +31,7 @@ Non-negotiables: zero raw hex outside `globals.css` (sole exception: `config/bra
 - Durable state in Postgres via drizzle (`lib/db/schema.ts`): cohort EO snapshots, price history, GW archives, score distributions.
 - Cron endpoints under `/api/cron/*` guarded by `CRON_SECRET` (Vercel sends it automatically). Frequent schedule runs from GitHub Actions `.github/workflows/prod-cron.yml` using repo secrets `PROD_URL` + `CRON_SECRET` (Hobby plan allows only daily Vercel crons).
 - Team id persists via cookie `gaffer_team`; theme via localStorage + `data-theme`.
+- **One transfer desk.** `/planner` is the only place transfers are staged: rules in `lib/engines/planner.ts` (pure, tested), composition in `lib/server/buildPlanner.ts`, UI in `components/gaffer/planner/*`. Plans persist per team under `gaffer_board_v2_{teamId}` via `lib/engines/boardPlans.ts`. The Board and the Field link to it; neither stages moves itself.
+- Fonts are self-hosted through `next/font` (`config/fonts.ts`) — never add a `<link>` to fonts.googleapis.com.
+- Shell chrome must not await upstream: FPL-backed header fragments live in `components/gaffer/HeaderStatus.tsx` behind Suspense, and every heavy route carries a `loading.tsx`.
+- `FPL_API_BASE` overrides the upstream base URL for local development against a mirror; production leaves it unset.

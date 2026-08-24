@@ -3,22 +3,36 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/gaffer/Wordmark";
-import { LiveBar } from "@/components/gaffer/LiveBar";
 import { AskBar } from "@/components/gaffer/ask/AskBar";
 import { ThemeToggle } from "@/components/primitives/ThemeToggle";
-import type { LiveBarData } from "@/lib/ui/types";
 import { cn } from "@/lib/ui/cn";
 
-// FLOODLIGHT §11 IA — five destinations, all five in the thumb bar.
+// FLOODLIGHT §11 IA — six destinations, all six in the thumb bar.
 const NAV = [
-  { href: "/live", label: "Matchday" },
-  { href: "/field", label: "Field" },
-  { href: "/board", label: "Board" },
-  { href: "/leagues", label: "Leagues" },
-  { href: "/arcade", label: "Arcade" },
+  { href: "/live", label: "Matchday", short: "Live" },
+  { href: "/field", label: "Field", short: "Field" },
+  { href: "/planner", label: "Planner", short: "Plan" },
+  { href: "/board", label: "Board", short: "Board" },
+  { href: "/leagues", label: "Leagues", short: "Mini" },
+  { href: "/arcade", label: "Arcade", short: "Play" },
 ] as const;
 
-export function AppShell({ teamId, teamName, live, children }: { teamId: number | null; teamName: string | null; live?: LiveBarData | null; children?: React.ReactNode }) {
+/**
+ * The shell. `liveSlot` and `statusSlot` arrive as already-rendered server
+ * fragments wrapped in Suspense, so the chrome paints on the first flush and
+ * upstream latency only delays the pills.
+ */
+export function AppShell({
+  teamId,
+  liveSlot,
+  statusSlot,
+  children,
+}: {
+  teamId: number | null;
+  liveSlot?: React.ReactNode;
+  statusSlot?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
@@ -26,9 +40,7 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
     <div className="min-h-dvh">
       <div className="atmos" aria-hidden="true" />
       <div className="relative z-10 flex min-h-dvh flex-col">
-        {live ? (
-          <LiveBar data={live} />
-        ) : null}
+        {liveSlot}
         <header className="sticky top-0 z-40 h-14 bg-surface-0/90 backdrop-blur border-b border-hairline">
           <div className="mx-auto flex h-full max-w-[1360px] items-center gap-4 px-4 md:px-6">
             <Link href="/" className="text-lg shrink-0">
@@ -52,23 +64,7 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
             </nav>
             <div className="ml-auto flex items-center gap-2">
               <AskBar />
-              {teamId != null && (
-                <span className="hidden sm:inline-flex h-8 items-center gap-2 rounded-full card-ring pl-3 pr-3 text-xs text-ink-2">
-                  {teamName ?? `Team ${teamId}`}
-                  {live?.gwPoints != null && (
-                    <span className="inline-flex items-baseline gap-1.5 border-l border-line pl-2">
-                      <span className="fig-num text-sm text-volt" title={`GW${live.gameweek} live score`}>
-                        {live.gwPoints}
-                      </span>
-                      {live.seasonTotal != null && (
-                        <span className="fig-num text-xs text-ink-mid num-tabular" title="Season total">
-                          {live.seasonTotal.toLocaleString("en-GB")}
-                        </span>
-                      )}
-                    </span>
-                  )}
-                </span>
-              )}
+              {teamId != null && statusSlot}
               <ThemeToggle />
             </div>
           </div>
@@ -85,14 +81,15 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
             <Link
               key={item.href}
               href={item.href}
+              aria-label={item.label}
               className={cn(
-                "skewed flex h-11 min-w-[44px] items-center justify-center rounded-md text-xs uppercase-label transition-colors dur-instant",
+                "skewed flex h-11 min-w-[44px] items-center justify-center rounded-md text-2xs uppercase-label transition-colors dur-instant",
                 isActive(item.href)
                   ? "bg-volt font-semibold text-on-accent"
                   : "bg-raised text-ink-mid card-ring hover:text-ink-hi hover:bg-surface-3",
               )}
             >
-              {item.label}
+              <span>{item.short}</span>
             </Link>
           ))}
         </nav>

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
-import { getFixturesAll, getHistory, getPicks } from "@/lib/fpl/endpoints";
+import { getFixturesAll, getPicks } from "@/lib/fpl/endpoints";
 import { HeatGrid } from "@/components/charts/HeatGrid";
 import {
   bucket,
@@ -16,15 +16,7 @@ import {
   type ColourModel,
 } from "@/lib/engines/fixtureModel";
 import type { Pos } from "@/lib/engines/types";
-import { BoardDesk, type DeskCandidate, type DeskSquadRow } from "@/components/gaffer/board/BoardDesk";
-import {
-  buildSolverContext,
-  computeFreeTransfers,
-  computeGwProfiles,
-  fixtureRun,
-  markerMap,
-  rankPrice,
-} from "@/lib/server/buildBoardDesk";
+import { computeGwProfiles } from "@/lib/server/buildBoardDesk";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "The Board" };
@@ -56,29 +48,23 @@ export default async function BoardPage({
   const colourModel: ColourModel =
     params.c === "fdr" || params.c === "odds" ? params.c : "xg";
 
+  // Bootstrap gates the gameweek number, so it goes first; everything after it
+  // is independent and runs as one wave instead of four serial round trips.
   const boot = await getBootstrapLite();
   const currentGw =
     boot.events.find((e) => e.is_current)?.id ??
     Math.max(1, (boot.events.find((e) => e.is_next)?.id ?? 2) - 1);
 
-  let squadIds: number[] = [];
-  const sellPrices = new Map<number, number>();
-  try {
-    const picks = await getPicks(teamId, currentGw, true);
-    squadIds = picks.picks.map((p) => p.element);
-    for (const p of picks.picks) {
-      if (p.selling_price != null) sellPrices.set(p.element, p.selling_price);
-    }
-  } catch {
-    squadIds = [];
-  }
+  const [picksRes, fixturesRes] = await Promise.allSettled([
+    getPicks(teamId, currentGw, true),
+    getFixturesAll(),
+  ]);
 
-  let allFixtures: Awaited<ReturnType<typeof getFixturesAll>> = [];
-  try {
-    allFixtures = await getFixturesAll();
-  } catch {
-    allFixtures = [];
-  }
+  const squadIds: number[] =
+    picksRes.status === "fulfilled" ? picksRes.value.picks.map((p) => p.element) : [];
+
+  const allFixtures: Awaited<ReturnType<typeof getFixturesAll>> =
+    fixturesRes.status === "fulfilled" ? fixturesRes.value : [];
 
   const teamById = new Map(boot.teams.map((t) => [t.id, t]));
   const lastGw = boot.events[boot.events.length - 1]?.id ?? 38;
@@ -165,61 +151,6 @@ export default async function BoardPage({
 
   const gwProfiles = computeGwProfiles(allFixtures, horizonGws.map((g) => g.id));
 
-  // Desk props — staging + chip lane.
-  const squadSet = new Set(squadIds);
-  const shortOf = (tid: number) => boot.teams.find((t) => t.id === tid)?.short_name ?? "?";
-  const runFor = (clubId: number) =>
-    fixtureRun(clubId, allFixtures, horizonGws.map((g) => g.id), shortOf);
-  const solver = buildSolverContext(allFixtures, horizonGws.map((g) => g.id), currentGw);
-  const project = (el: (typeof boot.elements)[number]) =>
-    solver.project({
-      pos: el.element_type,
-      teamId: el.team,
-      epNext: el.ep_next,
-      form: el.form,
-      status: el.status,
-      chanceOfPlaying: el.chance_of_playing_this_round,
-    });
-  const deskSquad: DeskSquadRow[] = workRows.map(({ el }) => ({
-    element: el.id,
-    webName: el.web_name,
-    pos: el.element_type,
-    nowCost: el.now_cost,
-    sellPrice: sellPrices.get(el.id) ?? null,
-    epNext: el.ep_next,
-    photo: el.photo,
-    runLabel: runFor(el.team),
-    horizon: project(el),
-  }));
-  const deskCandidates: DeskCandidate[] = Object.values(boot.elements)
-    .filter((e) => !squadSet.has(e.id))
-    .sort((a, b) => b.total_points - a.total_points)
-    .slice(0, 50)
-    .map((e) => ({
-      id: e.id,
-      webName: e.web_name,
-      pos: e.element_type,
-      nowCost: e.now_cost,
-      epNext: e.ep_next,
-      photo: e.photo,
-      runLabel: runFor(e.team),
-      horizon: project(e),
-    }));
-
-  let bankTenths = 0;
-  let freeTransfers = 1;
-  try {
-    const history = await getHistory(teamId);
-    bankTenths = history.current[history.current.length - 1]?.bank ?? 0;
-    freeTransfers = computeFreeTransfers(history.current, history.chips, currentGw);
-  } catch {
-    bankTenths = 0;
-  }
-  const wallGw = boot.chips.length ? Math.min(...boot.chips.map((ch) => ch.stop_event)) : null;
-  const chipKeys = boot.chips
-    .map((ch) => ({ key: chipKey(ch.name, ch.number), label: chipLabel(ch.name), stopEvent: ch.stop_event }))
-    .sort((a, b) => a.key.localeCompare(b.key));
-
   const qs = (over: { h?: string; c?: string }) => {
     const p = new URLSearchParams({ h: horizonKey, c: colourModel });
     for (const [k, v] of Object.entries(over)) p.set(k, v);
@@ -300,39 +231,24 @@ export default async function BoardPage({
         </ul>
       </section>
 
-      <BoardDesk
-        teamId={teamId}
-        squad={deskSquad}
-        candidates={deskCandidates}
-        gws={horizonGws.map((g) => g.id)}
-        currentGw={currentGw}
-        wallGw={wallGw}
-        chips={chipKeys}
-        bankTenths={bankTenths}
-        freeTransfers={freeTransfers}
-        markers={markerMap(gwProfiles)}
-        ranksPerPoint={await rankPrice(teamId, currentGw)}
-      />
+      {/* Transfers live on the Planner now — one desk, not two. */}
+      <Link
+        href="/planner"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg has-gloss card-lift bg-raised p-4 transition-colors dur-instant hover:bg-surface-3 md:p-5"
+      >
+        <span>
+          <span className="block fig-num text-lg leading-none text-ink-hi">
+            Take a run at the transfers
+          </span>
+          <span className="mt-1 block max-w-[58ch] text-xs leading-relaxed text-ink-mid">
+            The Planner stages moves against this grid: your pitch, the full market ranked by
+            projected points, the chip lane and the price watch.
+          </span>
+        </span>
+        <span className="skewed inline-flex h-11 items-center rounded-md bg-volt px-4 text-2xs uppercase-label text-on-accent">
+          <span>Open the Planner</span>
+        </span>
+      </Link>
     </div>
   );
-}
-
-function chipKey(name: string, number: number): string {
-  if (name === "wildcard") return number === 1 ? "wc1" : "wc2";
-  if (name === "freehit") return "fh";
-  if (name === "bboost") return "bb";
-  return `chip-${number}`;
-}
-
-function chipLabel(name: string): string {
-  switch (name) {
-    case "wildcard":
-      return "Wildcard";
-    case "freehit":
-      return "Free Hit";
-    case "bboost":
-      return "Bench Boost";
-    default:
-      return name;
-  }
 }

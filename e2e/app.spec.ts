@@ -168,16 +168,14 @@ test.describe("authenticated routes", () => {
     await expect(page.getByText(/No picks visible|Entry \d+|You/).first()).toBeVisible({ timeout: 15_000 });
   });
 
-  test("field renders the pitch with the eight mode controls", async ({ page }) => {
+  test("field renders the pitch with the seven mode controls", async ({ page }) => {
     await asTeam(page);
     const res = await page.goto("/field");
     expect(res?.status()).toBe(200);
     await expect(page.getByRole("group", { name: "Field mode" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Ownership" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Planner" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Correlation" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Risk" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Top" })).toBeVisible();
+    for (const label of ["Points", "Ownership", "Swing", "Leverage", "Correlation", "Risk", "Top"]) {
+      await expect(page.getByRole("button", { name: label, exact: true })).toBeVisible();
+    }
   });
 
   test("top performers ranks the market by metric and timeframe", async ({ page }) => {
@@ -247,52 +245,23 @@ test.describe("authenticated routes", () => {
     await expect(page.locator('img[src*="photos/players"]').first()).toBeVisible();
   });
 
-  test("board desk keeps independent plan slots", async ({ page }) => {
+  test("board hands transfers off to the planner", async ({ page }) => {
     await asTeam(page);
     await page.goto("/board");
-    const desk = page.getByRole("region", { name: "Transfer staging and chip lane" });
-    const tabs = desk.getByRole("group", { name: "Plans" });
-    await expect(tabs.getByRole("button", { name: /Plan A/ })).toHaveAttribute("aria-pressed", "true");
-
-    // A second slot starts empty and becomes active.
-    await desk.getByRole("button", { name: "New plan" }).click();
-    await expect(tabs.getByRole("button", { name: /^Plan B/ })).toHaveAttribute("aria-pressed", "true");
-    await expect(desk.getByText(/board is clean/)).toBeVisible();
-
-    // Deleting it returns the desk to Plan A.
-    await desk.getByRole("button", { name: "Delete plan" }).click();
-    await expect(tabs.getByRole("button", { name: /Plan A/ })).toHaveAttribute("aria-pressed", "true");
-    await expect(tabs.getByRole("button", { name: /^Plan B/ })).toBeHidden();
+    const handoff = page.getByRole("link", { name: /Take a run at the transfers/ });
+    await expect(handoff).toBeVisible();
+    await handoff.click();
+    await expect(page).toHaveURL(/\/planner/);
   });
 
-  test("planner stages a move through the guided flow", async ({ page }) => {
+  test("thumb bar carries all six destinations", async ({ page }) => {
     await asTeam(page);
-    await page.goto("/board");
-    const desk = page.getByRole("region", { name: "Transfer staging and chip lane" });
-    // step 1 — tap a midfielder on the squad grid
-    const grid = desk.getByRole("list", { name: "Squad — tap who makes way" });
-    await expect(grid).toBeVisible();
-    await grid.getByRole("button", { name: /MID/ }).first().click();
-    // step 2 — the solver's ranked ins appear; stage the first affordable one
-    const ins = desk.getByRole("list", { name: "Ranked ins for the selected player" });
-    await expect(ins).toBeVisible();
-    const pick = ins.locator("button:not([disabled])").first();
-    if ((await pick.count()) === 0) {
-      // nothing affordable from this OUT — the desk says so honestly
-      await expect(ins.getByText("£ short").first()).toBeVisible();
-      return;
-    }
-    await pick.click();
-    await expect(desk.getByText(/1 staged/)).toBeVisible();
-    await expect(desk.getByText(/This plan over/)).toBeVisible();
-  });
-
-  test("thumb bar carries all five destinations", async ({ page }) => {
-    await asTeam(page);
+    // The thumb bar is the small-screen navigation — it is hidden from lg up.
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/live");
     const bar = page.getByRole("navigation", { name: "Primary mobile" });
     await expect(bar).toBeVisible();
-    for (const label of ["Matchday", "Field", "Board", "Leagues", "Arcade"]) {
+    for (const label of ["Matchday", "Field", "Planner", "Board", "Leagues", "Arcade"]) {
       await expect(bar.getByRole("link", { name: label })).toBeVisible();
     }
   });
@@ -324,10 +293,84 @@ test.describe("authenticated routes", () => {
     await expect(page.locator("h1")).not.toBeEmpty();
   });
 
-  test("planner link now lands on the board", async ({ page }) => {
+  test("planner ranks the market and stages a transfer", async ({ page }) => {
+    await asTeam(page);
+    const res = await page.goto("/planner");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "Transfer Planner" })).toBeVisible();
+
+    // Nothing staged yet: the market is unarmed and says so.
+    const market = page.getByRole("region", { name: "Player market" });
+    await expect(market).toBeVisible();
+    await expect(market.getByText("pick who leaves first")).toBeVisible();
+
+    // Put a midfielder on the block; the market follows his position.
+    const pitch = page.getByRole("group", { name: "Your squad on the pitch" });
+    await pitch.getByRole("button", { name: /Midfielder/ }).first().click();
+    await expect(market.getByRole("button", { name: "MID", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    // Bring in the top legal replacement; the plan reacts.
+    const pick = market.locator("tbody tr button:not([disabled])").first();
+    if ((await pick.count()) === 0) {
+      await expect(market.getByText(/short|Already/).first()).toBeVisible();
+      return;
+    }
+    await pick.click();
+    await expect(page.getByRole("region", { name: "Staged transfers" })).toBeVisible();
+    await expect(page.getByText(/1 transfer staged/i)).toBeVisible();
+
+    // Undo puts the desk back.
+    await page.getByRole("button", { name: /^Undo/ }).first().click();
+    await expect(page.getByText(/No transfers staged|free transfers banked/)).toBeVisible();
+  });
+
+  test("planner market filters by search and price", async ({ page }) => {
     await asTeam(page);
     await page.goto("/planner");
-    await expect(page).toHaveURL(/\/board/);
+    const market = page.getByRole("region", { name: "Player market" });
+    const rows = market.locator("tbody tr");
+    const before = await rows.count();
+    await market.getByPlaceholder("Search a player or club code").fill("zzzznobody");
+    await expect(market.getByText(/Nothing matches those filters/)).toBeVisible();
+    await market.getByPlaceholder("Search a player or club code").fill("");
+    await expect(rows).toHaveCount(before);
+  });
+
+  test("planner ticker ranks clubs by their run", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/planner");
+    await page.getByRole("button", { name: "Fixture ticker" }).click();
+    const ticker = page.getByRole("region", { name: "Fixture ticker" });
+    await expect(ticker).toBeVisible();
+    const totals = ticker.locator("tbody tr td:last-child");
+    const first = Number(await totals.first().innerText());
+    const last = Number(await totals.last().innerText());
+    expect(first).toBeGreaterThanOrEqual(last);
+  });
+
+  test("planner price watch labels its estimates", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/planner");
+    await page.getByRole("button", { name: "Price watch" }).click();
+    const watch = page.getByRole("region", { name: "Price watch" });
+    await expect(watch).toBeVisible();
+    await expect(watch.getByRole("group", { name: "Price direction" })).toBeVisible();
+    await expect(watch.getByText(/every figure is an estimate/)).toBeVisible();
+  });
+
+  test("planner keeps independent plan slots", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/planner");
+    const tabs = page.getByRole("group", { name: "Plans" });
+    await expect(tabs.getByRole("button", { name: /Plan A/ })).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: "New plan" }).click();
+    await expect(tabs.getByRole("button", { name: /^Plan B/ })).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: "Delete plan" }).click();
+    await expect(tabs.getByRole("button", { name: /Plan A/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(tabs.getByRole("button", { name: /^Plan B/ })).toBeHidden();
   });
 
   test("DNA renders the manager report", async ({ page }) => {

@@ -219,8 +219,8 @@
   /* geometry & type */
   --skew:-9deg;
   --unskew:9deg;
-  --f-d:"Saira",system-ui,sans-serif;
-  --f-u:"Barlow",system-ui,sans-serif;
+  --f-d:var(--font-saira),"Saira",system-ui,sans-serif;
+  --f-u:var(--font-barlow),"Barlow",system-ui,sans-serif;
   --r-sm:6px; --r-md:10px; --r-lg:16px; --r-xl:24px;
 
   /* ── legacy aliases consumed app-wide (retired as components migrate) ── */
