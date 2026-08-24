@@ -11,7 +11,7 @@ import { personaById, personaFallback, personaPrompt, scrubFigures, arcadeFacts,
 
 export const maxDuration = 30;
 
-const RATE_LIMIT = 20; // per hour per IP (v2 §9)
+const RATE_LIMIT = 60; // per hour per IP — raised for Ollama Pro cloud capacity
 const RATE_WINDOW_S = 3600;
 
 interface AskBody {
@@ -57,7 +57,8 @@ async function gafferVoice(
         { role: "system", content: personaPrompt(persona, facts) },
         { role: "user", content: q.slice(0, 200) },
       ],
-      { timeoutMs: 5000, maxTokens: 120, temperature: 0.4 },
+      // Ollama Pro cloud headroom — longer leash, fuller voice line.
+      { timeoutMs: 12_000, maxTokens: 220, temperature: 0.5 },
     );
     const cleaned = scrubFigures(raw);
     if (!cleaned) return { persona: persona.id, text: personaFallback(persona) };
@@ -105,7 +106,7 @@ async function modelSelect(q: string): Promise<{ component: string; params: Reco
         { role: "system", content: system },
         { role: "user", content: q.slice(0, 300) },
       ],
-      { json: true, timeoutMs: 4000, temperature: 0 },
+      { json: true, timeoutMs: 8_000, temperature: 0 },
     );
     const parsed = parseJson<{ component?: string; params?: Record<string, unknown> }>(raw);
     if (!parsed || !isValidComponent(parsed.component)) return null;
@@ -225,6 +226,16 @@ export async function POST(req: NextRequest) {
           if (card.props) {
             await send({ type: "card", component: card.component, title: card.title, props: card.props, note: card.note }, 60);
           }
+        }
+        // newsdesk sources grounding the answer — links, never numbers
+        if (card?.sources?.length) {
+          await send(
+            {
+              type: "sources",
+              items: card.sources.map((s) => ({ title: s.title, url: s.url, source: s.source })),
+            },
+            60,
+          );
         }
         await send({ type: "done" });
       } catch (err) {

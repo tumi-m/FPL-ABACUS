@@ -33,8 +33,43 @@ type StreamEvent =
   | { type: "prose"; text: string }
   | { type: "gaffer"; persona: string; text: string }
   | CardEvent
+  | { type: "sources"; items: { title: string; url: string; source: string }[] }
   | { type: "done" }
   | { type: "error"; message: string };
+
+/** Rotating status lines while the gaffer works. */
+const THINKING = [
+  "Reading the fixture board",
+  "Checking the price ticker",
+  "Squinting at the xG tallies",
+  "Warming up the engines",
+  "Consulting the gaffer",
+];
+
+function ThinkingLine() {
+  const [i, setI] = React.useState(0);
+  React.useEffect(() => {
+    const t = window.setInterval(() => setI((v) => (v + 1) % THINKING.length), 1_600);
+    return () => window.clearInterval(t);
+  }, []);
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg bg-surface-1 card-ring px-4 py-3" role="status">
+      <span className="flex items-center gap-1" aria-hidden>
+        {[0, 1, 2].map((d) => (
+          <span
+            key={d}
+            className="h-1.5 w-1.5 animate-bounce rounded-full bg-volt"
+            style={{ animationDelay: `${d * 140}ms` }}
+          />
+        ))}
+      </span>
+      <span className="text-xs text-ink-mid">
+        {THINKING[i]}
+        <span className="animate-pulse">…</span>
+      </span>
+    </div>
+  );
+}
 
 const PROMPTS_BY_SCREEN: Record<string, string[]> = {
   "/live": ["Which event moved my rank most?", "Where am I exposed to the template?"],
@@ -65,6 +100,7 @@ export function AskBar() {
   const [prose, setProse] = React.useState<string[]>([]);
   const [gaffers, setGaffers] = React.useState<GafferLine[]>([]);
   const [cards, setCards] = React.useState<ChartCard[]>([]);
+  const [sources, setSources] = React.useState<{ title: string; url: string; source: string }[]>([]);
   const [personaId, choosePersona] = useGafferPersona();
   const [blipsMuted, setBlipsMuted] = React.useState(true);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -126,6 +162,7 @@ export function AskBar() {
     setProse([]);
     setGaffers([]);
     setCards([]);
+    setSources([]);
     setQ(question);
     try {
       const res = await fetch("/api/ask", {
@@ -158,6 +195,8 @@ export function AskBar() {
           } else if (ev.type === "card") {
             const node = renderCard(ev.component, ev.props);
             if (node) setCards((c) => [...c, { kind: "card", node }]);
+          } else if (ev.type === "sources") {
+            setSources(ev.items);
           } else if (ev.type === "error") {
             setProse((p) => [...p, `Something went wrong: ${ev.message}`]);
           }
@@ -194,7 +233,9 @@ export function AskBar() {
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="sm:max-w-xl">
-          <SheetTitle>Ask the gaffer</SheetTitle>
+          <SheetTitle className="text-center">
+            <span className="fig-num text-lg tracking-[0.35em] text-ink-hi">GAFFER</span>
+          </SheetTitle>
 
           {/* character select — the four arcade gaffers */}
           <div className="mt-3">
@@ -219,14 +260,27 @@ export function AskBar() {
             <button
               type="submit"
               disabled={busy || !q.trim()}
-              className="skewed rounded-sm bg-volt px-4 text-xs uppercase-label text-on-accent disabled:opacity-40"
+              aria-label="Consult Gaffer"
+              className="skewed inline-flex h-10 items-center rounded-md bg-volt px-4 text-xs uppercase-label font-semibold text-on-accent transition-all dur-instant hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <span>{busy ? "…" : "Ask"}</span>
+              {busy ? (
+                <span className="flex items-center gap-1" aria-hidden>
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-on-accent"
+                      style={{ animationDelay: `${i * 140}ms` }}
+                    />
+                  ))}
+                </span>
+              ) : (
+                <span>Consult Gaffer</span>
+              )}
             </button>
           </form>
 
           {/* immersive gaffer — the selected one fills the console, frames flip */}
-          <SelectedGafferHero personaId={personaId} onSummon={() => inputRef.current?.focus()} />
+          <SelectedGafferHero personaId={personaId} busy={busy} onSummon={() => inputRef.current?.focus()} />
 
           <div className="mt-2 flex items-center justify-end">
             <button
@@ -255,6 +309,7 @@ export function AskBar() {
           )}
 
           <div ref={resultsRef} className="mt-4 max-h-[60dvh] space-y-3 overflow-y-auto pr-1">
+            {busy && <ThinkingLine />}
             {gaffers.map((g, i) => (
               <GafferBubble
                 key={`g-${i}`}
@@ -271,10 +326,30 @@ export function AskBar() {
             {cards.map((c, i) => (
               <div key={`c-${i}`}>{c.node}</div>
             ))}
+            {sources.length > 0 && (
+              <div className="rounded-lg bg-surface-1 card-ring p-4">
+                <p className="upper-label text-2xs text-ink-lo">Sources</p>
+                <ul className="mt-2 space-y-1.5">
+                  {sources.map((s) => (
+                    <li key={s.url} className="text-sm">
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline-offset-4 transition-colors dur-instant hover:text-volt hover:underline"
+                      >
+                        {s.title}
+                      </a>{" "}
+                      <span aria-hidden className="text-2xs text-ink-lo">
+                        ↗
+                      </span>{" "}
+                      <span className="text-2xs uppercase-label text-ink-lo">{s.source}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-          <p className="mt-3 text-2xs leading-relaxed text-ink-lo">
-            Numbers come only from Gaffer&apos;s engines and FPL data — never invented.
-          </p>
         </SheetContent>
       </Sheet>
     </>
@@ -288,9 +363,12 @@ export function AskBar() {
  */
 function SelectedGafferHero({
   personaId,
+  busy,
   onSummon,
 }: {
   personaId: PersonaId;
+  /** While the model works the gaffer mumbles — talk frames flip at double speed. */
+  busy?: boolean;
   onSummon: () => void;
 }) {
   const persona = personaById(personaId);
@@ -300,10 +378,10 @@ function SelectedGafferHero({
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const t = window.setInterval(
       () => setFrame((f) => (f + 1) % persona.avatarTalk.length),
-      280,
+      busy ? 140 : 280,
     );
     return () => window.clearInterval(t);
-  }, [persona]);
+  }, [persona, busy]);
 
   const src = persona.avatarTalk[frame % persona.avatarTalk.length] ?? persona.avatarIdle;
 
@@ -312,11 +390,13 @@ function SelectedGafferHero({
       type="button"
       onClick={onSummon}
       aria-label={`${persona.name} — focus the question box`}
-      className="group relative mx-auto mt-5 flex w-full max-w-[560px] flex-col items-center overflow-hidden rounded-xl card-ring transition-transform dur-instant hover:-translate-y-0.5"
+      className="group relative mx-auto mt-5 flex w-full max-w-[560px] flex-col items-center overflow-hidden rounded-xl card-ring transition-all dur-instant hover:-translate-y-0.5"
       style={{
         background:
           "linear-gradient(180deg, color-mix(in oklab, var(--sunk) 88%, transparent), color-mix(in oklab, var(--raised) 65%, transparent))",
-        boxShadow: `inset 0 0 0 1.5px color-mix(in oklab, ${persona.accentVar} 40%, transparent)`,
+        boxShadow: busy
+          ? `inset 0 0 0 1.5px color-mix(in oklab, ${persona.accentVar} 70%, transparent), 0 0 24px 2px color-mix(in oklab, ${persona.accentVar} 35%, transparent)`
+          : `inset 0 0 0 1.5px color-mix(in oklab, ${persona.accentVar} 40%, transparent)`,
       }}
     >
       {/* pitch pad under the boots */}
