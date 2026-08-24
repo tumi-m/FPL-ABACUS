@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 import { Est } from "@/components/gaffer/Est";
+import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
 import { deskVerdict, priceMove } from "@/lib/engines/solverLite";
 import {
   MAX_PLANS,
@@ -23,6 +24,8 @@ export interface DeskSquadRow {
   /** FPL's real selling price (tenths) when exposed; falls back to nowCost. */
   sellPrice: number | null;
   epNext: number | null;
+  /** Headshot code for the PlayerPhoto cascade. */
+  photo?: string;
   /** Next-three fixture run, e.g. "lei(H) mun(A) —". */
   runLabel?: string;
   /** Solver-lite projected xP per horizon GW (blanks zero, doubles stacked). */
@@ -34,6 +37,7 @@ export interface DeskCandidate {
   pos: number;
   nowCost: number;
   epNext: number | null;
+  photo?: string;
   runLabel?: string;
   horizon?: number[];
 }
@@ -167,12 +171,30 @@ export function BoardDesk({
 
   const isPastWall = (gw: number, stopEvent: number) => gw > stopEvent;
 
-  const [outSel, setOutSel] = React.useState<number>(squad[0]?.element ?? 0);
-  const [inSel, setInSel] = React.useState<number>(candidates[0]?.id ?? 0);
+  // Guided staging: tap OUT on the squad grid, tap an IN suggestion — staged.
+  const [outSel, setOutSel] = React.useState<number | null>(null);
+  const outRow = outSel != null ? squadById.get(outSel) : undefined;
 
-  const outRow = squadById.get(outSel);
-  const inRow = candById.get(inSel);
-  const affordable = canAfford(inRow, outRow);
+  // Ranked INs for the selected OUT — the solver is the guide, not a dropdown.
+  const suggestions = React.useMemo(() => {
+    if (!outRow?.horizon) return [];
+    return candidates
+      .filter((c) => c.pos === outRow.pos && c.horizon && !plan.moves.some((m) => m.in === c.id))
+      .map((c) => ({
+        cand: c,
+        gain: priceMove(outRow.horizon!, c.horizon!, { hitCost: 0, ranksPerPoint: null }).gain,
+        affordable: canAfford(c, outRow),
+      }))
+      .sort((a, b) => Number(b.affordable) - Number(a.affordable) || b.gain - a.gain)
+      .slice(0, 8);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outRow, candidates, plan.moves]);
+
+  const stageIn = (inId: number) => {
+    if (outSel == null) return;
+    addMove(outSel, inId);
+    setOutSel(null);
+  };
 
   return (
     <section aria-label="Transfer staging and chip lane" className="space-y-4 rounded-lg has-gloss card-lift bg-raised p-4 md:p-5">
@@ -247,41 +269,144 @@ export function BoardDesk({
         </p>
       </div>
 
-      {/* staging controls */}
-      <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={outSel}
-          onChange={(e) => setOutSel(Number(e.target.value))}
-          aria-label="Player out"
-          className="h-10 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi focus-visible:outline focus-visible:outline-volt"
-        >
-          {squad.map((s) => (
-            <option key={s.element} value={s.element}>
-              OUT · {s.webName} ({POS_LABEL[s.pos]}) £{(s.nowCost / 10).toFixed(1)}{s.runLabel ? ` · ${s.runLabel}` : ""}
-            </option>
-          ))}
-        </select>
-        <select
-          value={inSel}
-          onChange={(e) => setInSel(Number(e.target.value))}
-          aria-label="Player in"
-          className="h-10 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi focus-visible:outline focus-visible:outline-volt"
-        >
-          {candidates.map((c) => (
-            <option key={c.id} value={c.id}>
-              IN · {c.webName} ({POS_LABEL[c.pos]}) £{(c.nowCost / 10).toFixed(1)}{c.runLabel ? ` · ${c.runLabel}` : ""}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          disabled={!affordable}
-          onClick={() => addMove(outSel, inSel)}
-          className="skewed inline-flex h-11 items-center rounded-sm bg-volt px-5 text-xs uppercase-label text-on-accent transition-opacity dur-instant disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <span>{affordable ? "Stage move" : "£ short"}</span>
-        </button>
+      {/* the verdict — what this plan earns, in plain words */}
+      {(plan.moves.length > 0 || hits > 0) && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md bg-sunk card-ring px-4 py-3" aria-label="Plan verdict">
+          <div>
+            <p className="upper-label text-2xs text-ink-lo">This plan over {gws.length} GW</p>
+            <p className="fig-num mt-0.5 text-2xl leading-none text-volt">
+              {verdict.netPoints >= 0 ? "+" : "−"}
+              {Math.abs(verdict.netPoints).toFixed(1)} pts
+            </p>
+          </div>
+          {verdict.netRankSwing != null && (
+            <div>
+              <p className="upper-label text-2xs text-ink-lo">Rank swing</p>
+              <p className={cn("fig-num mt-0.5 text-2xl leading-none", verdict.netRankSwing >= 0 ? "text-surge" : "text-flare")}>
+                {verdict.netRankSwing >= 0 ? "+" : "−"}
+                {Math.abs(verdict.netRankSwing).toLocaleString("en-GB")}
+              </p>
+            </div>
+          )}
+          <div>
+            <p className="upper-label text-2xs text-ink-lo">Cost</p>
+            <p className={cn("fig-num mt-0.5 text-2xl leading-none", hitTotal > 0 ? "text-flare" : "text-ink-hi")}>
+              {hitTotal > 0 ? `−${hitTotal}` : "free"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* step 1 — the squad grid: tap who makes way */}
+      <div>
+        <div className="mb-1.5 flex items-baseline justify-between gap-2">
+          <h3 className="upper-label text-2xs text-ink-lo">
+            {outRow ? `Out: ${outRow.webName} — now pick who comes in` : "1 · Tap who makes way"}
+          </h3>
+          {outRow && (
+            <button
+              type="button"
+              onClick={() => setOutSel(null)}
+              className="text-2xs uppercase-label text-ink-lo transition-colors dur-instant hover:text-ink-hi"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+        <ul aria-label="Squad — tap who makes way" className="grid grid-cols-5 gap-1.5 sm:grid-cols-8">
+          {squad.map((s) => {
+            const selected = outSel === s.element;
+            const staged = plan.moves.some((m) => m.out === s.element);
+            return (
+              <li key={s.element}>
+                <button
+                  type="button"
+                  onClick={() => setOutSel(selected ? null : s.element)}
+                  aria-pressed={selected}
+                  className={cn(
+                    "w-full rounded-md p-1.5 text-center transition-all dur-instant",
+                    selected ? "bg-surface-3" : "bg-sunk card-ring hover:bg-surface-3",
+                  )}
+                  style={selected ? { boxShadow: "inset 0 0 0 1.5px var(--volt), 0 0 14px 1px color-mix(in oklab, var(--volt) 40%, transparent)" } : undefined}
+                >
+                  <span className="mx-auto block h-10 w-10 overflow-hidden rounded-sm bg-surface-2">
+                    {s.photo ? (
+                      <PlayerPhoto photo={s.photo} teamId={s.element} className="h-10 w-10 object-cover object-top" />
+                    ) : (
+                      <span className="grid h-10 w-10 place-items-center text-2xs font-bold text-ink-mid">
+                        {s.webName.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-1 block truncate text-2xs font-semibold text-ink-hi">{s.webName}</span>
+                  <span className="block text-[9px] leading-tight text-ink-lo num-tabular">
+                    {POS_LABEL[s.pos]} £{(s.nowCost / 10).toFixed(1)}
+                    {staged && <span className="text-volt"> ·</span>}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
+
+      {/* step 2 — ranked ins from the solver */}
+      {outRow && (
+        <div>
+          <h3 className="mb-1.5 upper-label text-2xs text-ink-lo">
+            2 · Who comes in — ranked by {gws.length}-GW gain
+          </h3>
+          {suggestions.length === 0 ? (
+            <p className="text-xs text-ink-lo">
+              No {POS_LABEL[outRow.pos]} candidates in the top-50 pool for this move.
+            </p>
+          ) : (
+            <ul aria-label="Ranked ins for the selected player" className="grid gap-1.5 sm:grid-cols-2">
+              {suggestions.map(({ cand, gain, affordable }) => (
+                <li key={cand.id}>
+                  <button
+                    type="button"
+                    disabled={!affordable}
+                    onClick={() => stageIn(cand.id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-md p-2 text-left transition-all dur-instant",
+                      affordable
+                        ? "bg-sunk card-ring hover:bg-surface-3"
+                        : "cursor-not-allowed bg-sunk opacity-45 card-ring",
+                    )}
+                  >
+                    <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-sm bg-surface-2">
+                      {cand.photo ? (
+                        <PlayerPhoto photo={cand.photo} teamId={cand.id} className="h-10 w-10 object-cover object-top" />
+                      ) : (
+                        <span className="grid h-10 w-10 place-items-center text-2xs font-bold text-ink-mid">
+                          {cand.webName.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-ink-hi">{cand.webName}</span>
+                      <span className="block truncate text-2xs text-ink-lo num-tabular">
+                        {POS_LABEL[cand.pos]} · £{(cand.nowCost / 10).toFixed(1)}
+                        {cand.runLabel ? ` · ${cand.runLabel}` : ""}
+                      </span>
+                    </span>
+                    <span className={cn("shrink-0 text-right", affordable ? "" : "text-flare")}>
+                      {affordable ? (
+                        <Est method="solver-lite: projected points over the horizon vs the player out">
+                          {`${gain >= 0 ? "+" : "−"}${Math.abs(gain).toFixed(1)}`}
+                        </Est>
+                      ) : (
+                        <span className="block text-2xs uppercase-label">£ short</span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* the ledger */}
       {state.moves.length === 0 ? (
@@ -364,13 +489,6 @@ export function BoardDesk({
             <tr>
               <td colSpan={2} className="px-2 pt-2 text-2xs uppercase-label text-ink-lo">
                 {state.moves.length} staged · {hits} hit{hits === 1 ? "" : "s"}
-                {verdict.netRankSwing != null && (
-                  <span className="ml-2 normal-case">
-                    <Est method="sum of net horizon points × ranks-per-point at your season total">
-                      {`${verdict.netPoints >= 0 ? "+" : "−"}${Math.abs(verdict.netPoints).toFixed(1)} pts · ${verdict.netRankSwing >= 0 ? "+" : "−"}${Math.abs(verdict.netRankSwing).toLocaleString("en-GB")} ranks`}
-                    </Est>
-                  </span>
-                )}
               </td>
               <td colSpan={2} className={cn("px-2 pt-2 text-right fig-num text-sm", hitTotal > 0 ? "text-flare" : "text-surge")}>
                 −{hitTotal}

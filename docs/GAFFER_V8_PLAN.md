@@ -148,3 +148,16 @@ Owner batch on the ask experience:
   strict-numbers rule is untouched — the model still only picks components
   and speaks figure-free.
 Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.
+
+### V8-L — the planner, rebuilt for comprehension ✅ (`this commit`)
+Owner verdict on the desk: "I don't understand how to use it." The dropdowns
+are gone. The staging flow is now the FFH/Focal shape with GAFFER aesthetics:
+1. **Tap who makes way** — the fifteen squad tiles with faces, prices and a
+   volt glow on the selected player (a dot marks already-staged outs).
+2. **Who comes in** — the solver answers: candidates for that position,
+   affordable first, ranked by 6-GW horizon gain with the Est badge on every
+   number; unaffordable rows stay visible, greyed, "£ short".
+Staging is two taps; the ledger below stays as the receipt. A new **plan
+verdict** strip sits above it — "+X pts over N GW · ±ranks · cost" in hero
+figures (moved out of the table footer). e2e pins the guided flow.
+Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.

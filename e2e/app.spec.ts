@@ -236,6 +236,28 @@ test.describe("authenticated routes", () => {
     await expect(tabs.getByRole("button", { name: /^Plan B/ })).toBeHidden();
   });
 
+  test("planner stages a move through the guided flow", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/board");
+    const desk = page.getByRole("region", { name: "Transfer staging and chip lane" });
+    // step 1 — tap a midfielder on the squad grid
+    const grid = desk.getByRole("list", { name: "Squad — tap who makes way" });
+    await expect(grid).toBeVisible();
+    await grid.getByRole("button", { name: /MID/ }).first().click();
+    // step 2 — the solver's ranked ins appear; stage the first affordable one
+    const ins = desk.getByRole("list", { name: "Ranked ins for the selected player" });
+    await expect(ins).toBeVisible();
+    const pick = ins.locator("button:not([disabled])").first();
+    if ((await pick.count()) === 0) {
+      // nothing affordable from this OUT — the desk says so honestly
+      await expect(ins.getByText("£ short").first()).toBeVisible();
+      return;
+    }
+    await pick.click();
+    await expect(desk.getByText(/1 staged/)).toBeVisible();
+    await expect(desk.getByText(/This plan over/)).toBeVisible();
+  });
+
   test("mobile More button is legible in the thumb bar", async ({ page }) => {
     await asTeam(page);
     await page.goto("/live");
