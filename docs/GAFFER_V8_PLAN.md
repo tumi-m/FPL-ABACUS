@@ -57,3 +57,18 @@ The one open item from `docs/PLANNER_RESEARCH.md` lands:
   Est rank swing, and the footer gains the plan-level "+X pts · ±Y ranks"
   verdict. All estimates wrapped in `<Est>` with method text.
 Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.
+
+### V8-G — 4K trophy hero + gate buttons with real boundaries ✅ (`this commit`)
+Owner notes: landing looked bare, the trophy shot was missing, and the
+controls under the gate were barely tappable on mobile.
+- The owner's 4K trophy render (`docs/error renders/R9zgMiC8QT2J5P8tS7QFf6.jpg`,
+  5455×3068) is the hero backdrop now — full-bleed under the wordmark and
+  gate, legibility washes fading into the floodlight ramp at both ends
+  (`public/images/trophy-4k.jpg`, next/image priority). e2e pins the img.
+- Everything under the gate becomes a real button in the top-chrome recipe
+  (`skewed h-11 bg-raised card-ring`): "Where do I find my ID?" (was a bare
+  underlined text link), the recent-team chips (h-8 → h-11, forget target
+  with after-expanded hit area), and the club carousel — arrows h-9 → h-11,
+  the crest select gets a permanent card-ring boundary (was boundary-less
+  until selected) at min-h-44px.
+Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.

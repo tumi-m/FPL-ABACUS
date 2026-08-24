@@ -16,12 +16,39 @@ export default async function Landing({
       className="min-h-dvh"
       style={{ background: "linear-gradient(180deg,var(--landing-a),var(--landing-b) 46%,var(--landing-c))" }}
     >
-      {/* floodlit hero — wordmark over the gate, no photo */}
-      <section className="relative flex flex-col items-center justify-center px-4 pb-6 pt-[14dvh] text-center md:pt-[16dvh]">
-        <Wordmark className="text-4xl drop-shadow-[0_4px_18px_rgba(0,0,0,.55)] md:text-6xl" />
-        <p className="sr-only">Enter your FPL team ID to continue</p>
-        <div className="mt-8 flex w-full justify-center">
-          <TeamIdGate next={target} />
+      {/* floodlit hero — the 4K trophy under the wordmark and gate */}
+      <section className="relative flex flex-col items-center justify-center overflow-hidden px-4 pb-6 pt-[14dvh] text-center md:pt-[16dvh]">
+        <div aria-hidden className="absolute inset-0">
+          <Image
+            src="/images/trophy-4k.jpg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+          {/* legibility washes — the ramp shows through at both ends */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, var(--landing-a) 0%, color-mix(in oklab, var(--landing-a) 55%, transparent) 22%, transparent 46%, transparent 64%, var(--landing-b) 100%)",
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(120% 90% at 50% 34%, transparent 38%, color-mix(in oklab, var(--landing-b) 78%, transparent) 100%)",
+            }}
+          />
+        </div>
+        <div className="relative z-10 flex w-full flex-col items-center">
+          <Wordmark className="text-4xl drop-shadow-[0_4px_18px_rgba(0,0,0,.55)] md:text-6xl" />
+          <p className="sr-only">Enter your FPL team ID to continue</p>
+          <div className="mt-8 flex w-full justify-center">
+            <TeamIdGate next={target} />
+          </div>
         </div>
       </section>
 

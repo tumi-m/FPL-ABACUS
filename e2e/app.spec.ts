@@ -15,6 +15,7 @@ test("landing renders the gate, the gaffer lineup and ball imagery", async ({ pa
   await expect(page).toHaveTitle(/Gaffer/);
   await expect(page.getByLabel("Your FPL team ID")).toBeVisible();
   await expect(page.getByRole("radio", { name: /kofi/i })).toBeVisible();
+  await expect(page.locator("img[src*='trophy']").first()).toBeVisible();
   await expect(page.locator("img[src*='ball']").first()).toBeVisible();
 });
 
