@@ -24,7 +24,8 @@ test.describe("team ID gate flow", () => {
     await page.goto("/");
     await page.getByLabel("Your FPL team ID").fill("99999999");
     await page.getByRole("button", { name: "Go" }).click();
-    await expect(page.getByRole("alert")).toBeVisible();
+    // scoped past the route announcer, which also carries role=alert
+    await expect(page.getByText("No team with that ID")).toBeVisible();
     expect(new URL(page.url()).pathname).toBe("/");
   });
 
