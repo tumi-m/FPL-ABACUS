@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
 import { cn } from "@/lib/ui/cn";
 import { GafferStrip, useGafferPersona } from "@/components/gaffer/ask/GafferStrip";
 import { GafferBubble } from "@/components/gaffer/ask/GafferBubble";
+import { Est } from "@/components/gaffer/Est";
 import { PERSONAS, personaById, type PersonaId } from "@/lib/ai/personas";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { PriceGauge } from "@/components/charts/PriceGauge";
@@ -360,8 +361,63 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
   switch (component) {
     case "exposure-scatter":
       return <EOScatter rows={props.rows as never} />;
-    case "price-gauge":
+    case "price-gauge": {
+      if (Array.isArray(props.tonight)) {
+        const rows = props.tonight as {
+          element: number;
+          name: string;
+          pRise: number;
+          direction: "up" | "down";
+          net: number;
+          covered: boolean;
+        }[];
+        return (
+          <div className="rounded-lg bg-surface-1 card-ring p-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="upper-label text-2xs text-ink-lo">Tonight — pressure watch</div>
+              <div className="text-2xs text-ink-lo num-tabular">
+                {typeof props.todayRises === "number" && typeof props.todayFalls === "number"
+                  ? `today ${props.todayRises}↑ · ${props.todayFalls}↓`
+                  : (props.scope as string) ?? ""}
+              </div>
+            </div>
+            <ul className="mt-2 space-y-1.5">
+              {rows.map((r) => (
+                <li key={r.element} className={cn("flex items-center justify-between gap-3 text-sm", !r.covered && "opacity-50")}>
+                  <span className="text-ink-hi">{r.name}</span>
+                  <span className="flex items-center gap-2">
+                    {r.covered ? (
+                      <span
+                        className={cn(
+                          "fig-num text-xs",
+                          r.direction === "up" ? "text-surge" : "text-flare",
+                        )}
+                      >
+                        {r.direction === "up" ? "↑" : "↓"}{" "}
+                        <Est method="rise model on stored hourly snapshots — an estimate">
+                          {`${Math.round(r.pRise * 100)}%`}
+                        </Est>
+                      </span>
+                    ) : (
+                      <span className="text-2xs text-ink-lo">no history yet</span>
+                    )}
+                    <span className="w-16 text-right fig-num text-xs text-ink-mid">
+                      {(r.net >= 0 ? "+" : "−") +
+                        Math.abs(Math.round(r.net)).toLocaleString("en-GB")}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-2xs leading-relaxed text-ink-lo">
+              Ranked by modelled probability of a price move before the deadline
+              {typeof props.scope === "string" ? ` — ${props.scope}` : ""}.
+            </p>
+          </div>
+        );
+      }
       return <PriceGauge {...(props as React.ComponentProps<typeof PriceGauge>)} />;
+    }
     case "fixture-run":
       return <FixtureSwing {...(props as React.ComponentProps<typeof FixtureSwing>)} />;
     case "defcon-check":
