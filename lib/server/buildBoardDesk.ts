@@ -6,6 +6,10 @@ import "server-only";
  */
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getFixturesAll, getHistory, getPicks } from "@/lib/fpl/endpoints";
+import { buildFixtureModel } from "@/lib/engines/fixtureModel";
+import { availabilityOf, blendBase, projectHorizon } from "@/lib/engines/solverLite";
+import { ranksPerPoint as ranksPerPointAt } from "@/lib/engines/rankModel";
+import { getRankCurveBundle } from "@/lib/server/rankCurveServer";
 import type {
   DeskCandidate,
   DeskSquadRow,
@@ -25,6 +29,8 @@ export interface BoardDeskProps {
   freeTransfers: number;
   /** Blank/double flags per horizon GW — shown inside the chip lane cells. */
   markers?: Record<number, GwMarker>;
+  /** Ranks gained per extra point at the hero's season total (null without a curve). */
+  ranksPerPoint?: number | null;
 }
 
 /** Next-three fixture run label for a club, e.g. "lei(H) mun(A) —" (Board casing: the venue side is uppercase). */
@@ -104,6 +110,66 @@ export function markerMap(profiles: GwProfile[]): Record<number, GwMarker> {
     if (m) markers[p.id] = m;
   }
   return markers;
+}
+
+/**
+ * Shared solver-lite context — one fixture-model pass feeding per-player
+ * horizon projections for every squad row and candidate. Doubles stack,
+ * blanks are zero.
+ */
+export function buildSolverContext(
+  fixtures: Awaited<ReturnType<typeof getFixturesAll>>,
+  gws: number[],
+  upToGw: number,
+): {
+  project: (p: {
+    pos: number;
+    teamId: number;
+    epNext: number | null;
+    form: number;
+    status: string;
+    chanceOfPlaying: number | null;
+  }) => number[];
+} {
+  const model = buildFixtureModel(fixtures, { upToGw });
+  const lookup = new Map<string, { opponentId: number; wasHome: boolean }[]>();
+  const gwSet = new Set(gws);
+  for (const f of fixtures) {
+    if (f.event == null || !gwSet.has(f.event)) continue;
+    const keyH = `${f.team_h}-${f.event}`;
+    const keyA = `${f.team_a}-${f.event}`;
+    lookup.set(keyH, [...(lookup.get(keyH) ?? []), { opponentId: f.team_a, wasHome: true }]);
+    lookup.set(keyA, [...(lookup.get(keyA) ?? []), { opponentId: f.team_h, wasHome: false }]);
+  }
+  return {
+    project: (p) =>
+      projectHorizon(
+        {
+          pos: p.pos,
+          teamId: p.teamId,
+          base: blendBase(p.epNext, p.form),
+          availability: availabilityOf(p.status, p.chanceOfPlaying),
+        },
+        gws,
+        model,
+        (teamId, gw) => lookup.get(`${teamId}-${gw}`) ?? [],
+      ),
+  };
+}
+
+/** Ranks gained per extra point at the hero's season total — null without a curve. */
+export async function rankPrice(teamId: number, currentGw: number): Promise<number | null> {
+  try {
+    const [bundle, history] = await Promise.all([
+      getRankCurveBundle(currentGw),
+      getHistory(teamId),
+    ]);
+    const total = history.current[history.current.length - 1]?.total_points;
+    if (!bundle.curve || total == null) return null;
+    return ranksPerPointAt(bundle.curve, total);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -192,11 +258,30 @@ export async function buildBoardDesk(
 
   // Horizon: current GW + next 5, matching the Field's planning frame.
   const gws = horizonGws.map((g) => g.id);
+  const solver = buildSolverContext(allFixtures, gws, currentGw);
+  const project = (el: { element_type: number; team: number; ep_next: number | null; form: number; status: string; chance_of_playing_this_round: number | null }) =>
+    solver.project({
+      pos: el.element_type,
+      teamId: el.team,
+      epNext: el.ep_next,
+      form: el.form,
+      status: el.status,
+      chanceOfPlaying: el.chance_of_playing_this_round,
+    });
 
   return {
     teamId,
-    squad: deskSquad.map((s) => ({ ...s, runLabel: runFor(squadClubId(s.element, boot)) })),
-    candidates: candidates.map((c) => ({ ...c, runLabel: runFor(squadClubId(c.id, boot)) })),
+    squad: deskSquad
+      .map((s) => ({
+        ...s,
+        runLabel: runFor(squadClubId(s.element, boot)),
+        horizon: project(boot.elements[s.element]!),
+      })),
+    candidates: candidates.map((c) => ({
+      ...c,
+      runLabel: runFor(squadClubId(c.id, boot)),
+      horizon: project(boot.elements[c.id]!),
+    })),
     gws,
     currentGw,
     wallGw,
@@ -206,6 +291,7 @@ export async function buildBoardDesk(
     bankTenths,
     freeTransfers,
     markers,
+    ranksPerPoint: await rankPrice(teamId, currentGw),
   };
 }
 
