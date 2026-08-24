@@ -755,7 +755,7 @@ export function ShirtToken({
       {/* value pill on the shoulder — points count up + wash on poll diffs; done fills, live pulses, pre outlines */}
       <span
         className={cn(
-          "mt-0.5 inline-block min-w-7 skewed rounded-sm px-1 py-px text-2xs font-extrabold num-tabular",
+          "mt-0.5 inline-block min-w-9 skewed rounded-sm px-1.5 py-px text-center text-xs font-extrabold num-tabular",
           done && "bg-surge text-on-accent",
           live && val.tone === "volt" && "bg-volt text-on-accent",
           !done && !live && "bg-overlay text-ink-mid card-ring",

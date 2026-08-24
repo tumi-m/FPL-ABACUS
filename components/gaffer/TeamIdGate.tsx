@@ -419,7 +419,9 @@ function ClubCarousel() {
           className="skewed flex min-h-[44px] min-w-[128px] flex-col items-center gap-1 rounded-md bg-raised card-ring px-3 py-1.5 transition-all dur-instant hover:-translate-y-0.5"
           style={
             selected
-              ? { boxShadow: `inset 0 0 0 1.5px ${club.rail}, var(--lift)` }
+              ? {
+                  boxShadow: `inset 0 0 0 1.5px ${club.rail}, 0 0 14px 1px color-mix(in oklab, ${club.rail} 55%, transparent), var(--lift)`,
+                }
               : undefined
           }
         >

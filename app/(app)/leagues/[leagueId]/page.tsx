@@ -167,7 +167,7 @@ export default async function LeagueDetail({
       <PageHeader
         ariaLabel={`${leagueName} standings`}
         title={leagueName}
-        meta={`GW${currentGw}${memberCount != null && memberCount > 0 ? ` · ${memberCount.toLocaleString("en-GB")} managers` : ""} · showing ${rows.length} · tap a manager to compare`}
+        meta={`GW${currentGw}${memberCount != null && memberCount > 0 ? ` · ${memberCount.toLocaleString("en-GB")} managers` : ""} · tap a manager to compare`}
         action={
           <dl className="flex items-end gap-6 md:gap-8">
             <div>
@@ -257,13 +257,12 @@ export default async function LeagueDetail({
                     ) : (
                       <Link
                         href={`/field?mode=points&compare=${r.entry}`}
-                        title="Compare head-to-head on the Field"
+                        title={`Compare with ${r.player_name || r.entry_name}`}
                         className="transition-colors dur-instant hover:text-volt"
                       >
                         {r.entry_name}
                       </Link>
                     )}
-                    <span className="block text-xs font-normal text-ink-lo">{r.player_name}</span>
                   </TableCell>
                   <TableCell className="text-right text-ink-2 num-tabular">{metricOf(r) ?? "—"}</TableCell>
                   {view === "season" && (
@@ -291,8 +290,8 @@ export default async function LeagueDetail({
         </Table>
       </div>
 
-      {/* centred pagination — appends the next 50 without losing position */}
-      <div className="flex justify-center">
+      {/* centred pagination — appends the next 50; padded clear of the status pill */}
+      <div className="flex justify-center pb-8">
         {rows.length >= PAGE_SIZE && hasNext && view !== "month" ? (
           <Link
             href={viewHref(view, requested + 1)}

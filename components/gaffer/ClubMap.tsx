@@ -68,7 +68,19 @@ export function ClubMap() {
 
         {/* the map — real coastline, crest markers at stadium positions */}
         <div className="relative overflow-hidden rounded-xl card-ring">
-          <div className="absolute inset-0 bg-[linear-gradient(170deg,#0d2c1d,#071c14)]" aria-hidden />
+          {/* arena glow — floodlight wash over turf, like the fifa menus */}
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(95% 70% at 50% 0%, color-mix(in oklab, var(--ultra) 16%, transparent), transparent 55%), radial-gradient(120% 90% at 78% 108%, color-mix(in oklab, var(--surge) 13%, transparent), transparent 60%), radial-gradient(90% 70% at 14% 104%, color-mix(in oklab, var(--volt) 8%, transparent), transparent 62%)",
+            }}
+          />
+          <div
+            className="absolute inset-0 bg-[linear-gradient(170deg,#0d2c1d,#071c14)] opacity-80"
+            aria-hidden
+          />
           <svg
             viewBox="0 -6 100 112"
             preserveAspectRatio="xMidYMid meet"
@@ -95,9 +107,14 @@ export function ClubMap() {
                     className={cn(
                       "grid place-items-center rounded-md p-0.5 transition-all dur-instant",
                       active
-                        ? "scale-110 bg-black/45 shadow-lg"
+                        ? "scale-125 bg-black/45"
                         : "opacity-90 hover:scale-110 hover:bg-black/30 hover:opacity-100",
                     )}
+                    style={
+                      active
+                        ? { boxShadow: `0 0 0 1.5px ${club.rail}, 0 0 18px 2px color-mix(in oklab, ${club.rail} 65%, transparent)` }
+                        : undefined
+                    }
                   >
                     <Image
                       src={crestUrl(club.crestCode)}
@@ -111,7 +128,7 @@ export function ClubMap() {
                       <span
                         aria-hidden
                         className="absolute -bottom-1 h-1 w-6 rounded-full"
-                        style={{ background: club.rail }}
+                        style={{ background: club.rail, boxShadow: `0 0 8px 1px color-mix(in oklab, ${club.rail} 70%, transparent)` }}
                       />
                     )}
                   </button>

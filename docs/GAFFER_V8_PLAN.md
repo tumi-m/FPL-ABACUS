@@ -107,3 +107,22 @@ controls under the gate were barely tappable on mobile.
   the crest select gets a permanent card-ring boundary (was boundary-less
   until selected) at min-h-44px.
 Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.
+
+### V8-J — owner polish pass: landing, map, thumb bar, leagues ✅ (`this commit`)
+- Landing closes on the match ball alone (Kofi action shot retired); trophy
+  hero unchanged.
+- Club map gains the arena glow — ultra/surge/volt radial washes over the
+  turf, FIFA-menu style; a selected club now glows in its own rail colour
+  (ring + halo + lit underline, scale 125) on the map, and the gate carousel
+  pick gets the same halo.
+- Field value pills (EO%, swing ▲▼, leverage) bumped to text-xs and centred —
+  same visual weight as points.
+- Leagues: manager rows show the team name only (player name stays on your
+  row and in compare tooltips), "showing N" dropped from the header meta, and
+  the filter rail collapses to a `Filters` button until asked.
+- Mobile thumb bar rebuilt in the top-chrome recipe — skewed raised pills
+  with card-ring, active tab fills volt (More included); the status pill
+  floats clear of the new padding; the mobile Ask trigger becomes a skewed
+  "Ask ?" pill matching the desktop control. e2e updated for the new
+  computed colours.
+Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.

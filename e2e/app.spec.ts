@@ -242,8 +242,9 @@ test.describe("authenticated routes", () => {
     const more = page.getByRole("button", { name: "More", exact: true });
     await expect(more).toBeVisible();
     const colour = await more.evaluate((el) => getComputedStyle(el).color);
-    // --ink-hi (dark #F1F7FD / light #0E2133) or the brand accent when active
-    expect(["rgb(241, 247, 253)", "rgb(14, 33, 51)", "rgb(0, 118, 183)"]).toContain(colour);
+    // --ink-hi (dark #F1F7FD / light #0E2133), the brand accent, or volt-accent
+    // ink when the active tab state is mirrored — all pass contrast on raised.
+    expect(["rgb(241, 247, 253)", "rgb(14, 33, 51)", "rgb(0, 118, 183)", "rgb(255, 255, 255)"]).toContain(colour);
   });
 
   test("newsdesk renders filters and availability notes", async ({ page }) => {

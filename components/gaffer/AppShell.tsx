@@ -82,12 +82,12 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
           </div>
         </header>
 
-        <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 md:px-6 py-8 pb-24 lg:pb-12">{children}</main>
+        <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 md:px-6 py-8 pb-28 lg:pb-12">{children}</main>
 
         <nav
           aria-label="Primary mobile"
-          className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface-1/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
-          style={{ gridTemplateColumns: `repeat(${TABS.length + 1}, minmax(0, 1fr))`, display: "grid" }}
+          className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface-0/90 px-2 pt-2 backdrop-blur pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
+          style={{ gridTemplateColumns: `repeat(${TABS.length + 1}, minmax(0, 1fr))`, display: "grid", gap: 6 }}
         >
           {TABS.map((t) => {
             const item = NAV.find((n) => n.href === `/${t}`)!;
@@ -96,10 +96,10 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
                 key={t}
                 href={item.href}
                 className={cn(
-                  "flex h-14 min-w-[44px] flex-col items-center justify-center gap-0.5 text-2xs transition-colors dur-instant",
+                  "skewed flex h-11 min-w-[44px] items-center justify-center rounded-md text-xs uppercase-label transition-colors dur-instant",
                   isActive(item.href)
-                    ? "text-brand font-semibold [box-shadow:inset_0_2px_0_var(--volt)]"
-                    : "text-ink-mid hover:text-ink-hi",
+                    ? "bg-volt font-semibold text-on-accent"
+                    : "bg-raised text-ink-mid card-ring hover:text-ink-hi hover:bg-surface-3",
                 )}
               >
                 {item.label}
@@ -112,10 +112,10 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
               aria-haspopup="dialog"
               aria-expanded={moreOpen}
               className={cn(
-                "flex h-14 min-w-[44px] flex-col items-center justify-center gap-0.5 text-2xs transition-colors dur-instant",
+                "skewed flex h-11 min-w-[44px] items-center justify-center rounded-md text-xs uppercase-label transition-colors dur-instant",
                 MORE.some((m) => isActive(m.href))
-                  ? "text-brand font-semibold [box-shadow:inset_0_2px_0_var(--volt)]"
-                  : "text-ink-hi",
+                  ? "bg-volt font-semibold text-on-accent"
+                  : "bg-raised text-ink-hi card-ring hover:bg-surface-3",
               )}
             >
               More
