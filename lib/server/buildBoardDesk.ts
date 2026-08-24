@@ -224,6 +224,7 @@ export async function buildBoardDesk(
     nowCost: el.now_cost,
     sellPrice: sellPrices.get(el.id) ?? null,
     epNext: el.ep_next,
+    photo: el.photo,
   }));
   const candidates: DeskCandidate[] = Object.values(boot.elements)
     .filter((e) => !squadSet.has(e.id))
@@ -235,6 +236,7 @@ export async function buildBoardDesk(
       pos: e.element_type,
       nowCost: e.now_cost,
       epNext: e.ep_next,
+      photo: e.photo,
     }));
 
   let bankTenths = 0;

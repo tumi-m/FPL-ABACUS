@@ -187,6 +187,7 @@ export default async function BoardPage({
     nowCost: el.now_cost,
     sellPrice: sellPrices.get(el.id) ?? null,
     epNext: el.ep_next,
+    photo: el.photo,
     runLabel: runFor(el.team),
     horizon: project(el),
   }));
@@ -200,6 +201,7 @@ export default async function BoardPage({
       pos: e.element_type,
       nowCost: e.now_cost,
       epNext: e.ep_next,
+      photo: e.photo,
       runLabel: runFor(e.team),
       horizon: project(e),
     }));
