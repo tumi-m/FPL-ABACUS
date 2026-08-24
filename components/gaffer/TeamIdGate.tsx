@@ -282,24 +282,27 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
       <button
         type="button"
         onClick={() => setExplainOpen(true)}
-        className="mt-3 text-xs text-ink-mid underline-offset-4 transition-colors dur-instant hover:text-ink-hi hover:underline"
+        className="skewed mt-4 inline-flex h-11 items-center rounded-md bg-raised card-ring px-4 text-xs uppercase-label text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
       >
-        Where do I find my ID?
+        <span>Where do I find my ID?</span>
       </button>
 
       {!compact && recent.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="text-2xs font-semibold uppercase tracking-wide text-ink-3">Recent</span>
           {recent.map((t) => (
-            <span key={t.id} className="inline-flex h-8 items-center gap-2 rounded-full card-ring pl-3 pr-1.5 text-xs">
-              <button onClick={() => void checkEntry(t.id)} className="text-ink-2 hover:text-ink-1">
+            <span
+              key={t.id}
+              className="skewed inline-flex h-11 items-center gap-1 rounded-md bg-raised card-ring pl-3 pr-1 text-xs"
+            >
+              <button onClick={() => void checkEntry(t.id)} className="text-ink-2 transition-colors dur-instant hover:text-ink-1">
                 {t.name}
                 {t.rank ? <span className="ml-1.5 text-ink-3 num-tabular">{formatCompactRank(t.rank)}</span> : null}
               </button>
               <button
                 aria-label={`Forget ${t.name}`}
                 onClick={() => setRecent(forgetTeam(t.id))}
-                className="grid h-5 w-5 place-items-center rounded-full text-ink-3 hover:bg-surface-3 hover:text-ink-1"
+                className="relative grid h-8 w-8 place-items-center rounded-full text-ink-3 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-1 after:absolute after:inset-x-0 after:-inset-y-2 after:content-['']"
               >
                 <X width={11} height={11} />
               </button>
@@ -404,7 +407,7 @@ function ClubCarousel() {
           type="button"
           onClick={() => setIdx((i) => (i - 1 + clubs.length) % clubs.length)}
           aria-label="Previous club"
-          className="skewed grid h-9 w-9 place-items-center rounded-sm card-ring text-ink-mid transition-colors dur-instant hover:text-ink-hi"
+          className="skewed grid h-11 w-11 place-items-center rounded-md bg-raised card-ring text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
         >
           <span className="text-sm">◀</span>
         </button>
@@ -413,8 +416,12 @@ function ClubCarousel() {
           onClick={() => pick(selected ? null : club.id)}
           aria-pressed={selected}
           aria-label={selected ? `Clear ${club.name} — back to the default look` : `Tint chrome to ${club.name}`}
-          className="flex min-w-[120px] flex-col items-center gap-1 rounded-md px-3 py-1.5 transition-transform dur-instant hover:-translate-y-0.5"
-          style={selected ? { boxShadow: `inset 0 0 0 1.5px ${club.rail}, var(--lift)` } : undefined}
+          className="skewed flex min-h-[44px] min-w-[128px] flex-col items-center gap-1 rounded-md bg-raised card-ring px-3 py-1.5 transition-all dur-instant hover:-translate-y-0.5"
+          style={
+            selected
+              ? { boxShadow: `inset 0 0 0 1.5px ${club.rail}, var(--lift)` }
+              : undefined
+          }
         >
           <CrestTile teamId={club.id} />
           <span className="text-xs font-semibold text-ink-hi">{club.name}</span>
@@ -423,7 +430,7 @@ function ClubCarousel() {
           type="button"
           onClick={() => setIdx((i) => (i + 1) % clubs.length)}
           aria-label="Next club"
-          className="skewed grid h-9 w-9 place-items-center rounded-sm card-ring text-ink-mid transition-colors dur-instant hover:text-ink-hi"
+          className="skewed grid h-11 w-11 place-items-center rounded-md bg-raised card-ring text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
         >
           <span className="text-sm">▶</span>
         </button>
