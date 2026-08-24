@@ -58,7 +58,24 @@ The one open item from `docs/PLANNER_RESEARCH.md` lands:
   verdict. All estimates wrapped in `<Est>` with method text.
 Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.
 
-### V8-G — 4K trophy hero + gate buttons with real boundaries ✅ (`this commit`)
+### V8-H — 2026/27 faces: current-season asset set + cascade ✅ (`this commit`)
+Owner report: Wirtz (and every other new signing) had no face — the CDN path
+was the retired generic set. Probed live: the PL site itself now serves
+`premierleague25/photos/players/110x140/{code}.png` (no p prefix) and new
+signings exist ONLY there; the old `premierleague/photos/players/250x250/
+p{code}.png` still covers pre-2025 players. So:
+- `playerImgSources()` returns the cascade [2025/26 set → legacy set];
+  `PlayerPhoto` (client) walks it onError and falls back to the club crest.
+- ShirtToken, PeekSheet and the player profile render through the cascade.
+- Clubs/crests verified already current (config/clubs.ts crest codes match
+  the live bootstrap 1:1; Coventry/Hull/Sunderland promoted ids present) —
+  transfers like Isak → Liverpool flow from live bootstrap (team 14) and now
+  get his correct face + Liverpool rail. Kits: the app renders CDN crests
+  (season-stable) and club-rail frames, both current.
+Gates: typecheck/lint/vitest 308✓/build/e2e 68✓ (the faces e2e loads the
+new URLs in a real browser).
+
+### V8-G — 4K trophy hero + gate buttons with real boundaries ✅ (`302c2b7`)
 Owner notes: landing looked bare, the trophy shot was missing, and the
 controls under the gate were barely tappable on mobile.
 - The owner's 4K trophy render (`docs/error renders/R9zgMiC8QT2J5P8tS7QFf6.jpg`,

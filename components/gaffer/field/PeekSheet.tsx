@@ -8,7 +8,8 @@ import { Meter } from "@/components/charts/Meter";
 import { Est } from "@/components/gaffer/Est";
 import { X } from "@/components/primitives/icons";
 import { clubOf } from "@/config/clubs";
-import { POSITION_SHORT, formatSignedRank, playerImg } from "@/lib/ui/format";
+import { POSITION_SHORT, formatSignedRank } from "@/lib/ui/format";
+import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 type SwingRow = MatchdayModel["swings"][number];
@@ -44,18 +45,19 @@ export function PeekSheet({
             <div className="flex items-center gap-3">
               {/* player face with club crest badge — profile-style identity block */}
               <span className="relative inline-block shrink-0">
-                {row.photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={playerImg(row.photo)}
-                    alt=""
-                    width={56}
-                    height={56}
-                    className="h-14 w-14 rounded-md bg-surface-2 object-cover object-top card-ring"
-                  />
-                ) : (
-                  <CrestTile teamId={row.teamId} />
-                )}
+                <span className="block h-14 w-14 overflow-hidden rounded-md bg-surface-2 card-ring">
+                  {row.photo ? (
+                    <PlayerPhoto
+                      photo={row.photo}
+                      teamId={row.teamId}
+                      className="h-14 w-14 object-cover object-top"
+                    />
+                  ) : (
+                    <span className="grid h-14 w-14 place-items-center">
+                      <CrestTile teamId={row.teamId} />
+                    </span>
+                  )}
+                </span>
                 <span className="absolute -bottom-1.5 -right-1.5 rounded-sm bg-raised p-[3px] shadow-[0_1px_4px_rgba(0,0,0,.5)]">
                   <CrestTile teamId={row.teamId} />
                 </span>
