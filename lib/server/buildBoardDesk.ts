@@ -1,37 +1,19 @@
 import "server-only";
 
 /**
- * Shared builder for the BoardDesk staging component — used by the Board and
- * by the Field's Planner mode so there is one source of desk truth.
+ * Shared fixture-and-transfer helpers.
+ *
+ * The Board's heat grid and the Planner both need the same three things: what
+ * the calendar looks like over a horizon, what a player projects to score in
+ * it, and how many free transfers you actually have. They live here so the two
+ * screens can never disagree.
  */
-import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
-import { getFixturesAll, getHistory, getPicks } from "@/lib/fpl/endpoints";
+import { getHistory } from "@/lib/fpl/endpoints";
+import type { Fixture } from "@/lib/fpl/schemas";
 import { buildFixtureModel } from "@/lib/engines/fixtureModel";
 import { availabilityOf, blendBase, projectHorizon } from "@/lib/engines/solverLite";
 import { ranksPerPoint as ranksPerPointAt } from "@/lib/engines/rankModel";
 import { getRankCurveBundle } from "@/lib/server/rankCurveServer";
-import type {
-  DeskCandidate,
-  DeskSquadRow,
-  GwMarker,
-} from "@/components/gaffer/board/BoardDesk";
-
-export interface BoardDeskProps {
-  teamId: number;
-  squad: DeskSquadRow[];
-  candidates: DeskCandidate[];
-  gws: number[];
-  currentGw: number;
-  wallGw: number | null;
-  chips: { key: string; label: string; stopEvent: number }[];
-  bankTenths: number;
-  /** Rolling free transfers replayed from entry history (bank cap 5). */
-  freeTransfers: number;
-  /** Blank/double flags per horizon GW — shown inside the chip lane cells. */
-  markers?: Record<number, GwMarker>;
-  /** Ranks gained per extra point at the hero's season total (null without a curve). */
-  ranksPerPoint?: number | null;
-}
 
 /** Next-three fixture run label for a club, e.g. "lei(H) mun(A) —" (Board casing: the venue side is uppercase). */
 export function fixtureRun(
@@ -52,6 +34,11 @@ export function fixtureRun(
     labels.push(`${home ? opp.toLowerCase() : opp.toUpperCase()}${home ? "(H)" : "(A)"}`);
   }
   return labels.join(" ");
+}
+
+export interface GwMarker {
+  kind: "double" | "blank";
+  detail: string;
 }
 
 export interface GwProfile {
@@ -118,7 +105,7 @@ export function markerMap(profiles: GwProfile[]): Record<number, GwMarker> {
  * blanks are zero.
  */
 export function buildSolverContext(
-  fixtures: Awaited<ReturnType<typeof getFixturesAll>>,
+  fixtures: Fixture[],
   gws: number[],
   upToGw: number,
 ): {
@@ -189,134 +176,4 @@ export function computeFreeTransfers(
     ft = reset ? 1 : Math.min(5, Math.max(0, ft - row.event_transfers + 1));
   }
   return ft;
-}
-
-export async function buildBoardDesk(
-  teamId: number,
-  opts: { fixtures?: Awaited<ReturnType<typeof getFixturesAll>> } = {},
-): Promise<BoardDeskProps | null> {
-  const boot = await getBootstrapLite();
-  const currentGw =
-    boot.events.find((e) => e.is_current)?.id ??
-    Math.max(1, (boot.events.find((e) => e.is_next)?.id ?? 2) - 1);
-
-  let squadIds: number[] = [];
-  const sellPrices = new Map<number, number>();
-  try {
-    const picks = await getPicks(teamId, currentGw, true);
-    squadIds = picks.picks.map((p) => p.element);
-    for (const p of picks.picks) {
-      if (p.selling_price != null) sellPrices.set(p.element, p.selling_price);
-    }
-  } catch {
-    return null;
-  }
-
-  const workRows = squadIds
-    .map((id) => boot.elements[id])
-    .filter((el): el is NonNullable<typeof el> => el != null);
-
-  const squadSet = new Set(squadIds);
-  const deskSquad: DeskSquadRow[] = workRows.map((el) => ({
-    element: el.id,
-    webName: el.web_name,
-    pos: el.element_type,
-    nowCost: el.now_cost,
-    sellPrice: sellPrices.get(el.id) ?? null,
-    epNext: el.ep_next,
-    photo: el.photo,
-  }));
-  const candidates: DeskCandidate[] = Object.values(boot.elements)
-    .filter((e) => !squadSet.has(e.id))
-    .sort((a, b) => b.total_points - a.total_points)
-    .slice(0, 50)
-    .map((e) => ({
-      id: e.id,
-      webName: e.web_name,
-      pos: e.element_type,
-      nowCost: e.now_cost,
-      epNext: e.ep_next,
-      photo: e.photo,
-    }));
-
-  let bankTenths = 0;
-  let freeTransfers = 1;
-  try {
-    const history = await getHistory(teamId);
-    bankTenths = history.current[history.current.length - 1]?.bank ?? 0;
-    freeTransfers = computeFreeTransfers(history.current, history.chips, currentGw);
-  } catch {
-    bankTenths = 0;
-  }
-
-  const allFixtures = opts.fixtures ?? (await getFixturesAll().catch(() => []));
-  const horizonGws = boot.events.filter((e) => e.id >= currentGw).slice(0, 6);
-  const horizonIds = horizonGws.map((g) => g.id);
-  const shortOf = (id: number) => boot.teams.find((t) => t.id === id)?.short_name ?? "?";
-  const runFor = (clubId: number) => fixtureRun(clubId, allFixtures, horizonIds, shortOf);
-  const markers = markerMap(computeGwProfiles(allFixtures, horizonIds));
-
-  const wallGw = boot.chips.length ? Math.min(...boot.chips.map((ch) => ch.stop_event)) : null;
-
-  // Horizon: current GW + next 5, matching the Field's planning frame.
-  const gws = horizonGws.map((g) => g.id);
-  const solver = buildSolverContext(allFixtures, gws, currentGw);
-  const project = (el: { element_type: number; team: number; ep_next: number | null; form: number; status: string; chance_of_playing_this_round: number | null }) =>
-    solver.project({
-      pos: el.element_type,
-      teamId: el.team,
-      epNext: el.ep_next,
-      form: el.form,
-      status: el.status,
-      chanceOfPlaying: el.chance_of_playing_this_round,
-    });
-
-  return {
-    teamId,
-    squad: deskSquad
-      .map((s) => ({
-        ...s,
-        runLabel: runFor(squadClubId(s.element, boot)),
-        horizon: project(boot.elements[s.element]!),
-      })),
-    candidates: candidates.map((c) => ({
-      ...c,
-      runLabel: runFor(squadClubId(c.id, boot)),
-      horizon: project(boot.elements[c.id]!),
-    })),
-    gws,
-    currentGw,
-    wallGw,
-    chips: boot.chips
-      .map((ch) => ({ key: chipKey(ch.name, ch.number), label: chipLabel(ch.name), stopEvent: ch.stop_event }))
-      .sort((a, b) => a.key.localeCompare(b.key)),
-    bankTenths,
-    freeTransfers,
-    markers,
-    ranksPerPoint: await rankPrice(teamId, currentGw),
-  };
-}
-
-function squadClubId(elementId: number, boot: Awaited<ReturnType<typeof getBootstrapLite>>): number {
-  return boot.elements[elementId]?.team ?? 0;
-}
-
-function chipKey(name: string, number: number): string {
-  if (name === "wildcard") return number === 1 ? "wc1" : "wc2";
-  if (name === "freehit") return "fh";
-  if (name === "bboost") return "bb";
-  return `chip-${number}`;
-}
-
-function chipLabel(name: string): string {
-  switch (name) {
-    case "wildcard":
-      return "Wildcard";
-    case "freehit":
-      return "Free Hit";
-    case "bboost":
-      return "Bench Boost";
-    default:
-      return name;
-  }
 }

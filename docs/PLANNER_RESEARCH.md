@@ -48,4 +48,25 @@ Grounding for GAFFER's BoardDesk/planner UX. Sources surveyed Aug 2026: OneFPL, 
   where cumulative gain covers the hit, every row and the plan footer carry an
   Est rank swing via ranks-per-point at the hero's season total. `lib/engines/solverLite.ts`.
 
+## Shipped since (the planner rebuild, V9-E)
+
+The desk became a screen. `/planner` now matches the shape the research kept
+pointing at — Fantasy Football Hub's pitch-plus-market layout — with GAFFER's
+own grounding underneath:
+
+- **Pitch and market side by side.** Tap who leaves, tap who arrives; the
+  market narrows to legal replacements and greys the rest with the reason
+  (`£1.5m short`, `Already 3 from ARS`) rather than hiding them.
+- **Per-gameweek projection cells** on every market row, so a run reads as a
+  shape rather than a total. Sort by projection over 1/3/5/6 GW, season points,
+  form, points per £m, ownership or price.
+- **Real selling prices** from the picks endpoint, so the budget is the one FPL
+  would actually give you — not today's list price.
+- **Chain collapse**: re-selling a player you only bought in this plan rewrites
+  that transfer instead of charging a second hit.
+- **Chip lane** with FPL's real per-chip availability window (both halves of
+  the season are separate chips and the lane says so).
+- **Fixture ticker** — twenty clubs against the window, ranked by run.
+- **Price watch** — net-transfer pressure, labelled as the estimate it is.
+
 ## Next candidates (not built)

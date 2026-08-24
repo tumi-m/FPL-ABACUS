@@ -20,8 +20,9 @@ export interface GwContext {
 }
 
 export async function loadGwContext(gw?: number): Promise<GwContext> {
-  const boot = await getBootstrapLite();
-  const status = await getEventStatus();
+  // Bootstrap and event status are independent upstreams — waiting on one
+  // before asking for the other doubled this loader's floor latency.
+  const [boot, status] = await Promise.all([getBootstrapLite(), getEventStatus()]);
   const event =
     boot.events.find((e) => e.id === gw) ??
     boot.events.find((e) => e.is_current) ??

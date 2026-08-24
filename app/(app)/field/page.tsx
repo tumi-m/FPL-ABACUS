@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { FieldClient } from "@/components/gaffer/field/FieldClient";
 import type { TopPerformersData, TopRow } from "@/components/gaffer/field/TopPerformers";
 import { buildMatchday } from "@/lib/server/buildMatchday";
-import { buildBoardDesk } from "@/lib/server/buildBoardDesk";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getLive } from "@/lib/fpl/endpoints";
 import { COPY } from "@/lib/copy/deck";
@@ -42,14 +41,12 @@ export default async function FieldPage({
     );
   }
 
-  // Desk props for Planner mode — built alongside, degrades to null quietly.
-  const desk = gwParam == null ? await buildBoardDesk(teamId).catch(() => null) : null;
 
   // Top performers — GW frame from the live feed (current GW only), season
   // frame from bootstrap totals. Degrades to null quietly.
   const top = await buildTopPerformers(result.model.event.id, gwParam == null).catch(() => null);
 
-  return <FieldClient initialModel={result.model} desk={desk} top={top} />;
+  return <FieldClient initialModel={result.model} top={top} />;
 }
 
 /** The market's form board — all players, both timeframes, no projections. */

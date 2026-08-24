@@ -12,12 +12,30 @@ pnpm dev                     # http://localhost:3000
 
 Enter any FPL team ID on `/`. No auth, no paywall.
 
+## The screens
+
+| Route | What it answers |
+|---|---|
+| `/live` | What is happening to my score and my rank right now |
+| `/field` | Where the points, ownership, swing, leverage and risk sit in my XI |
+| `/planner` | **Who should I bring in** — pitch + full market, projected over six gameweeks, with the chip lane, the fixture ticker and the price watch |
+| `/board` | How kind the fixture run is, per player, over any horizon |
+| `/leagues` | Where I stand and what my rivals own |
+
+The Planner is the only place transfers are staged: rules in
+`lib/engines/planner.ts` (pure, unit-tested), composition in
+`lib/server/buildPlanner.ts`, UI in `components/gaffer/planner/*`. Plans live in
+the browser under `gaffer_board_v2_{teamId}` — nothing is ever written back to
+your real FPL team.
+
 ## Architecture
 
 - **Next.js 15 / React 19 / Tailwind v4**, TypeScript strict.
 - **All FPL traffic server-side** (`lib/fpl/*`) behind a single-flight SWR cache (`lib/cache/*`). One upstream request serves unlimited users; falls back to an in-process store without Redis env vars.
 - **Domain engines are pure functions** in `lib/engines/*` — bonus tie rules, auto-subs projection, EO, rank curve + derivative, swing attribution, leverage, multiverse, paired Monte Carlo, price pressure, DNA. Each has unit tests against recorded live fixtures (`__fixtures__/`, via `pnpm record`).
 - **Charts hand-built in SVG** (`components/charts/*`) on `d3-scale`/`d3-shape` only — no chart library.
+- **Fonts self-hosted** via `next/font` (`config/fonts.ts`); no third-party stylesheet on the critical path.
+- **The shell never awaits upstream**: FPL-backed header fragments stream in behind Suspense (`components/gaffer/HeaderStatus.tsx`) and every heavy route ships a `loading.tsx`, so a slow FPL costs a pill, not the page.
 
 ## Commands
 
@@ -48,3 +66,6 @@ Every estimated number renders with `~` + method tooltip. With Postgres configur
 ## Environment
 
 All optional for local dev: `DATABASE_URL`, `UPSTASH_REDIS_REST_URL/TOKEN`, `CRON_SECRET`, `FPL_USER_AGENT`, `NEXT_PUBLIC_APP_URL`.
+
+`FPL_API_BASE` overrides the upstream base URL — point it at a local mirror to
+develop without hitting the real API. Leave it unset in production.

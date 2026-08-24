@@ -7,7 +7,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
-import { BoardDesk, type DeskCandidate, type DeskSquadRow, type GwMarker } from "@/components/gaffer/board/BoardDesk";
 import { PeekSheet } from "@/components/gaffer/field/PeekSheet";
 import { PositionContribution, Availability, BonusLeaders, CaptainShare } from "@/components/gaffer/field/FieldCharts";
 import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
@@ -21,19 +20,18 @@ import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 const POLL_LIVE_MS = 20_000;
 const POLL_IDLE_MS = 300_000;
 
-type Mode = "points" | "ownership" | "swing" | "leverage" | "planner" | "correlation" | "risk" | "top";
+type Mode = "points" | "ownership" | "swing" | "leverage" | "correlation" | "risk" | "top";
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "points", label: "Points", hint: "Live points per player" },
   { id: "ownership", label: "Ownership", hint: "Effective ownership in the selected cohort — template fades, differentials burn" },
   { id: "swing", label: "Swing", hint: "Ranks gained or lost so far, per player" },
   { id: "leverage", label: "Leverage", hint: "Expected rank swing still available" },
-  { id: "planner", label: "Planner", hint: "Stage transfers and chips against your team" },
   { id: "correlation", label: "Correlation", hint: "Arcs join players whose GW outcomes move together — stacking shrinks your effective bets" },
   { id: "risk", label: "Risk", hint: "Token size is each player's share of your XI's variance" },
   { id: "top", label: "Top", hint: "Top performers — highest xG, xA and fewest expected concessions, this GW or the season" },
 ];
 
-/** Keys 1–7 select the pitch modes (the Planner desk stays click-only). */
+/** Keys 1–7 select the pitch modes. */
 const KEY_MODES: Mode[] = ["points", "ownership", "swing", "leverage", "correlation", "risk", "top"];
 
 interface WebPayload {
@@ -46,19 +44,6 @@ interface WebPayload {
   draws: number;
 }
 
-export interface FieldDeskProps {
-  teamId: number;
-  squad: DeskSquadRow[];
-  candidates: DeskCandidate[];
-  gws: number[];
-  currentGw: number;
-  wallGw: number | null;
-  chips: { key: string; label: string; stopEvent: number }[];
-  bankTenths: number;
-  freeTransfers: number;
-  markers?: Record<number, GwMarker>;
-  ranksPerPoint?: number | null;
-}
 
 type RivalRow = SquadRow;
 interface RivalPayload {
@@ -74,11 +59,9 @@ interface RivalPayload {
 
 export function FieldClient({
   initialModel,
-  desk,
   top,
 }: {
   initialModel: MatchdayModel;
-  desk?: FieldDeskProps | null;
   top?: TopPerformersData | null;
 }) {
   const params = useSearchParams();
@@ -569,40 +552,13 @@ export function FieldClient({
       </section>
       )}
 
-      {/* Planner mode — staging ledger + chip lane, same component as the Board */}
-      {mode === "planner" && (
-        desk ? (
-          <BoardDesk
-            teamId={desk.teamId}
-            squad={desk.squad}
-            candidates={desk.candidates}
-            gws={desk.gws}
-            currentGw={desk.currentGw}
-            wallGw={desk.wallGw}
-            chips={desk.chips}
-            bankTenths={desk.bankTenths}
-            freeTransfers={desk.freeTransfers}
-            markers={desk.markers}
-            ranksPerPoint={desk.ranksPerPoint ?? null}
-          />
-        ) : (
-          <p className="rounded-lg bg-surface-1 card-ring p-6 text-center text-sm text-ink-lo">
-            The planner needs your picks for this gameweek.
-          </p>
-        )
-      )}
-
-      {mode !== "planner" && (
-        <>
-          <EOScatter rows={model.squad} onSelect={(el) => setPeekElement(el)} />
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <PositionContribution rows={model.squad} />
-            <Availability rows={model.squad} />
-            <BonusLeaders rows={model.squad} />
-            <CaptainShare rows={model.squad} />
-          </div>
-        </>
-      )}
+      <EOScatter rows={model.squad} onSelect={(el) => setPeekElement(el)} />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <PositionContribution rows={model.squad} />
+        <Availability rows={model.squad} />
+        <BonusLeaders rows={model.squad} />
+        <CaptainShare rows={model.squad} />
+      </div>
 
       <PeekSheet
         element={peekElement}
@@ -648,9 +604,6 @@ function modeValue(
       if (!lev) return { text: "—", tone: "plain" };
       return { text: `~${(lev.expected / 1000).toFixed(1)}k`, tone: "ultra" };
     }
-    case "planner":
-      // The planner encodes nothing on the pitch — the desk below carries it.
-      return { text: String(row.livePoints), tone: "plain" };
     case "correlation":
       // mean simulated points — the prose carries the honesty wrap above
       return { text: webMean != null ? `~${webMean.toFixed(1)}` : "—", tone: "plain" };

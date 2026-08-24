@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { fplUserAgent } from "@/lib/env";
 
-export const FPL_BASE = "https://fantasy.premierleague.com/api";
+/**
+ * Upstream base. Overridable so a local mirror can stand in for the real API
+ * during development and offline verification; production leaves it unset.
+ */
+export const FPL_BASE = process.env.FPL_API_BASE ?? "https://fantasy.premierleague.com/api";
 
 export class FplHttpError extends Error {
   constructor(

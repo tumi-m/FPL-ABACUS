@@ -31,6 +31,9 @@ export interface ElementLite {
   bps: number;
   transfersInEvent: number;
   transfersOutEvent: number;
+  /** Tenths the price has moved this gameweek and across the season. */
+  costChangeEvent: number;
+  costChangeStart: number;
   /** Season totals for the Top performers board (raw, unrated). */
   xgTotal: number;
   xaTotal: number;
@@ -89,6 +92,8 @@ export const getBootstrapLite = () =>
         bps: el.bps,
         transfersInEvent: el.transfers_in_event,
         transfersOutEvent: el.transfers_out_event,
+        costChangeEvent: el.cost_change_event,
+        costChangeStart: el.cost_change_start,
         xgTotal: el.expected_goals,
         xaTotal: el.expected_assists,
         xgcTotal: el.expected_goals_conceded,

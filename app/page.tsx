@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { brand } from "@/config/brand";
 import { Wordmark } from "@/components/gaffer/Wordmark";
 import { TeamIdGate } from "@/components/gaffer/TeamIdGate";
 import { HeroLineup } from "@/components/gaffer/HeroLineup";
@@ -20,7 +21,7 @@ export default async function Landing({
       <div aria-hidden className="landing-atmos" />
 
       {/* floodlit hero — the 4K trophy under the wordmark and gate */}
-      <section className="relative flex flex-col items-center justify-center overflow-hidden px-4 pb-6 pt-[14dvh] text-center md:pt-[16dvh]">
+      <section className="relative flex flex-col items-center justify-center overflow-hidden px-4 pb-14 pt-[12dvh] text-center md:pb-20 md:pt-[14dvh]">
         <div aria-hidden className="absolute inset-0">
           <Image
             src="/images/trophy-4k.jpg"
@@ -47,15 +48,37 @@ export default async function Landing({
           />
           {/* the menu cuts ride over the photo — softer than the page field */}
           <div aria-hidden className="landing-atmos opacity-70" />
+          {/* and a top wash, so the wordmark reads against the bright trophy */}
+          <div
+            className="absolute inset-x-0 top-0 h-[62%]"
+            style={{
+              background:
+                "linear-gradient(180deg, color-mix(in oklab, var(--landing-b) 72%, transparent) 0%, color-mix(in oklab, var(--landing-b) 46%, transparent) 55%, transparent 100%)",
+            }}
+          />
         </div>
-        <div className="relative z-10 flex w-full flex-col items-center">
-          <Wordmark className="text-4xl drop-shadow-[0_4px_18px_rgba(0,0,0,.55)] md:text-6xl" />
+        {/* One scrim behind the whole copy column: the trophy is bright silver
+            in places, so drop shadows alone cannot carry body text over it. */}
+        <div className="relative z-10 flex w-full max-w-[640px] flex-col items-center rounded-2xl bg-black/45 px-5 py-8 backdrop-blur-[3px] md:px-10 md:py-10">
+          <Wordmark className="text-4xl md:text-6xl" />
+          <p className="mt-3 max-w-[26ch] text-lg font-semibold text-white/95 md:text-xl">
+            {brand.tagline}
+          </p>
+          <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-white/80">
+            {brand.description}
+          </p>
           <p className="sr-only">Enter your FPL team ID to continue</p>
-          <div className="mt-8 flex w-full justify-center">
+          <div className="mt-7 flex w-full justify-center">
             <TeamIdGate next={target} />
           </div>
+          <p className="mt-5 text-2xs uppercase-label text-white/55">
+            Free · no account · read-only, your team is never changed
+          </p>
         </div>
       </section>
+
+      {/* what you actually get — named, not hinted at */}
+      <FeatureBand />
 
       {/* the club map — every crest pinned home, tap to tint */}
       <ClubMap />
@@ -85,5 +108,52 @@ export default async function Landing({
         </div>
       </section>
     </div>
+  );
+}
+
+const FEATURES = [
+  {
+    title: "Transfer Planner",
+    body:
+      "Your pitch and the whole market side by side. Tap who leaves, tap who arrives — the desk prices the move over six gameweeks, counts the hit and refuses anything the rules would.",
+  },
+  {
+    title: "Fixture ticker",
+    body:
+      "Twenty clubs against the run ahead, ranked by how kind it is. Doubles stack, blanks score nothing, and the clubs you already own are marked.",
+  },
+  {
+    title: "Matchday",
+    body:
+      "Live points, provisional bonus and projected autosubs while the games are on — plus what each of them is doing to your rank, not just your score.",
+  },
+  {
+    title: "Price watch",
+    body:
+      "Who is closest to a rise or a fall tonight, read off live transfer traffic and labelled honestly as the estimate it is.",
+  },
+];
+
+function FeatureBand() {
+  return (
+    <section
+      aria-label="What Gaffer does"
+      className="mx-auto max-w-[1100px] px-4 pb-4 pt-10 md:pt-14"
+    >
+      <h2 className="text-center upper-label text-2xs text-white/50">
+        Four screens, one question — what should I do next?
+      </h2>
+      <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {FEATURES.map((f) => (
+          <li
+            key={f.title}
+            className="rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur-[2px]"
+          >
+            <h3 className="fig-num text-base leading-none text-white/95">{f.title}</h3>
+            <p className="mt-2 text-xs leading-relaxed text-white/65">{f.body}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
