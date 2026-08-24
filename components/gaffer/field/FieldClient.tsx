@@ -645,6 +645,12 @@ function modeValue(
   }
 }
 
+/** Compact per-90 figure — ".31" under 1, one decimal above. */
+function fmt90(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return "—";
+  return v < 1 ? v.toFixed(2).replace(/^0/, "") : v.toFixed(1);
+}
+
 /** Player face in a club-rail frame with armband, DEFCON arc and state ring. */
 export function ShirtToken({
   row, mode, swing, lev, webMean, riskShare,
@@ -736,6 +742,16 @@ export function ShirtToken({
 
       <span className="mt-0.5 block truncate text-2xs font-semibold text-ink-hi">{row.webName}</span>
 
+      {/* expectation line — season xG/90 against this fixture's team xGC */}
+      {(row.xg90 != null || row.xgc90 != null) && (
+        <span
+          className="mt-0.5 block whitespace-nowrap text-[9px] leading-none text-ink-lo num-tabular"
+          title="Season xG per 90 · team expected goals conceded (xGC) for this fixture"
+        >
+          xG {fmt90(row.xg90)} · xGC {fmt90(row.xgc90)}
+        </span>
+      )}
+
       {/* value pill on the shoulder — points count up + wash on poll diffs; done fills, live pulses, pre outlines */}
       <span
         className={cn(
@@ -769,8 +785,10 @@ function ComparePitch({
   const rivalBands = [1, 2, 3, 4].map((pos) => rivalStarters.filter((r) => r.pos === pos));
   return (
     <div className="relative space-y-2.5">
-      {/* far half — the rival's XI with real live data (reversed so GK sits far) */}
-      {[...rivalBands].reverse().map((band, i) => (
+      {/* far end — the rival's name over their goal */}
+      <p className="text-center text-2xs uppercase-label text-ultra">{rival.teamName ?? `Entry ${rival.entry}`}</p>
+      {/* far half — the rival's XI with real live data, GK at the top edge */}
+      {rivalBands.map((band, i) => (
         <ul key={`rv${i}`} className="flex flex-wrap items-start justify-center gap-2 opacity-90">
           {band.map((r) => (
             <li key={r.element} className={cn(rivalSet.has(r.element) && "opacity-40 blur-[0.4px]")}>
@@ -779,10 +797,10 @@ function ComparePitch({
           ))}
         </ul>
       ))}
-      {/* halfway line */}
+      {/* halfway line — the two strike forces meet here */}
       <div className="relative my-1 h-px bg-line-hi/60" />
-      {/* near half — you, shared players dimmed to the line */}
-      {rows.map((row, i) => (
+      {/* near half — you, GK at the bottom edge, forwards facing theirs */}
+      {[...rows].reverse().map((row, i) => (
         <ul key={`me${i}`} className="flex flex-wrap items-start justify-center gap-2">
           {row.map((p) => (
             <li key={p.element} className={rivalSet.has(p.element) ? "opacity-40" : ""}>
@@ -791,6 +809,7 @@ function ComparePitch({
           ))}
         </ul>
       ))}
+      <p className="text-center text-2xs uppercase-label text-volt">You</p>
       <p className="pt-1 text-center text-2xs text-ink-lo num-tabular">
         Shared: {[...rivalSet].length} of 15 overlap · auto-subs and provisional bonus included
       </p>

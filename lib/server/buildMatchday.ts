@@ -62,6 +62,7 @@ export async function buildMatchday(entryId: number, gw?: number): Promise<Build
     boot: ctx.boot,
     live: ctx.live,
     fixtures: ctx.fixtures,
+    allFixtures: ctx.allFixtures,
     status: ctx.status,
     phase: ctx.phase,
     addedDays: ctx.addedDays,

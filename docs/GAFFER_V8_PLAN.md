@@ -75,6 +75,24 @@ p{code}.png` still covers pre-2025 players. So:
 Gates: typecheck/lint/vitest 308✓/build/e2e 68✓ (the faces e2e loads the
 new URLs in a real browser).
 
+### V8-I — mirrored compare pitch + per-face xG/xGC ✅ (`this commit`)
+- **Faces, follow-up:** probed Rogers with a real browser — the PL's own
+  site renders `placeholder.png` for him; his 2026/27 headshot is simply not
+  published yet (current set sampled 35/40 players; Rogers is in the stale
+  legacy-only tail). The cascade already prefers the current set on every
+  load, so these self-heal the moment PL publishes. No code change needed.
+- **Compare pitch** is now a real mirrored football layout: rival XI with
+  their GK at the top edge, your XI with your GK at the bottom edge, the two
+  strike forces facing each other across the halfway line, team names on
+  each end (rival in ultra, You in volt). Shared-player dimming kept.
+- **Per-face expectation line**: every pitch token now shows
+  `xG .31 · xGC 1.2` under the name — season shrunk xG/90 plus the team's
+  expected goals conceded for this fixture from the Board's fixture model.
+  `loadGwContext` now carries the season fixture list so the model is built
+  from the full window (same for the rival builder); SquadRow gains
+  `xg90`/`xgc90`, populated in both composition paths.
+Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.
+
 ### V8-G — 4K trophy hero + gate buttons with real boundaries ✅ (`302c2b7`)
 Owner notes: landing looked bare, the trophy shot was missing, and the
 controls under the gate were barely tappable on mobile.
