@@ -27,19 +27,43 @@ export default async function Landing({
       {/* the gaffer lineup — animated, selectable, arms the console */}
       <HeroLineup />
 
-      {/* the match ball — full-bleed broadcast band closing the page */}
-      <section aria-hidden className="relative h-[38dvh] min-h-[260px] md:h-[48dvh]">
-        <Image
-          src="/images/ball.webp"
-          alt=""
-          fill
-          sizes="100vw"
-          className="object-cover object-center"
-        />
+      {/* 4K action art + the match ball — paired broadcast band closing the page */}
+      <section aria-hidden className="relative h-[46dvh] min-h-[320px] overflow-hidden md:h-[54dvh]">
+        <div className="grid h-full md:grid-cols-[62%_38%]">
+          <div className="relative">
+            <Image
+              src="/images/kofi-ball.jpg"
+              alt=""
+              fill
+              sizes="(min-width: 768px) 62vw, 100vw"
+              className="object-cover object-top"
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(90deg, var(--landing-c) 0%, transparent 18%, transparent 78%, var(--landing-c) 100%), linear-gradient(180deg, var(--landing-c) 0%, transparent 22%)" }}
+            />
+          </div>
+          <div className="relative hidden md:block">
+            <Image
+              src="/images/ball.webp"
+              alt=""
+              fill
+              sizes="38vw"
+              className="object-cover object-center"
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(90deg, var(--landing-c) 0%, transparent 30%), linear-gradient(0deg, var(--landing-c) 8%, transparent 40%)" }}
+            />
+          </div>
+        </div>
         <div
-          className="absolute inset-0"
-          style={{ background: "linear-gradient(180deg,var(--landing-c),transparent 34%)" }}
+          className="absolute inset-0 md:hidden"
+          style={{ background: "linear-gradient(180deg, var(--landing-c) 0%, transparent 30%, transparent 60%, var(--landing-c) 96%)" }}
         />
+        <div className="absolute inset-x-0 bottom-5 text-center">
+          <p className="upper-label text-2xs text-white/55">Beat your week. Know why.</p>
+        </div>
       </section>
     </div>
   );
