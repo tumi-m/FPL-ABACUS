@@ -155,7 +155,7 @@ test.describe("authenticated routes", () => {
     await expect(page.getByText(/No picks visible|Entry \d+|You/).first()).toBeVisible({ timeout: 15_000 });
   });
 
-  test("field renders the pitch with the seven mode controls", async ({ page }) => {
+  test("field renders the pitch with the eight mode controls", async ({ page }) => {
     await asTeam(page);
     const res = await page.goto("/field");
     expect(res?.status()).toBe(200);
@@ -164,6 +164,22 @@ test.describe("authenticated routes", () => {
     await expect(page.getByRole("button", { name: "Planner" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Correlation" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Risk" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Top" })).toBeVisible();
+  });
+
+  test("top performers ranks the market by metric and timeframe", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field?mode=top");
+    await expect(page.getByLabel("Top performers board")).toBeVisible();
+    // season frame always has data — flip to it and sort by points
+    const board = page.getByLabel("Top performers board");
+    await board.getByRole("button", { name: "Season" }).click();
+    await board.getByRole("button", { name: "Points", exact: true }).click();
+    const rows = board.getByRole("table").locator("tbody tr");
+    await expect(rows.first()).toBeVisible();
+    const first = Number(await rows.first().locator("td").last().innerText());
+    const last = Number(await rows.last().locator("td").last().innerText());
+    expect(first).toBeGreaterThanOrEqual(last);
   });
 
   test("field correlation and risk modes persist in the URL", async ({ page }) => {
@@ -258,15 +274,14 @@ test.describe("authenticated routes", () => {
     await expect(desk.getByText(/This plan over/)).toBeVisible();
   });
 
-  test("mobile More button is legible in the thumb bar", async ({ page }) => {
+  test("thumb bar carries all five destinations", async ({ page }) => {
     await asTeam(page);
     await page.goto("/live");
-    const more = page.getByRole("button", { name: "More", exact: true });
-    await expect(more).toBeVisible();
-    const colour = await more.evaluate((el) => getComputedStyle(el).color);
-    // --ink-hi (dark #F1F7FD / light #0E2133), the brand accent, or volt-accent
-    // ink when the active tab state is mirrored — all pass contrast on raised.
-    expect(["rgb(241, 247, 253)", "rgb(14, 33, 51)", "rgb(0, 118, 183)", "rgb(255, 255, 255)"]).toContain(colour);
+    const bar = page.getByRole("navigation", { name: "Primary mobile" });
+    await expect(bar).toBeVisible();
+    for (const label of ["Matchday", "Field", "Board", "Leagues", "Arcade"]) {
+      await expect(bar.getByRole("link", { name: label })).toBeVisible();
+    }
   });
 
   test("newsdesk renders filters and availability notes", async ({ page }) => {

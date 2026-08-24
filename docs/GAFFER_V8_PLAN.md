@@ -161,3 +161,18 @@ Staging is two taps; the ledger below stays as the receipt. A new **plan
 verdict** strip sits above it — "+X pts over N GW · ±ranks · cost" in hero
 figures (moved out of the table footer). e2e pins the guided flow.
 Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.
+
+### V8-M — Top performers mode + the More page removed ✅ (`this commit`)
+- **More is gone.** The mobile thumb bar carries all five destinations
+  (Matchday · Field · Board · Leagues · Arcade) as skewed chrome pills; the
+  More sheet and its state are deleted. e2e pins the five links.
+- **Top performers** lands as the Field's eighth mode, right next to Risk:
+  the market's form board replacing the turf — metric tabs xG · xA · xGC ·
+  Points × timeframe tabs GW · Season. GW rows come from the live feed
+  (expected_goals/assists/conceded per player), season rows from bootstrap
+  totals (ElementLite gains xgTotal/xaTotal/xgcTotal); xGC ranks ascending —
+  fewest expected concessions is the achievement for keepers and defenders.
+  Faces via the photo cascade, club code, minutes, top 10; historical GW
+  views disable the live frame honestly. e2e pins the mode, the board and
+  descending order.
+Gates: typecheck/lint/vitest 308✓/build/e2e 72✓.
