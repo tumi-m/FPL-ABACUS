@@ -69,63 +69,73 @@ export function PositionContribution({ rows }: { rows: SquadRow[] }) {
   );
 }
 
-/** The bonus race — top BPS runners in your squad right now. */
-export function BpsLeaders({ rows, limit = 5 }: { rows: SquadRow[]; limit?: number }) {
+/** The bonus board — who's actually on for the 1·2·3, not the BPS noise. */
+export function BonusLeaders({ rows, limit = 5 }: { rows: SquadRow[]; limit?: number }) {
   const W = 560;
   const H = 210;
   const M = { top: 14, right: 48, bottom: 8, left: 96 };
 
   const leaders = [...rows]
-    .filter((r) => r.bps > 0)
-    .sort((a, b) => b.bps - a.bps)
+    .filter((r) => r.bonus > 0 || (r.liveStats?.bps ?? 0) > 0)
+    .sort((a, b) => b.bonus - a.bonus || (b.liveStats?.bps ?? 0) - (a.liveStats?.bps ?? 0))
     .slice(0, limit);
-  const max = Math.max(1, ...leaders.map((r) => r.bps));
+  const anyBonus = leaders.some((r) => r.bonus > 0);
+  const max = Math.max(1, ...leaders.map((r) => r.bonus));
   const rowH = (H - M.top - M.bottom) / Math.max(1, leaders.length);
   const barH = Math.min(22, rowH * 0.6);
 
-  if (leaders.length === 0) {
+  if (leaders.length === 0 || !anyBonus) {
     return (
-      <ChartFrame eyebrow="Bonus race" title="BPS leaders" ariaLabel="Top bonus point system scores in your squad">
-        <p className="py-8 text-center text-sm text-ink-lo">No BPS yet — check back once matches kick off.</p>
+      <ChartFrame eyebrow="Bonus" title="Bonus leaders" ariaLabel="Bonus points in your squad">
+        <p className="py-8 text-center text-sm text-ink-lo">
+          No bonus yet — the 1·2·3 settle from the 20th minute.
+        </p>
       </ChartFrame>
     );
   }
 
   const table = {
-    headers: ["Player", "BPS"],
-    rows: leaders.map((r) => [`${r.webName}${r.isCaptain ? " (C)" : ""}`, r.bps]),
+    headers: ["Player", "Bonus"],
+    rows: leaders.filter((r) => r.bonus > 0).map((r) => [`${r.webName}${r.isCaptain ? " (C)" : ""}`, r.bonus]),
   };
 
   return (
     <ChartFrame
-      eyebrow="Bonus race"
-      title="BPS leaders — your squad"
-      ariaLabel="Top bonus point system scores in your squad"
+      eyebrow="Bonus"
+      title="Bonus leaders — your squad"
+      ariaLabel="Bonus points awarded or projected in your squad"
       table={table}
     >
       <svg role="img" viewBox={`0 0 ${W} ${H}`} className="w-full">
         {leaders.map((r, i) => {
           const y = M.top + i * rowH + (rowH - barH) / 2;
-          const w = ((W - M.left - M.right) * r.bps) / max;
+          const w = ((W - M.left - M.right) * r.bonus) / max;
           return (
             <g key={r.element}>
               <text x={M.left - 10} y={y + barH / 2 + 4} textAnchor="end" fontSize="11" className="fill-(--ink-hi)">
                 {r.webName}
                 {r.isCaptain && <tspan className="fill-(--volt)" fontWeight={800}> C</tspan>}
               </text>
-              <rect x={M.left} y={y} width={Math.max(2, w)} height={barH} rx="3" fill={r.isCaptain ? "var(--volt)" : "var(--series-1)"} opacity={r.isCaptain ? 1 : 0.85} stroke="var(--bg-raised)" strokeWidth="2">
-                <title>{`${r.webName}: ${r.bps} BPS`}</title>
+              <rect
+                x={M.left} y={y} width={Math.max(2, w)} height={barH} rx="3"
+                fill="var(--amber)" opacity={r.bonusOfficial ? 1 : 0.75}
+                stroke="var(--bg-raised)" strokeWidth="2"
+              >
+                <title>{`${r.webName}: ${r.bonus} bonus${r.bonusOfficial ? "" : " (projected)"}`}</title>
               </rect>
               <text
                 x={M.left + Math.max(2, w) + 8} y={y + barH / 2 + 4}
                 fontSize="12" fontWeight="800" className="fill-(--ink-hi)"
                 style={{ fontVariationSettings: '"wdth" 110' }}
               >
-                {r.bps}
+                {r.bonus > 0 ? r.bonus : "—"}
               </text>
             </g>
           );
         })}
+        <text x={M.left} y={H - 2} fontSize="10" className="fill-(--ink-lo)">
+          Ties broken by BPS · dimmer bars are projected until FPL adds official bonus
+        </text>
       </svg>
     </ChartFrame>
   );

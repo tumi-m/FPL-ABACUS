@@ -70,4 +70,47 @@ describe("composeMatchdayModel", () => {
     const size = Buffer.byteLength(JSON.stringify(model));
     expect(size).toBeLessThan(60 * 1024);
   });
+
+  it("bonus carries the actual 1·2·3 — official overrides the projection", async () => {
+    const bootRaw = fx<Bootstrap>("bootstrap.json");
+    const picks = fx<PicksResponse>(`picks-${ENTRY_ID}-gw1.json`);
+    const live = fx<Live>("live-gw1.json");
+    const fixtures = fx<Fixture[]>("fixtures-gw1.json");
+    const status = fx<EventStatus>("event-status.json");
+    const entry = fx<Entry>(`entry-${ENTRY_ID}.json`);
+    const { MemoryStore, setCacheStore } = await import("@/lib/cache/store");
+    setCacheStore(new MemoryStore());
+    const boot = await getBootstrapLite();
+
+    const bundle = {
+      curve: { points: [{ rank: 1, total: 80 }, { rank: 1000, total: 70 }], population: 2 },
+      fieldAvg: 55, fieldSd: 12, sampleSize: 2,
+    };
+    const base = {
+      eventId: bootRaw.events.find((e) => e.is_current)?.id ?? 1,
+      entry, boot, fixtures, status,
+      phase: "live" as const,
+      bundle,
+      rawEvents: [],
+      transfersThisGw: [] as [],
+      previousSnapshot: null,
+    };
+
+    // projection path: strip official bonus, no bonus-added days → the bps
+    // race decides, and the row says so
+    for (const el of live.elements) el.stats.bonus = 0;
+    const projected = composeMatchdayModel({ ...base, picks, live, addedDays: new Set() }).model;
+    const topBps = [...live.elements].sort((a, b) => b.stats.bps - a.stats.bps)[0];
+    const projRow = projected.squad.find((r) => r.element === topBps.id);
+    expect(projRow).toBeDefined();
+    expect(projRow!.bonus).toBeGreaterThan(0);
+    expect(projRow!.bonusOfficial).toBe(false);
+
+    // official path: the feed's bonus wins and is labelled official
+    topBps.stats.bonus = 2;
+    const official = composeMatchdayModel({ ...base, picks, live, addedDays: new Set() }).model;
+    const offRow = official.squad.find((r) => r.element === topBps.id);
+    expect(offRow!.bonus).toBe(2);
+    expect(offRow!.bonusOfficial).toBe(true);
+  });
 });
