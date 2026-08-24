@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Wordmark } from "@/components/gaffer/Wordmark";
 import { TeamIdGate } from "@/components/gaffer/TeamIdGate";
 import { HeroLineup } from "@/components/gaffer/HeroLineup";
+import { ClubMap } from "@/components/gaffer/ClubMap";
 
 export default async function Landing({
   searchParams,
@@ -16,13 +17,16 @@ export default async function Landing({
       style={{ background: "linear-gradient(180deg,var(--landing-a),var(--landing-b) 46%,var(--landing-c))" }}
     >
       {/* floodlit hero — wordmark over the gate, no photo */}
-      <section className="relative flex flex-col items-center justify-center px-4 pb-14 pt-[18dvh] text-center md:pt-[20dvh]">
+      <section className="relative flex flex-col items-center justify-center px-4 pb-6 pt-[14dvh] text-center md:pt-[16dvh]">
         <Wordmark className="text-4xl drop-shadow-[0_4px_18px_rgba(0,0,0,.55)] md:text-6xl" />
         <p className="sr-only">Enter your FPL team ID to continue</p>
         <div className="mt-8 flex w-full justify-center">
           <TeamIdGate next={target} />
         </div>
       </section>
+
+      {/* the club map — every crest pinned home, tap to tint */}
+      <ClubMap />
 
       {/* the gaffer lineup — animated, selectable, arms the console */}
       <HeroLineup />

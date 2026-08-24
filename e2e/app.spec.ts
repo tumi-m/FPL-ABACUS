@@ -44,6 +44,15 @@ test.describe("team ID gate flow", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-club", /./);
   });
 
+  test("the club map pins all twenty crests and tints on tap", async ({ page }) => {
+    await page.goto("/");
+    const map = page.getByLabel("Premier League map");
+    await expect(map).toBeVisible();
+    await expect(map.locator('img[src*="/badges/"]')).toHaveCount(40); // 20 markers + 20 list rows
+    await map.getByRole("button", { name: /Liverpool — tint the app/ }).click();
+    await expect(map.getByText("Liverpool tint on")).toBeVisible();
+  });
+
   test("valid ID confirms, lands on Matchday and persists the session cookie", async ({ page }) => {
     await page.goto("/");
     await page.getByLabel("Your FPL team ID").fill(TEAM_ID);
