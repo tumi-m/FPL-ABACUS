@@ -53,13 +53,13 @@ export function HeroLineup() {
                 title={`${p.name} — ${p.role}. Double-click to ask.`}
                 className={cn(
                   "group relative flex flex-col items-center transition-transform dur-instant",
-                  active ? "scale-[1.06] md:scale-[1.18]" : "hover:-translate-y-1",
+                  !active && "hover:-translate-y-1",
                 )}
               >
                 <span
                   className={cn(
                     "relative block",
-                    active && "after:absolute after:-inset-2 after:-z-10 after:rounded-xl after:bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--volt)_22%,transparent),transparent)]",
+                    active && "after:absolute after:-inset-1.5 after:-z-10 after:rounded-lg after:bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--volt)_26%,transparent),transparent)] after:ring-1 after:ring-volt/50",
                   )}
                 >
                   <Image
@@ -68,7 +68,7 @@ export function HeroLineup() {
                     width={256}
                     height={256}
                     className={cn(
-                      "h-28 w-auto object-contain object-bottom drop-shadow-[0_14px_16px_rgba(0,0,0,.45)] sm:h-36 md:h-48",
+                      "h-28 w-28 object-contain object-bottom drop-shadow-[0_14px_16px_rgba(0,0,0,.45)] sm:h-36 sm:w-36 md:h-44 md:w-44",
                       !active && "opacity-70 saturate-75",
                     )}
                     unoptimized

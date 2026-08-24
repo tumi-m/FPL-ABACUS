@@ -54,14 +54,21 @@ async function main() {
         }
       }
       if (minX > maxX) continue;
-      // Pad slightly and extract, then chroma-clean: snap soft-green fringe to transparent cut is
-      // deliberately avoided (flat square canvases read better for this UI).
+      // Uniform canvas: pad onto 256x320 anchored bottom-centre so every
+      // persona renders the same width/height in tiles and lineup rows.
       const pad = 4;
       const left = Math.max(tx, minX - pad), top = Math.max(ty, Math.max(0, minY - pad));
       const width = Math.min(ex, maxX + pad) - left, height = Math.min(ty + TILE.h, maxY + pad) - top;
       const name = s === 0 ? `${id}-idle.png` : `${id}-talk${s}.png`;
-      const buf = await sharp(SRC).extract({ left, top, width, height })
-        .resize({ width: 256, kernel: "nearest" })
+      const canvas = 256, canvasH = 320;
+      const sprite = await sharp(SRC).extract({ left, top, width, height })
+        .resize({ width: canvas, height: canvasH, fit: "inside", kernel: "nearest" })
+        .png().toBuffer();
+      const meta = await sharp(sprite).metadata();
+      const buf = await sharp({ create: {
+        width: canvas, height: canvasH, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 },
+      } })
+        .composite([{ input: sprite, left: Math.max(0, Math.round((canvas - meta.width) / 2)), top: canvasH - meta.height }])
         .png().toBuffer();
       written.push([name, buf]);
     }
