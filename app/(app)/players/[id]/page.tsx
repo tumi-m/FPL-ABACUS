@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getElementSummary } from "@/lib/fpl/endpoints";
 import { Badge } from "@/components/primitives/Badge";
 import { Meter } from "@/components/charts/Meter";
-import { formatPrice, POSITION_SHORT, playerImg } from "@/lib/ui/format";
+import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
+import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
 import { COPY } from "@/lib/copy/deck";
 import { PageHeader } from "@/components/gaffer/PageHeader";
 import { BackLink } from "@/components/gaffer/BackLink";
@@ -38,7 +38,9 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
         title={el.web_name}
         meta={`${team?.name ?? ""} · ${POSITION_SHORT[el.element_type]} · ${formatPrice(el.now_cost)}`}
         media={
-          <Image src={playerImg(el.photo)} alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-md object-cover bg-surface-3" />
+          <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-md bg-surface-3">
+            <PlayerPhoto photo={el.photo} teamId={el.team} className="h-14 w-14 object-cover object-top" eager />
+          </span>
         }
         action={
           <div className="flex items-center gap-4 text-right num-tabular sm:gap-6">

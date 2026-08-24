@@ -13,7 +13,7 @@ import { PositionContribution, Availability, BpsLeaders, CaptainShare } from "@/
 import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
 import { Est } from "@/components/gaffer/Est";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
-import { playerImg } from "@/lib/ui/format";
+import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
 import { COPY } from "@/lib/copy/deck";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
@@ -709,13 +709,7 @@ export function ShirtToken({
           style={{ background: `linear-gradient(180deg, color-mix(in oklab, ${club.rail} 22%, var(--surface-2)), var(--surface-2))` }}
         />
         {row.photo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={playerImg(row.photo)}
-            alt=""
-            className="relative h-full w-full object-cover object-top"
-            loading="lazy"
-          />
+          <PlayerPhoto photo={row.photo} teamId={row.teamId} className="relative h-full w-full object-cover object-top" />
         ) : (
           <span aria-hidden className="grid h-full w-full place-items-center">
             <CrestTile teamId={row.teamId} />

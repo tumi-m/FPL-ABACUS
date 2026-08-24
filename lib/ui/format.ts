@@ -30,8 +30,22 @@ export function formatDeltaShort(delta: number): string {
 
 export const POSITION_SHORT: Record<number, string> = { 1: "GKP", 2: "DEF", 3: "MID", 4: "FWD" };
 
+/**
+ * Player headshots. The PL site serves the 2025/26 asset set
+ * (premierleague25/photos/players/110x140/{code}.png — no p prefix) and new
+ * signings exist ONLY there; the legacy generic path still has everyone from
+ * earlier seasons and stays as the fallback.
+ */
+export function playerImgSources(photo: string): string[] {
+  const code = photo.replace(/\.(jpg|png)$/i, "");
+  return [
+    `https://resources.premierleague.com/premierleague25/photos/players/110x140/${code}.png`,
+    `https://resources.premierleague.com/premierleague/photos/players/250x250/p${code}.png`,
+  ];
+}
+
 export function playerImg(photo: string): string {
-  return `https://resources.premierleague.com/premierleague/photos/players/250x250/p${photo.replace(".jpg", "")}.png`;
+  return playerImgSources(photo)[0];
 }
 
 export function crest(teamCode: number): string {
