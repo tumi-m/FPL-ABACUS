@@ -126,3 +126,25 @@ Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.
   "Ask ?" pill matching the desktop control. e2e updated for the new
   computed colours.
 Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.
+
+### V8-K — the GAFFER console: voice, thinking, sources ✅ (`this commit`)
+Owner batch on the ask experience:
+- The sheet is titled **GAFFER** (centred, tracked-out wordmark style); the
+  "numbers come only from engines" footnote is gone — the constraint lives in
+  the prompts, not in the user's face.
+- While a question processes, the console thinks: three bouncing volt dots
+  with rotating status lines ("Reading the fixture board…"), the selected
+  gaffer's talk frames flip at double speed and their accent halo brightens;
+  the send button shows the same dots. All of it dies under
+  prefers-reduced-motion via the global kill.
+- Send button reads **Consult Gaffer**.
+- **Sources**: injury/availability and newsdesk answers now end with real
+  links — the resolver attaches up to three matching newsdesk items
+  (element-tagged, relevance-ranked) to the card; the stream emits a
+  `sources` event and the console renders them as an ↗ link list under the
+  answer. No stored item, no link — nothing invented.
+- Model usage raised for the owner's Ollama Pro cloud: voice line now 12s/
+  220 tokens at T=0.5 (was 5s/120), selection 8s, rate limit 20→60/hr. The
+  strict-numbers rule is untouched — the model still only picks components
+  and speaks figure-free.
+Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.

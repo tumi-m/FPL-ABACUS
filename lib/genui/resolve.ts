@@ -38,6 +38,8 @@ export interface ResolvedCard {
   prose: string;
   props: Record<string, unknown> | null;
   note?: string;
+  /** Newsdesk links grounding the card — shown under the answer. */
+  sources?: { title: string; url: string; source: string; publishedAt: string }[];
 }
 
 function findElement(
@@ -452,6 +454,17 @@ async function injuryList(ctx: ResolveContext): Promise<ResolvedCard | null> {
       props: null,
     };
   }
+  const flaggedIds = new Set(flagged.map((e) => e.id));
+  let sources: ResolvedCard["sources"];
+  try {
+    sources = (await recentItems(60))
+      .filter((i) => i.elementIds.some((el) => flaggedIds.has(el)))
+      .sort((a, b) => b.relevance - a.relevance)
+      .slice(0, 3)
+      .map((i) => ({ title: i.title, url: i.url, source: i.source, publishedAt: i.publishedAt.toISOString() }));
+  } catch {
+    sources = undefined;
+  }
   return {
     component: "injury-list",
     title: "Availability desk",
@@ -464,6 +477,7 @@ async function injuryList(ctx: ResolveContext): Promise<ResolvedCard | null> {
         chance: e.chance_of_playing_this_round,
       })),
     },
+    sources,
   };
 }
 
@@ -493,6 +507,12 @@ async function newsSearch(params: Record<string, unknown>, ctx: ResolveContext):
       props: {
         items: scored.map((i) => ({ title: i.title, url: i.url, source: i.source, publishedAt: i.publishedAt })),
       },
+      sources: scored.slice(0, 3).map((i) => ({
+        title: i.title,
+        url: i.url,
+        source: i.source,
+        publishedAt: i.publishedAt.toISOString(),
+      })),
     };
   } catch {
     return null;

@@ -316,7 +316,7 @@ test("arcade gaffer console: select strip, persona voice, sound toggle", async (
   await expect(page.getByRole("button", { name: /KOFI.*focus the question box/ })).toBeVisible();
   // ask — the gaffer bubble speaks (deterministic fallback when no gateway key)
   await page.getByLabel("Your question").fill("should I take a hit?");
-  await page.getByRole("button", { name: "Ask" }).last().click();
+  await page.getByRole("button", { name: "Consult Gaffer" }).click();
   await expect(page.getByText(/KOFI · The Maverick/)).toBeVisible({ timeout: 20_000 });
 });
 
