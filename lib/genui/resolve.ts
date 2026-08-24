@@ -17,7 +17,7 @@ import { wpaPaired } from "@/lib/quant/wpa";
 import { twinStudy } from "@/lib/engines/twinStudy";
 import { db } from "@/lib/db";
 import { cohortEntry, cohortSnapshot } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { hasDb } from "@/lib/env";
 import { trueForm } from "@/lib/quant/estimators";
 import { chipOptionValue } from "@/lib/quant/decision";
@@ -835,6 +835,7 @@ async function twinStudyCard(params: Record<string, unknown>, ctx: ResolveContex
     .where(eq(cohortSnapshot.event, ctx.currentGw))
     .limit(1);
   if (!snapRows.length) return null;
+  // EO rows (matchId 0) plus twins matched to this squad by the 30k top-up.
   const rows = await db()
     .select({
       entry: cohortEntry.entry,
@@ -847,7 +848,12 @@ async function twinStudyCard(params: Record<string, unknown>, ctx: ResolveContex
       arm: cohortEntry.arm,
     })
     .from(cohortEntry)
-    .where(eq(cohortEntry.snapshotId, snapRows[0].id));
+    .where(
+      and(
+        eq(cohortEntry.snapshotId, snapRows[0].id),
+        or(eq(cohortEntry.matchId, 0), eq(cohortEntry.matchId, ctx.teamId)),
+      ),
+    );
   if (!rows.length) return null;
 
   const settled = rows.filter((r) => r.gwPoints != null && r.arm != null) as {

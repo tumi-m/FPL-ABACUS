@@ -40,6 +40,36 @@ Gates: typecheck/lint/vitest 294✓/build/e2e 68✓.
 
 - Manifold (17) Python escape hatch — deferred until scale.
 
+### V9-A — v3-10 second half: the 30k twin cohort extension ✅ (`this commit`)
+The twin study's pairing engine was honest but starved: an EO sample of 2k gives thin
+near-twin pools, so cards greyed out under the n<100 honesty rule. Raising the EO sample
+to 30k would double upstream load for zero EO accuracy — so the cohort builder grows a
+**twin top-up** instead, leaving EO untouched:
+- `cohort_entry.match_id` (migration 0007) — `0` marks the EO sample; top-up rows carry
+  the requesting entry and the composite PK `(snapshot, entry, matchId)` keeps all rows
+  distinct so `onConflictDoNothing` is honest. EO rows remain `cohort_ownership` source;
+  match rows never join aggregates.
+- `buildCohortSnapshot` gains resumable **`twin-pages`/`twin-fetch`** phases after the EO
+  persist. Standings pages carry ids only — overlap is unknowable until a pick fetch — so
+  the sweep collects up to `GAFFER_TWIN_MAX_FETCHES` candidates past the EO set, then the
+  fetch phase confirms ≥13/15 twins for up to `GAFFER_TWIN_MATCHES` seed squads (the
+  squads Gaffer actually serves) and stores them per `(matchId, entry)`, flushing at a
+  3k-row cache cap so the resumable JSON state stays small, and finishing at
+  `GAFFER_TWIN_TOPUP=30k` stored twins. The fresh marker only fires once twins finish;
+  a separate `cohort:twin` marker prevents re-runs. `GAFFER_TWIN_TOPUP=0` disables the
+  whole path.
+- The **settle pass now writes per (entry, matchId) row** — after the composite PK, the
+  same entry can appear as EO row and many twins; one upstream history fetch per entry
+  settles them all.
+- The resolver's twin pool is `matchId = 0 OR matchId = asking entry`, so a squad sees EO
+  rows plus its own matched twins; dedup and the honest ≥13/15 · bank ±£0.5m · FT ±1
+  verdict stay inside the pairing engine.
+- `twinStudy.ts` gains pure `twinLikelyOverlap` + `twinShortlist` helpers for the
+  pre-filter; 3 new tests pin overlap-15, min/cap behaviour and deterministic ordering.
+Gates: typecheck · lint · vitest 313✓ · build · e2e 74✓.
+⚠ migration 0007 needs `pnpm db:migrate` on production before twins persist; until then
+the resolver honestly keeps the card off.
+
 ### V8-F — solver-lite: rank-priced horizon payback ✅ (`this commit`)
 The one open item from `docs/PLANNER_RESEARCH.md` lands:
 - `lib/engines/solverLite.ts` (+14 tests): per-player 6-GW projection from the
