@@ -51,6 +51,33 @@ const MIN_OVERLAP = 13;
 const BANK_BAND_TENTHS = 50; // ±£0.5m
 const FT_BAND = 1;
 
+/**
+ * Cheap pre-filter for the 30k top-up: does this candidate's squad look near
+ * enough to the requesting XI to be worth a live picks fetch? Uses only what
+ * the pages sweep gives us (15 squad ids) — the fetch then confirms bank/FT.
+ */
+export function twinLikelyOverlap(myElements: ReadonlySet<number>, candidate: number[]): number {
+  let overlap = 0;
+  for (const e of candidate) if (myElements.has(e)) overlap++;
+  return overlap;
+}
+
+/** Shortlist candidates ranked by overlap with the requesting squad. */
+export function twinShortlist<T extends { entry: number; elements: number[] }>(
+  myElements: number[],
+  candidates: T[],
+  minOverlap = 10,
+  cap = 240,
+): T[] {
+  const mine = new Set(myElements);
+  return candidates
+    .map((c) => ({ c, overlap: twinLikelyOverlap(mine, c.elements) }))
+    .filter((x) => x.overlap >= minOverlap)
+    .sort((a, b) => b.overlap - a.overlap || a.c.entry - b.c.entry)
+    .slice(0, cap)
+    .map((x) => x.c);
+}
+
 /** One side of the pairing question: near-identical to you at deadline. */
 export function matchesTwin(
   myElements: Set<number>,

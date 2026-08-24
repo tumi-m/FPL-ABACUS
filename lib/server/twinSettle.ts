@@ -59,7 +59,7 @@ export async function settleCohortOutcomes(gw: number): Promise<TwinSettleResult
 
   try {
     const rows = await db()
-      .select({ entry: cohortEntry.entry })
+      .select({ entry: cohortEntry.entry, matchId: cohortEntry.matchId })
       .from(cohortEntry)
       .where(eq(cohortEntry.snapshotId, snapshotId));
     const cursorKey = `gaffer:twin:cursor:${gw}`;
@@ -98,13 +98,22 @@ export async function settleCohortOutcomes(gw: number): Promise<TwinSettleResult
       );
       done += batch.length;
 
-      // persist what we got — one targeted update per settled entry
+      // persist what we got — one outcome per (entry, match) row so the EO
+      // sample and every requesting squad's twin rows get the same settled
+      // verdict, not a single match row.
       for (const s of settled) {
         if (!s || !s.hasData) continue;
-        await db()
-          .update(cohortEntry)
-          .set({ gwPoints: s.gwPoints, captainPoints: s.captainPoints, arm: s.arm })
-          .where(and(eq(cohortEntry.snapshotId, snapshotId), eq(cohortEntry.entry, s.entry)));
+        const pairs = rows.filter((r) => r.entry === s.entry);
+        for (const p of pairs) {
+          await db()
+            .update(cohortEntry)
+            .set({ gwPoints: s.gwPoints, captainPoints: s.captainPoints, arm: s.arm })
+            .where(and(
+              eq(cohortEntry.snapshotId, snapshotId),
+              eq(cohortEntry.entry, s.entry),
+              eq(cohortEntry.matchId, p.matchId),
+            ));
+        }
       }
       await store.set(cursorKey, String(done), 60 * 60 * 24);
       await sleep(120);

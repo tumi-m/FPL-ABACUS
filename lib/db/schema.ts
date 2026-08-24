@@ -59,8 +59,11 @@ export const cohortEntry = pgTable(
     gwPoints: integer("gw_points"),
     captainPoints: integer("captain_points"),
     arm: varchar("arm", { length: 12 }),
+    /** v3-10 30k top-up: the requesting entry this row was matched for.
+     *  0 marks the EO sample; match rows never join the ownership aggregates. */
+    matchId: integer("match_id").default(0).notNull(),
   },
-  (t) => [primaryKey({ columns: [t.snapshotId, t.entry] })],
+  (t) => [primaryKey({ columns: [t.snapshotId, t.entry, t.matchId] })],
 );
 
 export const scoreDistribution = pgTable(

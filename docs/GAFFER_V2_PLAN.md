@@ -64,9 +64,11 @@ shares split across topN as fractions of a pot the app never holds (ledger only)
 Gates: vitest 187✓ / build / typecheck / lint clean.
 
 ## v3 STATUS: engines shipped for Q0, Q1, Q2, Q3, Q5-core, Q6, Q7 — all pure TS, tested.
-**Outstanding v3:** Q4 (10 Twin Study needs the 30k cohort sample extension in Postgres +
-cron; 17 Manifold needs a Python escape hatch) and Q5 extras (18 Crowding index, 19 WPA).
-UI surfaces for quant cards beyond ask-bar wiring are v4 scope (see GAFFER_V4_SCREEN_SPECS.md).
+**Outstanding v3:** v3-17 the Manifold only (needs the Python escape hatch, deferred until
+scale). v3-10's 30k twin cohort extension landed in **V9-A** — see `docs/GAFFER_V8_PLAN.md`:
+`twin-pages`/`twin-fetch` resumable phases top up match-scoped `cohort_entry` rows past the
+2k EO sample, migration 0006; the UI surfaces for quant cards beyond ask-bar wiring remain
+v4 scope (`GAFFER_V4_SCREEN_SPECS.md`).
 
 ---
 

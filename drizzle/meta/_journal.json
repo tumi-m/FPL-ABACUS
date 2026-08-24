@@ -43,6 +43,13 @@
       "when": 1787589544810,
       "tag": "0005_small_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787606483920,
+      "tag": "0007_purple_justin_hammer",
+      "breakpoints": true
     }
   ]
 }
