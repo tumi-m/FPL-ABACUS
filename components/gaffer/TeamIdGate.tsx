@@ -8,11 +8,12 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
 import { X } from "@/components/primitives/icons";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
 import { formatCompactRank } from "@/lib/ui/format";
-import { forgetTeam, getFavClub, getRecentTeams, parseGateInput, rememberTeam, setFavClub, type RecentTeam } from "@/lib/store/team";
+import { forgetTeam, getFavClub, getRecentTeams, parseGateInput, parseNameQuery, rememberTeam, setFavClub, type RecentTeam } from "@/lib/store/team";
+import { cn } from "@/lib/ui/cn";
 import { COPY } from "@/lib/copy/deck";
 import { CLUB } from "@/config/clubs";
 
-type Stage = "form" | "checking" | "confirm" | "league";
+type Stage = "form" | "checking" | "confirm" | "league" | "names";
 
 interface ConfirmInfo {
   id: number;
@@ -30,6 +31,13 @@ interface LeaguePick {
   rank: number;
 }
 
+interface NameHit {
+  entry: number;
+  teamName: string;
+  managerName: string;
+  rank: number | null;
+}
+
 const LEAGUE_HARDCAP = 500_000;
 
 export function TeamIdGate({ compact = false, next = "/live" }: { compact?: boolean; next?: string }) {
@@ -42,6 +50,9 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
   const [leagueFilter, setLeagueFilter] = React.useState("");
   const [explainOpen, setExplainOpen] = React.useState(false);
   const [recent, setRecent] = React.useState<RecentTeam[]>([]);
+  /** Name search mode — team name or manager name. */
+  const [nameMode, setNameMode] = React.useState<"team" | "manager">("team");
+  const [nameHits, setNameHits] = React.useState<NameHit[]>([]);
 
   React.useEffect(() => {
     setRecent(getRecentTeams());
@@ -121,14 +132,45 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
     }
   }
 
+  /** Team-name / manager-name search across the managers Gaffer has seen. */
+  async function searchName(q: string) {
+    setStage("checking");
+    setError(null);
+    try {
+      const res = await fetch(`/api/gaffer/entry-search?q=${encodeURIComponent(q)}&mode=${nameMode}`);
+      const d = (await res.json()) as { ok: boolean; results?: NameHit[] };
+      if (!d.ok || !d.results) {
+        setStage("form");
+        setError("Name search needs the Gaffer directory — paste your team link or your league link instead.");
+        return;
+      }
+      if (d.results.length === 0) {
+        setStage("form");
+        setError(
+          nameMode === "team"
+            ? "No team by that name in the directory yet — paste your team link, or your league link so we can find you."
+            : "No manager by that name in the directory yet — paste your team link, or your league link so we can find you.",
+        );
+        return;
+      }
+      setNameHits(d.results);
+      setStage("names");
+    } catch {
+      setStage("form");
+      setError("Search failed — try again.");
+    }
+  }
+
   function submit(raw: string) {
     const parsed = parseGateInput(raw);
-    if (!parsed) {
-      setError("Enter your team ID — the number on your FPL Points page URL.");
+    if (parsed) {
+      if (parsed.kind === "entry") void checkEntry(parsed.id);
+      else void loadLeague(parsed.id);
       return;
     }
-    if (parsed.kind === "entry") void checkEntry(parsed.id);
-    else void loadLeague(parsed.id);
+    const name = parseNameQuery(raw);
+    if (name) void searchName(name);
+    else setError("Enter your team ID — the number on your FPL Points page URL.");
   }
 
   function confirm() {
@@ -245,6 +287,50 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
     );
   }
 
+  // ── name hits — team/manager matches from the directory ────────────────
+  if (stage === "names" && nameHits.length > 0) {
+    return (
+      <div className="w-full max-w-md" aria-label="Name matches">
+        <div className="rounded-lg bg-surface-1 card-ring p-4">
+          <div className="mb-3 flex items-baseline justify-between gap-2">
+            <h2 className="fig-num truncate text-base leading-none">
+              {nameMode === "team" ? "Teams matching" : "Managers matching"}
+            </h2>
+            <button
+              type="button"
+              onClick={() => {
+                setStage("form");
+                setNameHits([]);
+              }}
+              className="text-2xs uppercase-label text-ink-lo hover:text-ink-hi"
+            >
+              ← Back
+            </button>
+          </div>
+          <ul className="max-h-72 space-y-1 overflow-y-auto" role="listbox" aria-label="Matches">
+            {nameHits.map((h) => (
+              <li key={h.entry}>
+                <button
+                  type="button"
+                  onClick={() => void checkEntry(h.entry)}
+                  className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2.5 text-left transition-colors dur-instant hover:bg-surface-3"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-ink-hi">{h.teamName}</span>
+                    <span className="block truncate text-xs text-ink-lo">{h.managerName || "—"}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-ink-mid num-tabular">
+                    {h.rank != null ? `#${formatCompactRank(h.rank)}` : ""}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
   // ── the gate itself ────────────────────────────────────────────────────
   return (
     <div className={compact ? "" : "w-full max-w-md"}>
@@ -273,6 +359,27 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
           {hint}
         </p>
       )}
+
+      {/* name-search toggle — team name or manager name */}
+      <div role="group" aria-label="Name search mode" className="mt-3 flex gap-1.5">
+        {(["team", "manager"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setNameMode(m)}
+            aria-pressed={nameMode === m}
+            className={cn(
+              "skewed rounded-sm px-2.5 py-1 text-2xs uppercase-label transition-colors dur-instant",
+              nameMode === m
+                ? "bg-volt text-on-accent"
+                : "bg-raised text-ink-mid card-ring hover:text-ink-hi",
+            )}
+          >
+            {m === "team" ? "Team name" : "Manager name"}
+          </button>
+        ))}
+        <span className="ml-1 self-center text-2xs text-ink-lo">or paste ID / link above</span>
+      </div>
       {error && (
         <p role="alert" className="mt-2 text-sm text-critical">
           {error}

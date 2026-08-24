@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseGateInput, parseTeamInput } from "@/lib/store/team";
+import { parseGateInput, parseNameQuery, parseTeamInput } from "@/lib/store/team";
 
 describe("parseGateInput — entry URL → league URL → bare digits", () => {
   it("takes bare digits as an entry id", () => {
@@ -34,5 +34,19 @@ describe("parseTeamInput — legacy wrapper keeps the entry-only contract", () =
   it("returns the id for entries and null for leagues", () => {
     expect(parseTeamInput("entry/1851681")).toBe(1851681);
     expect(parseTeamInput("leagues/123")).toBeNull();
+  });
+});
+
+describe("parseNameQuery — what the gate will search by name", () => {
+  it("accepts team and manager names", () => {
+    expect(parseNameQuery("Trent's Reds")).toBe("Trent's Reds");
+    expect(parseNameQuery("  Mo Salah  ")).toBe("Mo Salah");
+  });
+
+  it("refuses ids, urls and short noise", () => {
+    expect(parseNameQuery("1851681")).toBeNull();
+    expect(parseNameQuery("https://fantasy.premierleague.com/entry/1851681")).toBeNull();
+    expect(parseNameQuery("ab")).toBeNull();
+    expect(parseNameQuery("")).toBeNull();
   });
 });

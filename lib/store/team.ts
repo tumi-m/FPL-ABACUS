@@ -94,3 +94,16 @@ export function parseTeamInput(raw: string): number | null {
   const parsed = parseGateInput(raw);
   return parsed?.kind === "entry" ? parsed.id : null;
 }
+
+/**
+ * A name the gate can search for: long enough, has letters, not an ID or a
+ * URL. Anything else falls through to the honest "enter your ID" message.
+ */
+export function parseNameQuery(raw: string): string | null {
+  const t = raw.trim();
+  if (t.length < 3 || t.length > 60) return null;
+  if (/^\d+$/.test(t)) return null;
+  if (/https?:\/\//i.test(t)) return null;
+  if (!/[a-zA-Zà-ÿ'’-]{3,}/.test(t)) return null;
+  return t;
+}

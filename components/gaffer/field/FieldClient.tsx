@@ -760,13 +760,20 @@ export function ShirtToken({
 
       <span className="mt-0.5 block truncate text-2xs font-semibold text-ink-hi">{row.webName}</span>
 
-      {/* expectation line — season xG/90 against this fixture's team xGC */}
-      {(row.xg90 != null || row.xgc90 != null) && (
+      {/* expectation line — the real gameweek xG/xGC once the player is on the
+          pitch (live feed, same Opta numbers the scoresites carry); the
+          season per-90 expectation before kick-off */}
+      {(row.liveStats || row.xg90 != null || row.xgc90 != null) && (
         <span
           className="mt-0.5 block whitespace-nowrap text-[9px] leading-none text-ink-lo num-tabular"
-          title="Season xG per 90 · team expected goals conceded (xGC) for this fixture"
+          title={
+            row.liveStats
+              ? "This gameweek's live xG and expected goals conceded (xGC) from the FPL/Opta feed"
+              : "Season xG per 90 · team expected goals conceded (xGC) for this fixture"
+          }
         >
-          xG {fmt90(row.xg90)} · xGC {fmt90(row.xgc90)}
+          xG {fmt90(row.liveStats ? row.liveStats.xg : row.xg90)} · xGC{" "}
+          {fmt90(row.liveStats ? row.liveStats.xgc : row.xgc90)}
         </span>
       )}
 

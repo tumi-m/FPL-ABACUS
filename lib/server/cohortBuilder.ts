@@ -110,6 +110,21 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
         try {
           const res = await getStandings(LEAGUE_314, page);
           for (const r of res.standings.results) state.candidates.push(r.entry);
+          // The sweep doubles as directory growth (best-effort, never fatal).
+          try {
+            const { rememberEntries } = await import("@/lib/server/entryDirectory");
+            await rememberEntries(
+              res.standings.results.map((r) => ({
+                entry: r.entry,
+                teamName: r.entry_name ?? "",
+                managerName: r.player_name ?? "",
+                rank: r.rank ?? null,
+              })),
+              "cohort",
+            );
+          } catch {
+            /* directory is best-effort */
+          }
         } catch {
           // a failing page shrinks the sample; never fatal
         }

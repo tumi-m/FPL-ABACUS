@@ -176,3 +176,25 @@ Gates: typecheck/lint/vitest 308✓/build/e2e 68✓.
   views disable the live frame honestly. e2e pins the mode, the board and
   descending order.
 Gates: typecheck/lint/vitest 308✓/build/e2e 72✓.
+
+### V8-N — real gameweek xG on the faces + gate name search ✅ (`this commit`)
+Owner: "the xG stats in field doesn't look real — Mbeumo got 0.50 xg."
+- **Faces now show the real number**: the per-face line showed a *season
+  per-90 shrunk toward prior* (~0.27 for Mbeumo) — true but wrong for a live
+  gameweek. It now prefers the live feed's gameweek xG/xGC the moment a
+  player has been involved (LiveStatsLite gains `xgc`), falling back to the
+  season expectation before kick-off; the tooltip says which one you're
+  looking at. On SofaScore: FPL's live feed is Opta-fed — the same primary
+  source those sites license — and the locked architecture is one upstream
+  through lib/fpl, so we surface the real Opta number rather than bolt on a
+  fragile second scraper.
+- **Gate name search**: users can enter their **team name**, with a
+  **Team name / Manager name toggle**, alongside ID and URL paste. Backed by
+  a new `entry_directory` table (migration 0005 — needs `pnpm db:migrate` in
+  production) holding the managers Gaffer has actually seen: every league
+  standings page (gate pastes + the cohort sweep) and every entry
+  confirmation upserts into it. `/api/gaffer/entry-search` does the ilike
+  with rank-ordered results; no directory, no hit, honest message pointing
+  at the paste flows. parseNameQuery unit-tested (4), gate e2e pins the
+  toggle + honest fallback.
+Gates: typecheck/lint/vitest 310✓/build/e2e 74✓.
