@@ -8,6 +8,9 @@ import { cn } from "@/lib/ui/cn";
  * thumb bar on mobile, docked bottom-right on desktop. Reports the match
  * state while live/provisional and the Week Machine moment the rest of the
  * week. Tapping it goes to Matchday.
+ *
+ * The thumb bar is now padded (pt-2 + 6px gaps), so the pill floats a full
+ * 1.75rem above it on mobile.
  */
 export function LiveBar({ data }: { data: LiveBarData }) {
   const isLive = data.phase === "live" || data.phase === "provisional";
@@ -18,7 +21,7 @@ export function LiveBar({ data }: { data: LiveBarData }) {
     <div
       className={cn(
         "pointer-events-none fixed inset-x-4 z-40 flex justify-center",
-        "bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.75rem)]",
+        "bottom-[calc(3.5rem+env(safe-area-inset-bottom)+1.75rem)]",
         "lg:inset-x-auto lg:right-6 lg:bottom-6 lg:justify-end",
       )}
     >

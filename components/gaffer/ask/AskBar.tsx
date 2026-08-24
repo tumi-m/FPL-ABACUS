@@ -182,14 +182,14 @@ export function AskBar() {
         Ask the Gaffer
         <kbd className="rounded bg-surface-3 px-1 py-0.5 text-2xs num-tabular">⌘K</kbd>
       </button>
-      {/* mobile trigger — 44px icon beside the theme toggle */}
+      {/* mobile trigger — same chrome as the top buttons, "Ask ?" beside the theme toggle */}
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Ask the Gaffer"
-        className="relative grid h-11 w-11 place-items-center rounded-full card-ring text-ink-lo transition-colors dur-instant after:absolute after:inset-0 after:content-[''] hover:text-ink-hi sm:hidden"
+        className="skewed inline-flex h-11 items-center gap-1 rounded-md bg-raised card-ring px-3.5 text-xs uppercase-label font-semibold text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi sm:hidden"
       >
-        <span aria-hidden className="text-sm font-bold">?</span>
+        Ask <span aria-hidden className="fig-num text-ink-1">?</span>
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
