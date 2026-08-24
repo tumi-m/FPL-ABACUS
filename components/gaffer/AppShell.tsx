@@ -2,18 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { Wordmark } from "@/components/gaffer/Wordmark";
 import { LiveBar } from "@/components/gaffer/LiveBar";
 import { AskBar } from "@/components/gaffer/ask/AskBar";
 import { ThemeToggle } from "@/components/primitives/ThemeToggle";
-import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
-import { ChevronRight } from "@/components/primitives/icons";
 import type { LiveBarData } from "@/lib/ui/types";
 import { cn } from "@/lib/ui/cn";
 
-// FLOODLIGHT §11 IA — five destinations; mobile keeps four in the thumb bar,
-// the rest fold into "More" so the sheet always has substance.
+// FLOODLIGHT §11 IA — five destinations, all five in the thumb bar.
 const NAV = [
   { href: "/live", label: "Matchday" },
   { href: "/field", label: "Field" },
@@ -22,12 +18,8 @@ const NAV = [
   { href: "/arcade", label: "Arcade" },
 ] as const;
 
-const TABS = ["live", "field", "board", "leagues"] as const;
-const MORE = NAV.filter((n) => !TABS.includes(n.href as (typeof TABS)[number]));
-
 export function AppShell({ teamId, teamName, live, children }: { teamId: number | null; teamName: string | null; live?: LiveBarData | null; children?: React.ReactNode }) {
   const pathname = usePathname();
-  const [moreOpen, setMoreOpen] = useState(false);
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
@@ -87,57 +79,22 @@ export function AppShell({ teamId, teamName, live, children }: { teamId: number 
         <nav
           aria-label="Primary mobile"
           className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface-0/90 px-2 pt-2 backdrop-blur pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
-          style={{ gridTemplateColumns: `repeat(${TABS.length + 1}, minmax(0, 1fr))`, display: "grid", gap: 6 }}
+          style={{ gridTemplateColumns: `repeat(${NAV.length}, minmax(0, 1fr))`, display: "grid", gap: 6 }}
         >
-          {TABS.map((t) => {
-            const item = NAV.find((n) => n.href === `/${t}`)!;
-            return (
-              <Link
-                key={t}
-                href={item.href}
-                className={cn(
-                  "skewed flex h-11 min-w-[44px] items-center justify-center rounded-md text-xs uppercase-label transition-colors dur-instant",
-                  isActive(item.href)
-                    ? "bg-volt font-semibold text-on-accent"
-                    : "bg-raised text-ink-mid card-ring hover:text-ink-hi hover:bg-surface-3",
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-          <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-            <button
-              onClick={() => setMoreOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={moreOpen}
+          {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
               className={cn(
                 "skewed flex h-11 min-w-[44px] items-center justify-center rounded-md text-xs uppercase-label transition-colors dur-instant",
-                MORE.some((m) => isActive(m.href))
+                isActive(item.href)
                   ? "bg-volt font-semibold text-on-accent"
-                  : "bg-raised text-ink-hi card-ring hover:bg-surface-3",
+                  : "bg-raised text-ink-mid card-ring hover:text-ink-hi hover:bg-surface-3",
               )}
             >
-              More
-            </button>
-            <SheetContent side="bottom" className="bg-raised">
-              <SheetTitle className="upper-label mb-3 text-2xs text-ink-lo">More</SheetTitle>
-              <ul className="-mx-1 divide-y divide-hairline">
-                {[{ href: "/", label: "Home" }, ...MORE].map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={() => setMoreOpen(false)}
-                      className="flex min-h-12 items-center justify-between rounded-md px-2 py-3 text-base font-medium text-ink-hi transition-colors dur-instant hover:bg-surface-3"
-                    >
-                      {item.label}
-                      <ChevronRight className="text-ink-lo" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </SheetContent>
-          </Sheet>
+              {item.label}
+            </Link>
+          ))}
         </nav>
       </div>
     </div>

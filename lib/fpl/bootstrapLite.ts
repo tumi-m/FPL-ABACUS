@@ -31,6 +31,10 @@ export interface ElementLite {
   bps: number;
   transfersInEvent: number;
   transfersOutEvent: number;
+  /** Season totals for the Top performers board (raw, unrated). */
+  xgTotal: number;
+  xaTotal: number;
+  xgcTotal: number;
 }
 
 export interface BootstrapLite {
@@ -85,6 +89,9 @@ export const getBootstrapLite = () =>
         bps: el.bps,
         transfersInEvent: el.transfers_in_event,
         transfersOutEvent: el.transfers_out_event,
+        xgTotal: el.expected_goals,
+        xaTotal: el.expected_assists,
+        xgcTotal: el.expected_goals_conceded,
       };
     }
 

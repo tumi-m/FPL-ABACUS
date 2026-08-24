@@ -31,6 +31,9 @@ function el(id: number, pos: number, cost: number, ep: number, team: number, own
     bps: 0,
     transfersInEvent: 0,
     transfersOutEvent: 0,
+    xgTotal: 0,
+    xaTotal: 0,
+    xgcTotal: 0,
   };
 }
 

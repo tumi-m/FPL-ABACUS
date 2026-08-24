@@ -14,13 +14,14 @@ import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
 import { Est } from "@/components/gaffer/Est";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
 import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
+import { TopPerformers, type TopPerformersData } from "@/components/gaffer/field/TopPerformers";
 import { COPY } from "@/lib/copy/deck";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 const POLL_LIVE_MS = 20_000;
 const POLL_IDLE_MS = 300_000;
 
-type Mode = "points" | "ownership" | "swing" | "leverage" | "planner" | "correlation" | "risk";
+type Mode = "points" | "ownership" | "swing" | "leverage" | "planner" | "correlation" | "risk" | "top";
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "points", label: "Points", hint: "Live points per player" },
   { id: "ownership", label: "Ownership", hint: "Effective ownership in the selected cohort — template fades, differentials burn" },
@@ -29,10 +30,11 @@ const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "planner", label: "Planner", hint: "Stage transfers and chips against your team" },
   { id: "correlation", label: "Correlation", hint: "Arcs join players whose GW outcomes move together — stacking shrinks your effective bets" },
   { id: "risk", label: "Risk", hint: "Token size is each player's share of your XI's variance" },
+  { id: "top", label: "Top", hint: "Top performers — highest xG, xA and fewest expected concessions, this GW or the season" },
 ];
 
-/** Keys 1–6 select the six pitch modes (the Planner desk stays click-only). */
-const KEY_MODES: Mode[] = ["points", "ownership", "swing", "leverage", "correlation", "risk"];
+/** Keys 1–7 select the pitch modes (the Planner desk stays click-only). */
+const KEY_MODES: Mode[] = ["points", "ownership", "swing", "leverage", "correlation", "risk", "top"];
 
 interface WebPayload {
   players: { elementId: number; webName: string }[];
@@ -73,9 +75,11 @@ interface RivalPayload {
 export function FieldClient({
   initialModel,
   desk,
+  top,
 }: {
   initialModel: MatchdayModel;
   desk?: FieldDeskProps | null;
+  top?: TopPerformersData | null;
 }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -443,7 +447,13 @@ export function FieldClient({
       )}
 
       {/* the pitch — broadcast turf: tournament green under the floodlights,
-          striped and marked; never a flat rectangle */}
+          striped and marked; never a flat rectangle. Top mode swaps the turf
+          for the performers board. */}
+      {mode === "top" && top ? (
+        <section aria-label="Top performers" className="rounded-lg has-gloss card-lift bg-raised p-4 md:p-5">
+          <TopPerformers data={top} />
+        </section>
+      ) : (
       <section aria-label={`Your team on the pitch, ${mode} mode`} className="rounded-lg has-gloss card-lift overflow-hidden bg-raised p-3 md:p-5">
         <div
           ref={pitchRef}
@@ -490,7 +500,11 @@ export function FieldClient({
             </svg>
           )}
 
-          {rival && rivalView === "field" ? (
+          {mode === "top" && top ? (
+            <div className="rounded-lg bg-surface-1 card-ring p-4">
+              <TopPerformers data={top} />
+            </div>
+          ) : rival && rivalView === "field" ? (
             <ComparePitch
               rows={rows} mode={mode} rival={rival}
               swingByElement={swingByElement} leverageByElement={leverageByElement} rivalSet={rivalSet}
@@ -553,6 +567,7 @@ export function FieldClient({
           ))}
         </ul>
       </section>
+      )}
 
       {/* Planner mode — staging ledger + chip lane, same component as the Board */}
       {mode === "planner" && (
@@ -642,6 +657,9 @@ function modeValue(
     case "risk":
       // neutral colour by spec — size carries the encoding, the pill just states it
       return { text: riskShare != null ? `${Math.round(riskShare * 100)}%` : "—", tone: "plain" };
+    case "top":
+      // the board replaces the pitch — tokens never render in this mode
+      return { text: String(row.livePoints), tone: "plain" };
   }
 }
 
