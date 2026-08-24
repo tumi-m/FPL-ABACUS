@@ -117,8 +117,14 @@ export function PeekSheet({
               <dd className="mt-0.5 num-tabular text-ink-hi">{row.minutes}</dd>
             </div>
             <div>
-              <dt className="upper-label text-2xs text-ink-lo">BPS</dt>
-              <dd className="mt-0.5 num-tabular text-ink-hi">{row.bps}</dd>
+              <dt className="upper-label text-2xs text-ink-lo">Bonus</dt>
+              <dd className="mt-0.5 num-tabular text-ink-hi">
+                {row.bonus > 0 ? (
+                  row.bonusOfficial ? row.bonus : <Est method="Projected from the BPS race until FPL adds official bonus">{`${row.bonus}`}</Est>
+                ) : (
+                  "—"
+                )}
+              </dd>
             </div>
             <div>
               <dt className="upper-label text-2xs text-ink-lo">Rank swing</dt>
@@ -130,12 +136,6 @@ export function PeekSheet({
               <dt className="upper-label text-2xs text-ink-lo">Leverage</dt>
               <dd className="mt-0.5 num-tabular text-ink-hi">
                 {lev ? `~${(lev.expected / 1000).toFixed(1)}k` : "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="upper-label text-2xs text-ink-lo">Bonus</dt>
-              <dd className="mt-0.5 num-tabular text-ink-hi">
-                {row.provisionalBonus > 0 ? `${row.provisionalBonus} projected` : "—"}
               </dd>
             </div>
             {/* the live stat line — straight from the event feed */}

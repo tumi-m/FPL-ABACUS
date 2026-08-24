@@ -25,9 +25,12 @@ export interface SquadRow {
   minutes: number;
   livePoints: number;
   provisionalBonus: number;
+  /** Actual bonus points (1·2·3) — official from the feed, else projected. */
+  bonus: number;
+  /** False while bonus is still our projection — FPL hasn't added it yet. */
+  bonusOfficial: boolean;
   defconCount: number;
   defconThreshold: number;
-  bps: number;
   fixtureId: number | null;
   opponentShort: string;
   fixtureState: "pre" | "live" | "done";
@@ -208,9 +211,10 @@ export function composeMatchdayModel(deps: {
       minutes: player?.minutes ?? 0,
       livePoints: player?.livePoints ?? 0,
       provisionalBonus: player?.provisionalBonus ?? 0,
+      bonus: player?.bonus ?? 0,
+      bonusOfficial: player?.bonusOfficial ?? false,
       defconCount: player?.defcon.count ?? 0,
       defconThreshold: player?.defcon.threshold ?? 99,
-      bps: player?.stats.bps ?? 0,
       fixtureId: fx?.id ?? null,
       opponentShort: oppId ? `${isHome ? "" : "@"}${teamById.get(oppId)?.short_name ?? ""}` : "—",
       fixtureState: state,

@@ -16,6 +16,8 @@ function player(id: number, pos: Pos, minutes: number, fixturesFinished = true):
       basePoints: minutes > 0 ? 2 : 0,
       provisionalBonus: 0,
       livePoints: minutes > 0 ? 2 : 0,
+      bonus: 0,
+      bonusOfficial: true,
       fixtureIds: [1],
       played: minutes > 0,
       fixturesFinished,

@@ -54,6 +54,7 @@ export function buildLiveSquad(input: {
     if (!meta) continue;
     // Never double-count: once the API reports official bonus it is inside total_points.
     const provBonus = el.stats.bonus > 0 ? 0 : (provisional.get(el.id) ?? 0);
+    const bonusOfficial = el.stats.bonus > 0;
 
     const teamFixtures = fixtures.filter((f) => f.team_h === meta.team || f.team_a === meta.team);
     const pos = meta.element_type as Pos;
@@ -68,6 +69,8 @@ export function buildLiveSquad(input: {
       basePoints: el.stats.total_points,
       provisionalBonus: provBonus,
       livePoints: el.stats.total_points + provBonus,
+      bonus: bonusOfficial ? el.stats.bonus : provBonus,
+      bonusOfficial,
       fixtureIds: teamFixtures.map((f) => f.id),
       played: el.stats.minutes > 0,
       fixturesFinished:

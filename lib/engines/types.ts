@@ -49,6 +49,11 @@ export interface LivePlayer {
   basePoints: number;
   provisionalBonus: number;
   livePoints: number;
+  /** The bonus that counts: official from the feed when present, else the
+   *  bps-race projection. This is the 1·2·3 users actually care about. */
+  bonus: number;
+  /** False while bonus is still our projection — FPL hasn't added it yet. */
+  bonusOfficial: boolean;
   fixtureIds: number[];
   played: boolean;
   fixturesFinished: boolean;

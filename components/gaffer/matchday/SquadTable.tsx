@@ -7,7 +7,7 @@ import { LiveDot } from "@/components/gaffer/LiveDot";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 import { POSITION_SHORT } from "@/lib/ui/format";
 
-type SortKey = "webName" | "minutes" | "livePoints" | "bps" | "defconCount";
+type SortKey = "webName" | "minutes" | "livePoints" | "bonus" | "defconCount";
 
 export function SquadTable({ model, settled }: { model: MatchdayModel; settled?: boolean }) {
   const [sort, setSort] = React.useState<{ key: SortKey; dir: 1 | -1 }>({ key: "livePoints", dir: -1 });
@@ -45,7 +45,7 @@ export function SquadTable({ model, settled }: { model: MatchdayModel; settled?:
               <th className="py-1.5 px-2 text-left text-2xs uppercase tracking-wide font-semibold text-ink-3">Fixture</th>
               {th("minutes", "Min", true)}
               {th("livePoints", "Pts", true)}
-              <th className="py-1.5 px-2 text-right text-2xs uppercase tracking-wide font-semibold text-ink-3">BPS</th>
+              {th("bonus", "Bonus", true)}
               {th("defconCount", "DEFCON", true)}
             </tr>
           </thead>
@@ -73,9 +73,11 @@ export function SquadTable({ model, settled }: { model: MatchdayModel; settled?:
                   <span key={settled ? "settled" : "live"} className={settled ? "inline-block settle-wash" : "inline-block"}>
                     {r.livePoints}
                   </span>
-                  {!settled && r.provisionalBonus > 0 && <sup className="text-brand">*</sup>}
                 </td>
-                <td className="py-2 px-2 text-right text-ink-2">{r.bps}</td>
+                <td className="py-2 px-2 text-right text-ink-2">
+                  {r.bonus > 0 ? r.bonus : "—"}
+                  {!r.bonusOfficial && r.bonus > 0 && <sup className="text-brand">*</sup>}
+                </td>
                 <td className="w-28 py-2 pl-2">
                   {r.defconThreshold < 99 ? (
                     <Meter value={r.defconCount / r.defconThreshold} hint={`${r.defconCount}/${r.defconThreshold}`} />
@@ -89,7 +91,7 @@ export function SquadTable({ model, settled }: { model: MatchdayModel; settled?:
         </table>
       </div>
       <p className="mt-3 text-2xs text-ink-3">
-        {settled ? "Bonus settled by FPL." : "* includes projected bonus — final when FPL adds official bonus."}
+        {settled ? "Bonus settled by FPL." : "* projected bonus — final when FPL adds official bonus."}
       </p>
     </section>
   );

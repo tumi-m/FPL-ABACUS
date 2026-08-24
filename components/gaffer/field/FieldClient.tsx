@@ -9,7 +9,7 @@ import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { BoardDesk, type DeskCandidate, type DeskSquadRow, type GwMarker } from "@/components/gaffer/board/BoardDesk";
 import { PeekSheet } from "@/components/gaffer/field/PeekSheet";
-import { PositionContribution, Availability, BpsLeaders, CaptainShare } from "@/components/gaffer/field/FieldCharts";
+import { PositionContribution, Availability, BonusLeaders, CaptainShare } from "@/components/gaffer/field/FieldCharts";
 import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
 import { Est } from "@/components/gaffer/Est";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
@@ -598,7 +598,7 @@ export function FieldClient({
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <PositionContribution rows={model.squad} />
             <Availability rows={model.squad} />
-            <BpsLeaders rows={model.squad} />
+            <BonusLeaders rows={model.squad} />
             <CaptainShare rows={model.squad} />
           </div>
         </>
@@ -713,10 +713,10 @@ export function ShirtToken({
           <circle cx="20" cy="20" r="17" fill="none" stroke="var(--surge)" strokeWidth="5" strokeDasharray={`${defconPct * 106.8} 106.8`} strokeLinecap="round" />
         </svg>
       )}
-      {/* provisional bonus dots */}
-      {row.provisionalBonus > 0 && (
-        <span className="absolute right-0 top-0 flex gap-0.5" aria-label={`${row.provisionalBonus} provisional bonus`}>
-          {Array.from({ length: Math.min(3, row.provisionalBonus) }).map((_, i) => (
+      {/* bonus dots — the actual 1·2·3, official or projected */}
+      {row.bonus > 0 && (
+        <span className="absolute right-0 top-0 flex gap-0.5" aria-label={`${row.bonus} bonus`}>
+          {Array.from({ length: Math.min(3, row.bonus) }).map((_, i) => (
             <span key={i} className="h-1.5 w-1.5 rounded-full bg-amber" />
           ))}
         </span>
@@ -894,14 +894,14 @@ function CompareColumn({ title, rows, tone }: { title: string; rows: SquadRow[];
               </td>
               <td className="px-1.5 py-1.5 text-right font-semibold text-ink-hi">
                 {r.livePoints}
-                {r.provisionalBonus > 0 && <sup className="text-amber">*</sup>}
+                {!r.bonusOfficial && r.bonus > 0 && <sup className="text-amber">*</sup>}
               </td>
               <td className="px-1.5 py-1.5 text-right text-ultra">{r.subbedInFor !== null ? "⇅" : ""}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="mt-1.5 text-2xs text-ink-3">* provisional bonus · ⇅ projected auto-sub</p>
+      <p className="mt-1.5 text-2xs text-ink-3">* projected bonus · ⇅ projected auto-sub</p>
     </div>
   );
 }
