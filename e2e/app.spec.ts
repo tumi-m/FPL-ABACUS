@@ -277,6 +277,32 @@ test.describe("authenticated routes", () => {
     await expect(page.getByRole("button", { name: "Risk" })).toHaveAttribute("aria-pressed", "true");
   });
 
+  test("the pitch names its marks, bonus included", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field");
+    // Bonus is worth up to three points and read as decoration when it was
+    // three pips on a token corner. It is a badge in the strip now, and the
+    // legend says so — an icon nobody can name is worse than no icon.
+    const legend = page.getByText("What the marks mean");
+    await expect(legend).toBeVisible();
+    await legend.click();
+    for (const mark of ["Goal", "Assist", "Bonus", "Clean sheet", "Booking"]) {
+      await expect(page.getByRole("listitem").filter({ hasText: mark }).first()).toBeVisible();
+    }
+  });
+
+  test("risk carries the treatment table with the injury and the return date", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field?mode=risk");
+    const table = page.getByRole("region", { name: "Treatment table" });
+    await expect(table).toBeVisible();
+    // Either somebody is flagged — with FPL's own wording — or nobody is, and
+    // it says that rather than showing an empty list.
+    await expect(
+      table.getByText(/flagged/).or(table.getByText(/fit and available/)).first(),
+    ).toBeVisible();
+  });
+
   test("field token tap opens the shared peek sheet", async ({ page }) => {
     await asTeam(page);
     await page.goto("/field");

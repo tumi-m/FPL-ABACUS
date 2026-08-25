@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 import type { LiveStatsLite } from "@/lib/engines/types";
 
@@ -8,7 +9,8 @@ import type { LiveStatsLite } from "@/lib/engines/types";
  *
  * Hues are allocated so no two marks a player can hold at once share one:
  * a goal is ice, an assist ultra, defensive work (shutout, saves) the DEFCON
- * steel, a booking amber and anything that costs you points flare.
+ * steel, bonus its own pink, a booking amber and anything that costs you
+ * points flare.
  *
  * A pitch is scanned, not read: you want to see at a glance who scored, who
  * set one up, whose clean sheet is still intact and who is a yellow away from
@@ -82,6 +84,16 @@ const Gloves = (
   </svg>
 );
 
+const Star = (
+  <svg viewBox="0 0 12 12" aria-hidden className="h-full w-full">
+    {/* bonus — a star, because nothing else on a pitch is one */}
+    <path
+      d="M6 1 7.4 4.4 11 4.7 8.3 7.1 9.1 10.6 6 8.8 2.9 10.6 3.7 7.1 1 4.7 4.6 4.4Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 const Cross = (
   <svg viewBox="0 0 12 12" aria-hidden className="h-full w-full">
     <circle cx="6" cy="6" r="5" fill="currentColor" />
@@ -104,10 +116,18 @@ const Cross = (
  */
 export function matchEvents(
   stats: LiveStatsLite | null,
-  opts: { pos: number; fixtureDone: boolean },
+  opts: {
+    pos: number;
+    fixtureDone: boolean;
+    /** Bonus taken this gameweek — official once FPL adds it, projected before. */
+    bonus?: number;
+    bonusOfficial?: boolean;
+  },
 ): MatchEvent[] {
   if (!stats) return [];
   const out: MatchEvent[] = [];
+  const bonus = opts.bonus ?? 0;
+  const bonusOfficial = opts.bonusOfficial ?? false;
 
   if (stats.goalsScored > 0) {
     out.push({
@@ -148,6 +168,20 @@ export function matchEvents(
       count: stats.saves,
       tone: "var(--defcon)",
       icon: Gloves,
+    });
+  }
+  // Bonus is worth up to three points and was the least legible thing on the
+  // pitch: three small pips on the token corner that most people read as
+  // decoration. It is a badge in the strip now, beside the goal it came from,
+  // and it says how many.
+  if (bonus > 0) {
+    out.push({
+      key: "bonus",
+      label: `${bonus} bonus point${bonus === 1 ? "" : "s"}${bonusOfficial ? "" : " (projected)"}`,
+      count: bonus,
+      tone: "var(--bonus)",
+      provisional: !bonusOfficial,
+      icon: Star,
     });
   }
   if (stats.redCards > 0) {
@@ -200,18 +234,80 @@ export function MatchEventStrip({
           style={{ color: e.tone, boxShadow: "inset 0 0 0 1px color-mix(in oklab, currentColor 40%, transparent)" }}
         >
           {/* Nine pixels was too small to read a ball from a boot at arm's
-              length. Thirteen with tighter padding keeps the same footprint —
-              three badges still fit under a token — with a glyph half again
-              as big. The strip sizes as one: a goal drawn larger than the
+              length; fifteen is the most that still fits four badges under a
+              token. The strip sizes as one: a goal drawn larger than the
               shield beside it would read as a broken row, not a louder mark. */}
-          <span className="block h-[13px] w-[13px]">{e.icon}</span>
+          <span className="block h-[15px] w-[15px]">{e.icon}</span>
           {e.count > 1 && (
-            <span className="text-[9px] font-bold num-tabular" style={{ color: e.tone }}>
+            <span className="text-[10px] font-bold num-tabular" style={{ color: e.tone }}>
               {e.count}
             </span>
           )}
         </span>
       ))}
     </span>
+  );
+}
+
+/**
+ * What every mark on the pitch means.
+ *
+ * A goal and an assist read themselves; bonus, the shutout shield and the
+ * DEFCON ring do not, and an icon nobody can name is worse than no icon. The
+ * legend is collapsed by default — it is reference, not furniture — and names
+ * the marks in the order you are likely to meet them.
+ */
+const LEGEND: { icon: React.ReactNode; tone: string; label: string; note: string }[] = [
+  { icon: Ball, tone: "var(--ice)", label: "Goal", note: "×2 for a brace" },
+  { icon: Boot, tone: "var(--ultra)", label: "Assist", note: "" },
+  { icon: Star, tone: "var(--bonus)", label: "Bonus", note: "1–3 pts · dim until FPL confirms it" },
+  { icon: Shield, tone: "var(--defcon)", label: "Clean sheet", note: "keepers and defenders · dim until full time" },
+  { icon: Gloves, tone: "var(--defcon)", label: "Saves", note: "keepers, once there is a point in it" },
+  { icon: Card, tone: "var(--amber)", label: "Booking", note: "red shows in flare" },
+  { icon: Cross, tone: "var(--flare)", label: "Own goal or penalty missed", note: "" },
+];
+
+export function MatchEventLegend({ className }: { className?: string }) {
+  return (
+    <details className={cn("group rounded-md card-ring px-3 py-2", className)}>
+      <summary className="cursor-pointer list-none text-2xs uppercase-label text-ink-lo transition-colors dur-instant hover:text-ink-hi">
+        What the marks mean
+        <span aria-hidden className="ml-1.5 inline-block transition-transform dur-instant group-open:rotate-90">
+          ›
+        </span>
+      </summary>
+      <ul className="mt-2.5 grid gap-x-5 gap-y-2 sm:grid-cols-2">
+        {LEGEND.map((l) => (
+          <li key={l.label} className="flex items-center gap-2">
+            <span
+              className="inline-flex shrink-0 items-center rounded-full bg-overlay px-[3px] py-px leading-none"
+              style={{ color: l.tone, boxShadow: "inset 0 0 0 1px color-mix(in oklab, currentColor 40%, transparent)" }}
+            >
+              <span className="block h-[15px] w-[15px]">{l.icon}</span>
+            </span>
+            <span className="min-w-0">
+              <span className="block text-xs text-ink-hi">{l.label}</span>
+              {l.note && <span className="block text-2xs text-ink-lo">{l.note}</span>}
+            </span>
+          </li>
+        ))}
+        <li className="flex items-center gap-2">
+          <span aria-hidden className="grid h-[21px] w-[21px] shrink-0 place-items-center">
+            <svg viewBox="0 0 40 40" className="h-full w-full">
+              <circle cx="20" cy="20" r="17" fill="none" stroke="var(--bg-overlay)" strokeWidth="5" />
+              <circle
+                cx="20" cy="20" r="17" fill="none" stroke="var(--defcon)" strokeWidth="5"
+                strokeDasharray="107 107" strokeDashoffset="40" strokeLinecap="round"
+                transform="rotate(-90 20 20)"
+              />
+            </svg>
+          </span>
+          <span className="min-w-0">
+            <span className="block text-xs text-ink-hi">DEFCON ring</span>
+            <span className="block text-2xs text-ink-lo">progress to the two-point line</span>
+          </span>
+        </li>
+      </ul>
+    </details>
   );
 }

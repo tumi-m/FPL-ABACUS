@@ -6,6 +6,7 @@ import { buildLiveSquad } from "@/lib/engines/liveSquad";
 import { buildFixtureModel, projectFixture } from "@/lib/engines/fixtureModel";
 import type { SquadRow } from "@/lib/engines/matchdayModel";
 import type { Fixture } from "@/lib/fpl/schemas";
+import { readAvailability } from "@/lib/engines/availability";
 
 /**
  * v4-E rival compare — the rival's gameweek run through the same live-squad
@@ -94,6 +95,11 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
       subbedInFor: subbedIn ? subbedIn.out : null,
       photo: meta?.photo ?? "",
       liveStats: player?.stats ?? null,
+      availability: readAvailability({
+        status: meta?.status ?? "a",
+        news: meta?.news ?? "",
+        chanceOfPlaying: meta?.chance_of_playing_this_round ?? null,
+      }),
       teamId: meta?.team ?? 0,
       xg90: meta?.xg90 ?? null,
       xgc90:

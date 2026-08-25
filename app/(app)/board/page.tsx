@@ -9,7 +9,8 @@ import { SquadRuns } from "@/components/gaffer/board/SquadRuns";
 import { buildFixtureModel } from "@/lib/engines/fixtureModel";
 import { buildTicker } from "@/lib/engines/fixtureTicker";
 import { computeGwProfiles } from "@/lib/server/buildBoardDesk";
-import { buildPlanner } from "@/lib/server/buildPlanner";
+import { buildPlanner, type PlannerData } from "@/lib/server/buildPlanner";
+import { ENHANCEMENT_MS, withDeadline } from "@/lib/server/deadline";
 import { suggestTransfers } from "@/lib/engines/suggest";
 import { defaultMinutesFloor } from "@/lib/engines/performance";
 import {
@@ -46,16 +47,24 @@ export default async function BoardPage() {
 
   // The planner already assembles the market with horizon projections, your
   // fifteen and the bank — the suggestion engine needs exactly that, so it is
-  // reused rather than rebuilt. Its failure must not take the ticker with it.
-  const [picksRes, fixturesRes, plannerRes] = await Promise.allSettled([
-    getPicks(teamId, currentGw, true),
-    getFixturesAll(),
-    buildPlanner(teamId, SUGGEST_WEEKS),
+  // reused rather than rebuilt.
+  //
+  // It is also the most expensive thing on this page: seven hundred players
+  // projected over six gameweeks, on top of its own upstream reads. The ticker
+  // is the page and the suggestions are the footnote, so the footnote gets a
+  // deadline. A slow one keeps running and warms the cache for the next
+  // render; this one just says it has nothing to recommend yet.
+  const [picksRes, fixturesRes, planner] = await Promise.all([
+    getPicks(teamId, currentGw, true).catch(() => null),
+    getFixturesAll().catch(() => []),
+    withDeadline(
+      buildPlanner(teamId, SUGGEST_WEEKS).catch(() => null),
+      ENHANCEMENT_MS,
+      null as PlannerData | null,
+    ),
   ]);
-  const squadIds: number[] =
-    picksRes.status === "fulfilled" ? picksRes.value.picks.map((p) => p.element) : [];
-  const allFixtures: Awaited<ReturnType<typeof getFixturesAll>> =
-    fixturesRes.status === "fulfilled" ? fixturesRes.value : [];
+  const squadIds: number[] = picksRes?.picks.map((p) => p.element) ?? [];
+  const allFixtures = fixturesRes;
 
   // Rolling-window opponent rates from completed matches only.
   const model = buildFixtureModel(allFixtures, { upToGw: currentGw });
@@ -97,7 +106,6 @@ export default async function BoardPage() {
     }));
 
   // What to actually do about the grid above.
-  const planner = plannerRes.status === "fulfilled" ? plannerRes.value : null;
   let suggestions: SuggestionRow[] = [];
   if (planner && !planner.squadUnavailable) {
     const byId = new Map(planner.players.map((p) => [p.id, p]));

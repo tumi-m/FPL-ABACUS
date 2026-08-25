@@ -425,6 +425,43 @@ server component threw `useState is not a function` and blanked the page. It
 has its own client module now; the two stateless marks stay server-safe, which
 is what the pages importing them need.
 
+### V9-R — the pitch says what it means ✅
+
+**Bonus is a badge, and the marks have a key.** Bonus is worth up to three
+points and was the least legible thing on the Field: three small pips on a
+token corner that read as decoration. It is a star in the event strip now,
+beside the goal it came from, carrying its count and dimmed until FPL confirms
+it. And because an icon nobody can name is worse than no icon, the pitch has a
+legend — collapsed, since it is reference rather than furniture — naming every
+mark including the DEFCON ring.
+
+**The badges went to fifteen pixels**, the most that still fits four under a
+token. Nine was too small to tell a ball from a boot at arm's length; the strip
+sizes as one, because a goal drawn larger than the shield beside it reads as a
+broken row rather than a louder mark.
+
+**Injuries, with what is wrong and when it ends.**
+`lib/engines/availability.ts` (+16 tests) reads FPL's one-letter status and its
+free-text news into something sayable — "Ankle injury · Expected back 15 Feb",
+"Knock · 75% chance". The news is almost structured (a spaced dash separates
+the ailment from the prognosis), so the two halves are read apart, and anything
+that does not fit is passed through whole rather than mangled: a wrong guess
+about a player's fitness is worse than the raw sentence.
+
+On the pitch it is a mark top-left — a cross for out or banned, an exclamation
+for a doubt — where the armband and the vice mark are not. The detail lives in
+**Risk**, as a treatment table, which is where it belongs rather than on a page
+of its own: the variance chart prices what your XI might do, and this prices
+whether they will be on the pitch to do it.
+
+**The Board's suggestions got a deadline.** `buildPlanner` is the most
+expensive thing on that page — seven hundred players projected over six
+gameweeks — and the ticker is the page while the suggestions are the footnote.
+The footnote now waits 1.5 s and then says it has nothing to recommend yet,
+the same contract every other enhancement has since V9-K. Measured after all
+of it: `/field` 206 kB of JavaScript against 205 kB before, so the whole
+feature set cost about a kilobyte.
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.

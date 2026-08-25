@@ -14,6 +14,7 @@ import { OwnershipFlow } from "@/components/charts/OwnershipFlow";
 import { FixtureSwing } from "@/components/charts/FixtureSwing";
 import { XgVsActual } from "@/components/charts/XgVsActual";
 import { ChipTimeline } from "@/components/charts/ChipTimeline";
+import { readAvailability } from "@/lib/engines/availability";
 
 export const metadata = { title: "Chart gallery", robots: { index: false, follow: false } };
 
@@ -192,5 +193,6 @@ function squadFixture() {
     xgc90: null,
     photo: "",
     liveStats: null,
+    availability: readAvailability({ status: "a", news: "", chanceOfPlaying: null }),
   }));
 }
