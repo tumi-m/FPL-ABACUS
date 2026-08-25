@@ -18,15 +18,10 @@ const nextConfig: NextConfig = {
     // Tree-shake the barrel imports instead of pulling whole packages into
     // every client chunk that touches one component.
     optimizePackageImports: [
-      "motion",
       "d3-scale",
       "d3-shape",
-      "d3-interpolate",
       "@radix-ui/react-dialog",
-      "@radix-ui/react-popover",
-      "@radix-ui/react-scroll-area",
       "@radix-ui/react-select",
-      "@radix-ui/react-switch",
       "@radix-ui/react-tabs",
       "@radix-ui/react-tooltip",
     ],

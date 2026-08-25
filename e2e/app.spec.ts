@@ -238,12 +238,31 @@ test.describe("authenticated routes", () => {
     await expect(page).toHaveURL(/h=10&c=fdr/);
   });
 
-  test("field renders the pitch with faces and the gameweek stepper", async ({ page }) => {
+  test("field renders the pitch with faces and the gameweek picker", async ({ page }) => {
     await asTeam(page);
     const res = await page.goto("/field");
     expect(res?.status()).toBe(200);
-    await expect(page.getByRole("group", { name: "Gameweek" })).toBeVisible();
+    // The title said "The Field" on the Field. It stays for screen readers and
+    // for the document outline, but it takes no space on screen any more.
+    const h1 = page.getByRole("heading", { level: 1, name: "The Field" });
+    await expect(h1).toBeAttached();
+    const title = await h1.boundingBox();
+    expect(title === null || title.height <= 1).toBe(true);
+    const picker = page.getByRole("combobox", { name: "Gameweek" });
+    await expect(picker).toBeVisible();
+    // it lists every gameweek up to the current one, not just a step either way
+    expect(await picker.locator("option").count()).toBeGreaterThan(0);
     await expect(page.locator('img[src*="photos/players"]').first()).toBeVisible();
+  });
+
+  test("the ask button wears the gaffer badge instead of a question mark", async ({ page }) => {
+    await asTeam(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/field");
+    const ask = page.getByRole("button", { name: "Ask the Gaffer" });
+    await expect(ask).toBeVisible();
+    await expect(ask.locator('img[src*="gaffer-badge"]')).toBeVisible();
+    await expect(ask).not.toContainText("?");
   });
 
   test("board hands transfers off to the planner", async ({ page }) => {

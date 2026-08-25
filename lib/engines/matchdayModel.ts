@@ -92,7 +92,9 @@ export interface FixtureRailRow {
 export interface MatchdayModel {
   generatedAt: number;
   phase: GwPhase;
-  event: { id: number; name: string; deadlineTime: string };
+  /** `id` is the gameweek being viewed; `latest` is the live one, so a
+   *  historical view knows what it can navigate back to. */
+  event: { id: number; name: string; deadlineTime: string; latest: number };
   entry: { id: number; name: string };
   hero: {
     gwPoints: number;
@@ -432,7 +434,12 @@ export function composeMatchdayModel(deps: {
   const model: MatchdayModel = {
     generatedAt: Date.now(),
     phase,
-    event: { id: deps.eventId, name: boot.events.find((e) => e.id === deps.eventId)?.name ?? `GW${deps.eventId}`, deadlineTime: boot.events.find((e) => e.id === deps.eventId)?.deadline_time ?? "" },
+    event: {
+      id: deps.eventId,
+      name: boot.events.find((e) => e.id === deps.eventId)?.name ?? `GW${deps.eventId}`,
+      deadlineTime: boot.events.find((e) => e.id === deps.eventId)?.deadline_time ?? "",
+      latest: boot.events.find((e) => e.is_current)?.id ?? deps.eventId,
+    },
     entry: { id: entry.id, name: entry.name },
     hero: {
       gwPoints: squadState.gwPoints,

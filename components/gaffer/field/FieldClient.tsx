@@ -3,11 +3,11 @@ import Link from "next/link";
 
 import * as React from "react";
 import useSWR from "swr";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
-import { PeekSheet } from "@/components/gaffer/field/PeekSheet";
 import { PositionContribution, Availability, BonusLeaders, CaptainShare } from "@/components/gaffer/field/FieldCharts";
 import {
   Crossover,
@@ -16,16 +16,49 @@ import {
   ProcessVsOutcome,
   RankAtRisk,
 } from "@/components/gaffer/field/DecisionCharts";
+
 import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
 import { Est } from "@/components/gaffer/Est";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
 import { PlayerAvatar, AvatarToggle, useAvatarMode, type AvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { MatchEventStrip, matchEvents } from "@/components/gaffer/field/MatchEvents";
-import { TopPerformers, type TopPerformersData } from "@/components/gaffer/field/TopPerformers";
-import { BonusBoard, type BonusBoardData } from "@/components/gaffer/boards/BonusBoard";
-import { DefconBoard, type DefconBoardData } from "@/components/gaffer/boards/DefconBoard";
+import type { TopPerformersData } from "@/components/gaffer/field/TopPerformers";
+import type { BonusBoardData } from "@/components/gaffer/boards/BonusBoard";
+import type { DefconBoardData } from "@/components/gaffer/boards/DefconBoard";
 import { COPY } from "@/lib/copy/deck";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
+
+/**
+ * The peek sheet opens on a token tap, so it cannot be on screen at first
+ * paint and has no business in the chunk that produces it — it brings the
+ * dialog primitive with it.
+ */
+const PeekSheet = dynamic(
+  () => import("@/components/gaffer/field/PeekSheet").then((m) => m.PeekSheet),
+  { ssr: false },
+);
+
+/**
+ * The boards' code, like their data, arrives when a board is opened.
+ *
+ * Each is a few hundred lines of table, chart and ranking logic that most
+ * Field views never render. Statically imported they rode in the Field's own
+ * chunk and every visitor downloaded and parsed all three. Split out, the
+ * chunk fetches alongside the board's data and the skeleton already on screen
+ * covers the wait.
+ */
+const TopPerformers = dynamic(
+  () => import("@/components/gaffer/field/TopPerformers").then((m) => m.TopPerformers),
+  { loading: () => <BoardSkeleton /> },
+);
+const BonusBoard = dynamic(
+  () => import("@/components/gaffer/boards/BonusBoard").then((m) => m.BonusBoard),
+  { loading: () => <BoardSkeleton /> },
+);
+const DefconBoard = dynamic(
+  () => import("@/components/gaffer/boards/DefconBoard").then((m) => m.DefconBoard),
+  { loading: () => <BoardSkeleton /> },
+);
 
 const POLL_LIVE_MS = 20_000;
 const POLL_IDLE_MS = 300_000;
@@ -165,8 +198,11 @@ export function FieldClient({
   const [rivalView, setRivalView] = React.useState<"field" | "table">("field");
   const rivalLoadedRef = React.useRef(false);
 
-  // peek — ONE shared sheet for token taps (v4 spec)
+  // peek — ONE shared sheet for token taps (v4 spec). Its chunk is fetched on
+  // the first tap and then kept mounted, so the sheet can animate closed.
   const [peekElement, setPeekElement] = React.useState<number | null>(null);
+  const peeked = React.useRef(false);
+  if (peekElement != null) peeked.current = true;
 
   // faces or kits — a device-wide preference, shared with every other board.
   const [avatar, setAvatar] = useAvatarMode();
@@ -375,45 +411,45 @@ export function FieldClient({
 
   return (
     <div className="space-y-4">
-      {/* lower-third header */}
+      {/* The title said "The Field" on the Field. The bar keeps its job — pick
+          a gameweek, read the state — and drops the word for it. */}
+      <h1 className="sr-only">The Field</h1>
       <div className="lower3">
         <div className="lower3-flag bg-volt" />
         <div className="lower3-body">
-          <h1 className="fig-num text-[22px] leading-none">The Field</h1>
-          {/* gameweek stepper — past GWs render the points view only */}
-          <div className="flex items-center gap-1.5" role="group" aria-label="Gameweek">
+          {/* Gameweek picker. Stepping through a season two arrow-taps at a
+              time was a poor way to reach GW12; one control lists them all,
+              and on a phone it opens the platform's own wheel. */}
+          <label className="flex items-center gap-2">
+            <span className="sr-only">Gameweek</span>
+            <select
+              value={gw}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setGw(next === model.event.latest ? null : next);
+              }}
+              /* colour is inherited: the lower third is its own surface, and a
+                 token picked for page text washes out against it */
+              className="skewed h-9 rounded-md card-ring bg-transparent pl-3 pr-1 fig-num text-lg leading-none transition-colors dur-instant hover:bg-surface-3/40 focus:outline-none focus-visible:outline-2 focus-visible:outline-volt"
+            >
+              {Array.from({ length: model.event.latest }, (_, i) => model.event.latest - i).map((n) => (
+                <option key={n} value={n}>
+                  GW{n}
+                  {n === model.event.latest ? " · current" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          {historical && (
             <button
               type="button"
-              onClick={() => setGw(Math.max(1, gw - 1))}
-              disabled={gw <= 1}
-              aria-label="Previous gameweek"
-              className="skewed grid h-7 w-7 place-items-center rounded-sm card-ring text-ink-mid transition-colors dur-instant hover:text-ink-hi disabled:cursor-not-allowed disabled:opacity-30"
+              onClick={() => setGw(null)}
+              className="skewed rounded-sm bg-volt px-2 py-1 text-2xs uppercase-label text-on-accent"
             >
-              <span className="text-xs">◀</span>
+              <span>Back to current</span>
             </button>
-            <span className="upper-label min-w-10 text-center text-2xs text-ink-lo num-tabular">
-              GW{gw}
-            </span>
-            <button
-              type="button"
-              onClick={() => setGw(gw + 1)}
-              disabled={!historical}
-              aria-label="Next gameweek"
-              className="skewed grid h-7 w-7 place-items-center rounded-sm card-ring text-ink-mid transition-colors dur-instant hover:text-ink-hi disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              <span className="text-xs">▶</span>
-            </button>
-            {historical && (
-              <button
-                type="button"
-                onClick={() => setGw(null)}
-                className="skewed rounded-sm bg-volt px-2 py-1 text-2xs uppercase-label text-on-accent"
-              >
-                <span>Back to current</span>
-              </button>
-            )}
-          </div>
-          <span className="hidden text-2xs uppercase-label text-ink-lo sm:inline">{model.phase}</span>
+          )}
+          <span className="text-2xs uppercase-label text-ink-lo">{model.phase}</span>
           <span className="ml-auto hidden text-2xs text-ink-lo sm:inline">
             {historical ? "Historical view — points mode only" : MODES.find((m) => m.id === mode)?.hint}
           </span>
@@ -747,15 +783,17 @@ export function FieldClient({
         </>
       )}
 
-      <PeekSheet
-        element={peekElement}
-        model={model}
-        swingByElement={swingByElement}
-        leverageByElement={leverageByElement}
-        onOpenChange={(o) => {
-          if (!o) setPeekElement(null);
-        }}
-      />
+      {peeked.current && (
+        <PeekSheet
+          element={peekElement}
+          model={model}
+          swingByElement={swingByElement}
+          leverageByElement={leverageByElement}
+          onOpenChange={(o) => {
+            if (!o) setPeekElement(null);
+          }}
+        />
+      )}
     </div>
   );
 }
