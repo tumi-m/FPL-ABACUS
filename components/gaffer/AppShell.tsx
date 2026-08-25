@@ -8,8 +8,9 @@ import { ThemeToggle } from "@/components/primitives/ThemeToggle";
 import { cn } from "@/lib/ui/cn";
 
 // FLOODLIGHT §11 IA — the primary destinations. The thumb bar carries the six
-// that get used mid-gameweek; the stat boards sit behind the Field, which is
-// where you already are when you want them.
+// that get used mid-gameweek. The stat boards are not among them: Bonus and
+// DEFCON are modes on the Field now, so they are reached from the screen whose
+// question they answer rather than from a strip of their own.
 const NAV = [
   { href: "/live", label: "Matchday", short: "Live" },
   { href: "/field", label: "Field", short: "Field" },
@@ -19,16 +20,15 @@ const NAV = [
   { href: "/arcade", label: "Arcade", short: "Play" },
 ] as const;
 
-/** Secondary boards — desktop nav only, linked from the Field as well. */
-const BOARDS = [
-  { href: "/bonus", label: "Bonus" },
-  { href: "/defcon", label: "DEFCON" },
-] as const;
-
 /**
  * The shell. `liveSlot` and `statusSlot` arrive as already-rendered server
  * fragments wrapped in Suspense, so the chrome paints on the first flush and
  * upstream latency only delays the pills.
+ *
+ * The gameweek status used to float over the page as a fixed pill above the
+ * thumb bar, which meant it sat on top of whatever you were reading on a
+ * phone. It lives in the header now, with the fuller read on the landing page
+ * and everything behind it one tap away at Matchday.
  */
 export function AppShell({
   teamId,
@@ -48,14 +48,13 @@ export function AppShell({
     <div className="min-h-dvh">
       <div className="atmos" aria-hidden="true" />
       <div className="relative z-10 flex min-h-dvh flex-col">
-        {liveSlot}
         <header className="sticky top-0 z-40 h-14 bg-surface-0/90 backdrop-blur border-b border-hairline">
           <div className="mx-auto flex h-full max-w-[1360px] items-center gap-4 px-4 md:px-6">
             <Link href="/" className="text-lg shrink-0">
               <Wordmark />
             </Link>
             <nav aria-label="Primary" className="hidden lg:flex items-center gap-1 ml-2">
-              {[...NAV, ...BOARDS].map((item) => (
+              {NAV.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -71,6 +70,7 @@ export function AppShell({
               ))}
             </nav>
             <div className="ml-auto flex items-center gap-2">
+              {liveSlot}
               <AskBar />
               {teamId != null && statusSlot}
               <ThemeToggle />
@@ -79,29 +79,6 @@ export function AppShell({
         </header>
 
         <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 md:px-6 py-8 pb-28 lg:pb-12">{children}</main>
-
-        {/* Stat boards on small screens. Eight items in the thumb bar would put
-            every tap target under the 44px minimum, so the boards get their own
-            subordinate strip above it rather than crowding the destinations. */}
-        <nav
-          aria-label="Stat boards"
-          className="lg:hidden fixed inset-x-0 z-40 flex justify-center gap-1.5 px-2 bottom-[calc(4rem+env(safe-area-inset-bottom))]"
-        >
-          {BOARDS.map((b) => (
-            <Link
-              key={b.href}
-              href={b.href}
-              className={cn(
-                "skewed inline-flex h-8 items-center rounded-md px-3 text-2xs uppercase-label transition-colors dur-instant",
-                isActive(b.href)
-                  ? "bg-volt font-semibold text-on-accent"
-                  : "bg-raised/90 text-ink-lo card-ring backdrop-blur hover:text-ink-hi",
-              )}
-            >
-              <span>{b.label}</span>
-            </Link>
-          ))}
-        </nav>
 
         <nav
           aria-label="Primary mobile"

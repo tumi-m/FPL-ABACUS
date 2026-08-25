@@ -96,11 +96,12 @@ test.describe("authenticated routes", () => {
     await asTeam(page);
     await page.goto("/live");
     await expect(page).toHaveTitle(/Matchday/);
-    // v4-D: the status pill lives at the bottom of the viewport, never a top banner
-    const pill = page.getByRole("link", { name: "Gameweek status" });
-    await expect(pill).toBeVisible();
-    const box = await pill.boundingBox();
-    expect(box && box.y).toBeGreaterThan(300);
+    // The status chip lives in the header now — it used to float over the page
+    // at the bottom of the viewport, which cost a strip of content on a phone.
+    const chip = page.locator("header").getByRole("link", { name: /Live|Gameweek/ });
+    await expect(chip).toBeVisible();
+    const box = await chip.boundingBox();
+    expect(box && box.y).toBeLessThan(56);
     // Either the composed board or an explicit fallback state — never a crash screen.
     await expect(page.locator("main")).not.toBeEmpty();
   });
@@ -288,8 +289,7 @@ test.describe("authenticated routes", () => {
 
   test("bonus board ranks the 1-2-3 and explains the conversion", async ({ page }) => {
     await asTeam(page);
-    const res = await page.goto("/bonus");
-    expect(res?.status()).toBe(200);
+    await page.goto("/field?mode=bonus");
     await expect(page.getByRole("heading", { name: "Bonus" })).toBeVisible();
     await expect(page.getByText(/BPS spent per bonus point taken/)).toBeVisible();
     await expect(page.getByRole("table").first()).toBeVisible();
@@ -297,11 +297,26 @@ test.describe("authenticated routes", () => {
 
   test("defcon monsters ranks defensive work against the scoring line", async ({ page }) => {
     await asTeam(page);
-    const res = await page.goto("/defcon");
-    expect(res?.status()).toBe(200);
+    await page.goto("/field?mode=defcon");
     await expect(page.getByRole("heading", { name: "DEFCON monsters" })).toBeVisible();
     await expect(page.getByText(/Defenders score two points at ten/)).toBeVisible();
     await expect(page.getByRole("group", { name: "Position" })).toBeVisible();
+  });
+
+  test("the boards live on the Field and the old routes still land there", async ({ page }) => {
+    await asTeam(page);
+    // Bonus and DEFCON were pages of their own for a release; the links kept.
+    await page.goto("/bonus");
+    await expect(page).toHaveURL(/\/field\?mode=bonus/);
+    await page.goto("/defcon");
+    await expect(page).toHaveURL(/\/field\?mode=defcon/);
+
+    // and the mode control on the Field itself reaches all three boards
+    const modes = page.getByRole("group", { name: "Field mode" });
+    await modes.getByRole("button", { name: "Bonus" }).click();
+    await expect(page.getByRole("heading", { name: "Bonus" })).toBeVisible();
+    await modes.getByRole("button", { name: "Top" }).click();
+    await expect(page.getByRole("region", { name: "Top performers board" })).toBeVisible();
   });
 
   test("the artwork preference follows you off the Field", async ({ page }) => {
@@ -315,7 +330,7 @@ test.describe("authenticated routes", () => {
       .click();
     await expect(page.locator('svg[aria-label$="kit"]').first()).toBeVisible();
 
-    for (const route of ["/planner", "/bonus", "/defcon"]) {
+    for (const route of ["/planner", "/field?mode=bonus", "/field?mode=defcon"]) {
       await page.goto(route);
       await expect(page.locator('svg[aria-label$="kit"]').first()).toBeVisible();
     }
@@ -330,29 +345,45 @@ test.describe("authenticated routes", () => {
     await expect(page.locator('svg[aria-label$="kit"]')).toHaveCount(0);
   });
 
-  test("stat boards are reachable on a phone without crowding the thumb bar", async ({ page }) => {
+  test("nothing floats over the page above the thumb bar", async ({ page }) => {
     await asTeam(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/live");
 
-    const boards = page.getByRole("navigation", { name: "Stat boards" });
+    // The status pill used to sit fixed above the thumb bar, on top of the
+    // content. It is a header chip now, and the stat-board strip went with the
+    // boards themselves — so the header and the thumb bar are the only fixed
+    // furniture, and the content between them is nobody else's.
+    await expect(page.getByRole("navigation", { name: "Stat boards" })).toHaveCount(0);
     const thumb = page.getByRole("navigation", { name: "Primary mobile" });
-    await expect(boards).toBeVisible();
-
-    // the strip must sit above the thumb bar, not on top of it
-    const strip = await boards.boundingBox();
+    await expect(thumb).toBeVisible();
     const bar = await thumb.boundingBox();
-    expect(strip).not.toBeNull();
     expect(bar).not.toBeNull();
-    expect(strip!.y + strip!.height).toBeLessThanOrEqual(bar!.y + 1);
+
+    const intruders = await page.locator("body *").evaluateAll((nodes, barTop) =>
+      nodes
+        .filter((n) => {
+          const s = getComputedStyle(n);
+          if (s.position !== "fixed" || s.display === "none" || s.visibility === "hidden") return false;
+          const r = n.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return false;
+          // decorative full-bleed washes are not furniture
+          if (n.getAttribute("aria-hidden") === "true") return false;
+          // anything sitting in the content band between header and thumb bar
+          return r.top > 56 && r.bottom <= barTop;
+        })
+        .map((n) => n.getAttribute("aria-label") ?? (n.className || n.tagName)),
+      (await thumb.boundingBox())!.y,
+    );
+    expect(intruders).toEqual([]);
+
+    // the status is in the header instead, where it covers nothing
+    await expect(page.locator("header").getByRole("link", { name: /Live|Gameweek/ })).toHaveCount(1);
 
     // and every destination keeps a 44px target
     for (const h of await thumb.locator("a").evaluateAll((ns) => ns.map((n) => n.getBoundingClientRect().height))) {
       expect(h).toBeGreaterThanOrEqual(44);
     }
-
-    await boards.getByRole("link", { name: "DEFCON" }).click();
-    await expect(page).toHaveURL(/\/defcon/);
   });
 
   test("thumb bar carries all six destinations", async ({ page }) => {

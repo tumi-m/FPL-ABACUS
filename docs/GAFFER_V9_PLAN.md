@@ -153,10 +153,10 @@ scale to how much football has been played, never below half a match.
   gap, judged per position — keepers and defenders on shutouts, midfielders on
   involvement, forwards on finishing. The gap view carries a scatter against
   the parity line and diverging bars.
-- **`/bonus`** — season totals plus the real 3·2·1 split read from each
+- **Bonus** — season totals plus the real 3·2·1 split read from each
   gameweek's own feed, bonus per 90, and BPS-per-bonus conversion with the
   plot of who cashes their BPS and who collects it behind somebody else.
-- **`/defcon`** — contributions and per-90 rates against the line each
+- **DEFCON** — contributions and per-90 rates against the line each
   position must clear (ten for defenders, twelve otherwise), the tackles /
   CBI / recoveries mix, measured threshold crossings from the weeks
   themselves, and bookings.
@@ -176,9 +176,52 @@ setting.
   where it is being read rather than only back on the Field.
 - **Mobile reachability**: `/bonus` and `/defcon` were desktop-nav only,
   leaving them reachable on a phone only through the Field's Top mode. They
-  get a subordinate strip above the thumb bar — eight items in the bar itself
+  got a subordinate strip above the thumb bar — eight items in the bar itself
   would have put every destination under a 44px target. The live status pill
-  moved up to clear it; e2e now pins the stacking order and the tap sizes.
+  moved up to clear it. (Superseded by V9-K, which moved the boards onto the
+  Field and retired the strip.)
+
+### V9-K — the Field pays for what it shows ✅
+The app was slow to first paint and a phone lost a strip of every screen to
+floating chrome. Three separate causes, three fixes.
+
+**The rank curve stopped being serial.** `getRankCurveBundle` sampled 27
+log-spaced standings pages one at a time with a 120 ms sleep between each —
+about four seconds of deliberate waiting on the critical path of every
+Matchday and Field render. It now runs four at a time with no sleeps, and the
+warm cron primes it (plus the season fixture list) so a page usually finds it
+cached.
+
+**Nothing that merely improves a page can hold it up.** `lib/server/deadline.ts`
+gives enhancements a 1.5 s budget: the rank curve, the cohort EO sample and the
+swing event log resolve to an honest empty rather than blocking the render, and
+because the cache underneath is stale-while-revalidate the slow call still
+finishes and warms the next one. `buildMatchday` also stopped awaiting five
+things in sequence — entry, transfers, curve, events, EO and the last snapshot
+now go out in one wave.
+
+**The boards are fetched, not shipped.** Top performers sent the whole
+selectable market — roughly seven hundred players with their season lines — in
+the RSC payload of every single Field view, whether or not anybody opened the
+board. `GET /api/gaffer/boards?board=top|bonus|defcon` serves them on demand
+behind a two-minute browser cache; the Field renders the pitch first and the
+board arrives when it is asked for.
+
+**Bonus and DEFCON came home.** They are Field modes now, next to Risk, on the
+same segmented control (keys 1–9) with their own headings and skeletons. The
+old routes `permanentRedirect` to `/field?mode=bonus|defcon`, so nothing that
+was linked or bookmarked breaks. The desktop nav entries and the mobile
+stat-board strip are gone with them, and in a board mode the pitch's own
+controls — the compare box, the duplicate artwork switch and the squad charts
+below — step out of the way.
+
+**The status pill stopped sitting on the page.** It was `position: fixed` above
+the thumb bar on every screen, permanently covering a band of content on a
+phone for a number the header already carried. It is a header chip now
+(`StatusChip`), with the fuller read on the landing page (`StatusPanel`, loaded
+client-side through `/api/gaffer/status` so the team-ID gate never waits on the
+FPL API). e2e pins that nothing but the header and the thumb bar is fixed
+furniture.
 
 ## Outstanding
 

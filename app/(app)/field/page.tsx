@@ -1,12 +1,8 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { FieldClient } from "@/components/gaffer/field/FieldClient";
-import type { TopPerformersData, TopRow } from "@/components/gaffer/field/TopPerformers";
-import { clubOf } from "@/config/clubs";
-import type { PerfPlayer } from "@/lib/engines/performance";
 import { buildMatchday } from "@/lib/server/buildMatchday";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
-import { getLive } from "@/lib/fpl/endpoints";
 import { COPY } from "@/lib/copy/deck";
 
 export const dynamic = "force-dynamic";
@@ -44,89 +40,15 @@ export default async function FieldPage({
   }
 
 
-  // Top performers — GW frame from the live feed (current GW only), season
-  // frame from bootstrap totals. Degrades to null quietly.
-  const top = await buildTopPerformers(result.model.event.id, gwParam == null).catch(() => null);
-
   // FPL's own published expectation for this gameweek, for the squad only —
-  // the "projected" side of the delivery chart. One bootstrap read, cached.
+  // the "projected" side of the delivery chart. One bootstrap read, cached,
+  // and about fifteen numbers on the wire. The stat boards that used to be
+  // composed here now load from /api/gaffer/boards when one is opened.
   const expectedByElement = await squadExpectations(result.model.squad.map((r) => r.element)).catch(
     () => ({}),
   );
 
-  return (
-    <FieldClient initialModel={result.model} top={top} expectedByElement={expectedByElement} />
-  );
-}
-
-/** The market's form board — season actuals, expectations and the gap. */
-async function buildTopPerformers(eventId: number, includeGw: boolean): Promise<TopPerformersData | null> {
-  const boot = await getBootstrapLite();
-  const season: PerfPlayer[] = Object.values(boot.elements)
-    // Departed players still sit in the bootstrap and nobody can pick them.
-    .filter((el) => el.status !== "u")
-    .map((el) => ({
-      id: el.id,
-      name: el.web_name,
-      pos: el.element_type,
-      teamId: el.team,
-      code: clubOf(el.team).code,
-      photo: el.photo,
-      cost: el.now_cost,
-      minutes: el.minutes,
-      starts: el.starts,
-      points: el.total_points,
-      goals: el.goals_scored,
-      assists: el.assists,
-      cleanSheets: el.cleanSheets,
-      goalsConceded: el.goalsConceded,
-      saves: el.saves,
-      bonus: el.bonus,
-      bps: el.bps,
-      defcon: el.defcon,
-      tackles: el.tackles,
-      recoveries: el.recoveries,
-      cbi: el.cbi,
-      yellowCards: el.yellowCards,
-      redCards: el.redCards,
-      xg: el.xgTotal,
-      xa: el.xaTotal,
-      xgi: el.xgiTotal,
-      xgc: el.xgcTotal,
-      owned: el.selected_by_percent,
-    }));
-
-  let gw: TopRow[] = [];
-  if (includeGw) {
-    const live = await getLive(eventId);
-    gw = Object.values(live.elements)
-      .filter((e) => e.stats.minutes > 0)
-      .map((e) => {
-        const el = boot.elements[e.id];
-        return {
-          element: e.id,
-          webName: el?.web_name ?? `#${e.id}`,
-          pos: el?.element_type ?? 4,
-          teamId: el?.team ?? 0,
-          photo: el?.photo ?? "",
-          minutes: e.stats.minutes,
-          xg: e.stats.expected_goals,
-          xa: e.stats.expected_assists,
-          xgc: e.stats.expected_goals_conceded,
-          points: e.stats.total_points,
-          goals: e.stats.goals_scored,
-          assists: e.stats.assists,
-          cleanSheets: e.stats.clean_sheets,
-          saves: e.stats.saves,
-          bonus: e.stats.bonus,
-          bps: e.stats.bps,
-          defcon: e.stats.defensive_contribution ?? 0,
-          yellowCards: e.stats.yellow_cards,
-          redCards: e.stats.red_cards,
-        };
-      });
-  }
-  return { currentGw: eventId, gw, season };
+  return <FieldClient initialModel={result.model} expectedByElement={expectedByElement} />;
 }
 
 /** ep_this for the squad — nothing else needs to cross the wire. */

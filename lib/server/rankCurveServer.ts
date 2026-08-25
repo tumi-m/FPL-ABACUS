@@ -6,6 +6,16 @@ import { buildRankCurve, type RankCurve } from "@/lib/engines/rankModel";
 const LEAGUE_314 = 314;
 /** Kept modest to stay a good citizen; log-spacing keeps coverage across the field. */
 const PAGE_BUDGET = 24;
+/**
+ * Pages in flight at once.
+ *
+ * These used to go one at a time with a 120ms sleep between them: twenty-seven
+ * round trips in series, which on a cold cache is ten to twenty seconds of a
+ * user staring at a skeleton. Four at a time is still polite to the upstream —
+ * it is fewer concurrent requests than a browser opens to load one page — and
+ * turns the wait into seven waves instead of twenty-seven.
+ */
+const CONCURRENCY = 4;
 
 export interface RankCurveBundle {
   curve: RankCurve | null;
@@ -21,17 +31,17 @@ export const getRankCurveBundle = (gw: number) =>
       const samples: { rank: number; total: number }[] = [];
       const eventTotals: number[] = [];
 
-      for (const page of pages) {
-        try {
-          const res = await getStandings(LEAGUE_314, page);
-          for (const r of res.standings.results) {
+      for (let i = 0; i < pages.length; i += CONCURRENCY) {
+        const batch = pages.slice(i, i + CONCURRENCY);
+        const results = await Promise.allSettled(batch.map((page) => getStandings(LEAGUE_314, page)));
+        for (const res of results) {
+          // a single page failing must not kill the curve
+          if (res.status !== "fulfilled") continue;
+          for (const r of res.value.standings.results) {
             samples.push({ rank: r.rank, total: r.total });
             eventTotals.push(r.event_total ?? 0);
           }
-        } catch {
-          // a single page failing must not kill the curve
         }
-        await new Promise((r) => setTimeout(r, 120));
       }
 
       if (samples.length < 10) {

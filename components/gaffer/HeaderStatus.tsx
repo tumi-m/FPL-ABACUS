@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { getEntry } from "@/lib/fpl/endpoints";
 import { loadGwContext, liveBarData } from "@/lib/server/gw";
-import { LiveBar } from "@/components/gaffer/LiveBar";
+import { StatusChip } from "@/components/gaffer/LiveStatus";
 
 /**
  * The shell's two upstream-backed fragments, split out of the layout so the
@@ -30,7 +30,7 @@ const loadHeader = cache(async (teamId: number) => {
 
 export async function LiveBarSlot({ teamId }: { teamId: number }) {
   const { live } = await loadHeader(teamId);
-  return live ? <LiveBar data={live} /> : null;
+  return live ? <StatusChip data={live} /> : null;
 }
 
 export async function TeamPill({ teamId }: { teamId: number }) {
