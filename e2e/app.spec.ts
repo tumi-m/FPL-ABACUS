@@ -125,6 +125,18 @@ test.describe("authenticated routes", () => {
     await expect(page.getByRole("columnheader", { name: "Manager" })).toBeVisible();
   });
 
+  test("league summary names the managers it was computed over", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/leagues/314");
+    // "Avg 60.6" alone invites you to read it as the league average when it is
+    // the average of what is loaded — after one page, the top fifty.
+    await expect(page.getByText(/over top \d+ managers/i)).toBeVisible();
+
+    // a filter changes the denominator, and the label follows it
+    await page.goto("/leagues/314?topN=10");
+    await expect(page.getByText(/over 10 matching managers/i)).toBeVisible();
+  });
+
   test("league pagination appends the next page", async ({ page }) => {
     await asTeam(page);
     // Pick the first league the index offers (314 is empty pre-GW1).

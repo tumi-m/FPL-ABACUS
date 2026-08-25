@@ -287,6 +287,34 @@ three-way theme radio group is one cycling button below `sm` — same three
 modes, ninety pixels back — and the cluster now ends at 374 with the gutter
 intact.
 
+### V9-N — say what a number is an average of ✅
+
+**The league summary names its denominator.** "Avg 60.6" over a league table
+invites you to read it as the league average when it is the average of
+whatever is loaded — after one page, the top fifty. The figures were always
+computed over the rows shown; now they say so. The strip carries "over top 50
+managers", "over all 137 managers" once every page is in, or "over 10 matching
+managers" under a filter, and the scope grows with each Load more so the
+number and its denominator never drift apart.
+
+FPL leaves `max_entries` null on public leagues, but once the last page is
+loaded the loaded set *is* the league — so the header's manager count fills in
+at that point rather than staying blank.
+
+**Bonus stopped being yellow.** `--amber` carried four meanings: bonus, the
+yellow card, the doubtful flag and price movement. At token size a brace of
+bonus next to a booking was two gold marks the eye had to read twice. Bonus
+gets `--bonus` (the previously unused magenta) everywhere it is meant — the
+pitch pips, the projected-bonus asterisk, the bonus leaders chart and the
+whole Bonus board. Nothing else on a pitch is pink, and the card stays the
+colour a card has to be.
+
+**The event badges got bigger.** Nine pixels was too small to tell a ball from
+a boot at arm's length. Thirteen with tighter padding keeps the same footprint
+— three badges still fit under a token — with a glyph half again as large. The
+strip sizes as one: a goal drawn larger than the shield beside it would read as
+a broken row rather than a louder mark.
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.

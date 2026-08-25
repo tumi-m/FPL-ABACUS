@@ -59,6 +59,7 @@
   --color-ultra: var(--ultra);
   --color-amber: var(--amber);
   --color-magenta: var(--magenta);
+  --color-bonus: var(--bonus);
   --color-on-accent: var(--on-accent);
   --color-persona-oleg: var(--persona-oleg);
   --color-persona-kofi: var(--persona-kofi);
@@ -245,6 +246,12 @@
   --brand-wash: rgba(10,208,255,.13);
   --good: var(--surge);
   --warning: var(--amber);
+  /* Bonus had been amber, which is also the yellow card, the doubtful flag
+     and price movement. Four meanings in one hue meant a brace of bonus and
+     a booking looked alike at token size, so bonus gets the free magenta —
+     nothing else on a pitch is pink, and the card stays the colour a card
+     has to be. */
+  --bonus: var(--magenta);
   --serious: color-mix(in oklab, var(--amber) 55%, var(--flare));
   --critical: var(--flare);
 

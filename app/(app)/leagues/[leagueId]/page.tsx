@@ -159,6 +159,34 @@ export default async function LeagueDetail({
   const spreadMetric = metricVals.length ? Math.max(...metricVals) - Math.min(...metricVals) : 0;
   const bestMetric = metricVals.length ? Math.max(...metricVals) : 0;
 
+  // ...and it has to say so. "Avg 60.6" invites you to read it as the league
+  // average when it is the average of whatever is loaded, which after one page
+  // is the top fifty. The scope is named next to the figures and grows as you
+  // load more, so the number and its denominator never drift apart.
+  // FPL leaves max_entries null on public leagues, but once every page is in
+  // the loaded set *is* the league, so the size stops being a mystery.
+  const knownSize = memberCount != null && memberCount > 0
+    ? memberCount
+    : !lastPageHasMore
+      ? allRows.length
+      : null;
+
+  const counted = metricVals.length;
+  const filtersActive = qFilter !== "" || minGwFilter > 0 || topNFilter != null;
+  const n = counted.toLocaleString("en-GB");
+  const scopeLabel = filtersActive
+    ? `${n} matching`
+    : lastPageHasMore
+      // Standings arrive in rank order, so an unfinished load is literally the
+      // top N — not a sample of the league.
+      ? `top ${n}`
+      : `all ${n}`;
+  const scopeTitle = filtersActive
+    ? `Computed over the ${n} managers matching your filters`
+    : lastPageHasMore
+      ? `Computed over the top ${n} managers loaded so far — load more to widen it`
+      : `Computed over all ${n} managers in this league`;
+
   return (
     <div className="space-y-4">
       <BackLink href="/leagues" label="All leagues" />
@@ -167,28 +195,35 @@ export default async function LeagueDetail({
       <PageHeader
         ariaLabel={`${leagueName} standings`}
         title={leagueName}
-        meta={`GW${currentGw}${memberCount != null && memberCount > 0 ? ` · ${memberCount.toLocaleString("en-GB")} managers` : ""} · tap a manager to compare`}
+        meta={`GW${currentGw}${knownSize != null ? ` · ${knownSize.toLocaleString("en-GB")} managers` : ""} · tap a manager to compare`}
         action={
-          <dl className="flex items-end gap-6 md:gap-8">
-            <div>
-              <dt className="upper-label text-2xs text-ink-lo">Avg {metricName === "Gameweek" ? "GW" : metricName.split(" · ")[0]}</dt>
-              <dd className="hero-figure fig-num mt-0.5 leading-none" aria-label={`Average ${metricName} score ${avgMetric.toFixed(1)} across the managers shown`}>
-                {avgMetric.toFixed(1)}
-              </dd>
-            </div>
-            <div>
-              <dt className="upper-label text-2xs text-ink-lo">Spread</dt>
-              <dd className="fig-num mt-0.5 text-xl leading-none text-ink-2" aria-label={`Spread ${spreadMetric} points between best and worst ${metricName} shown`}>
-                {spreadMetric}
-              </dd>
-            </div>
-            <div>
-              <dt className="upper-label text-2xs text-ink-lo">Best</dt>
-              <dd className="fig-num mt-0.5 text-xl leading-none text-ink-2" aria-label={`Best ${metricName} score ${bestMetric}`}>
-                {bestMetric}
-              </dd>
-            </div>
-          </dl>
+          <div className="text-right">
+            <dl className="flex items-end justify-end gap-6 md:gap-8">
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">Avg {metricName === "Gameweek" ? "GW" : metricName.split(" · ")[0]}</dt>
+                <dd className="hero-figure fig-num mt-0.5 leading-none" aria-label={`Average ${metricName} score ${avgMetric.toFixed(1)} across ${scopeLabel} managers`}>
+                  {avgMetric.toFixed(1)}
+                </dd>
+              </div>
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">Spread</dt>
+                <dd className="fig-num mt-0.5 text-xl leading-none text-ink-2" aria-label={`Spread ${spreadMetric} points between best and worst ${metricName} across ${scopeLabel} managers`}>
+                  {spreadMetric}
+                </dd>
+              </div>
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">Best</dt>
+                <dd className="fig-num mt-0.5 text-xl leading-none text-ink-2" aria-label={`Best ${metricName} score ${bestMetric} across ${scopeLabel} managers`}>
+                  {bestMetric}
+                </dd>
+              </div>
+            </dl>
+            {counted > 0 && (
+              <p className="upper-label mt-1.5 text-2xs text-ink-lo" title={scopeTitle}>
+                over {scopeLabel} {counted === 1 ? "manager" : "managers"}
+              </p>
+            )}
+          </div>
         }
       />
 

@@ -139,7 +139,7 @@ export function BonusLeaders({ rows, limit = 5 }: { rows: SquadRow[]; limit?: nu
               </text>
               <rect
                 x={M.left} y={y} width={Math.max(2, w)} height={barH} rx="3"
-                fill="var(--amber)" opacity={r.bonusOfficial ? 1 : 0.75}
+                fill="var(--bonus)" opacity={r.bonusOfficial ? 1 : 0.75}
                 stroke="var(--bg-raised)" strokeWidth="2"
               >
                 <title>{`${r.webName}: ${r.bonus} bonus${r.bonusOfficial ? "" : " (projected)"}`}</title>
