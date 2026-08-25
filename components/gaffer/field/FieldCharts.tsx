@@ -9,6 +9,23 @@ type SquadRow = MatchdayModel["squad"][number];
 const SERIES = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)"];
 
 /**
+ * What a player actually put on your scoreboard.
+ *
+ * `livePoints` is the raw player score; FPL multiplies it by the pick
+ * multiplier (0 bench, 1 starter, 2 captain, 3 triple captain) and the sum of
+ * those products is your gameweek total before the transfer cost. Charts that
+ * ignored the multiplier were quietly dropping the captain's second helping.
+ */
+export function contribution(r: SquadRow): number {
+  return r.livePoints * r.multiplier;
+}
+
+/** Rows that count toward the score — starters plus any auto-sub already in. */
+export function counting(rows: SquadRow[]): SquadRow[] {
+  return rows.filter((r) => r.multiplier > 0);
+}
+
+/**
  * Four companion charts under the pitch — every figure derived from the
  * matchday model, never estimated prose. Flat marks, upright names, values in
  * italic Saira via fig-num where they headline.
@@ -20,12 +37,15 @@ export function PositionContribution({ rows }: { rows: SquadRow[] }) {
   const H = 190;
   const M = { top: 14, right: 52, bottom: 8, left: 44 };
 
-  const xi = rows.filter((r) => !r.onBench);
+  // The counting side of the squad, captain multiplier included — otherwise
+  // these bars do not add up to the score they claim to explain.
+  const xi = counting(rows);
   const byPos = [1, 2, 3, 4].map((pos) => ({
     pos,
     label: POSITION_SHORT[pos],
-    pts: xi.filter((r) => r.pos === pos).reduce((s, r) => s + r.livePoints, 0),
+    pts: xi.filter((r) => r.pos === pos).reduce((s, r) => s + contribution(r), 0),
   }));
+  const scored = byPos.reduce((s, p) => s + p.pts, 0);
   const max = Math.max(1, ...byPos.map((p) => p.pts));
   const bw = (H - M.top - M.bottom) / byPos.length;
   const barH = Math.min(26, bw * 0.62);
@@ -38,8 +58,9 @@ export function PositionContribution({ rows }: { rows: SquadRow[] }) {
   return (
     <ChartFrame
       eyebrow="Contribution"
-      title="Points by position"
-      ariaLabel="Your gameweek points split by position"
+      title={`Points by position — ${scored} on the board`}
+      ariaLabel="Your gameweek points split by position, captain multiplier included"
+      caption="Counts the captain's multiplier, so the bars add up to your gameweek score before any transfer cost."
       table={table}
     >
       <svg role="img" viewBox={`0 0 ${W} ${H}`} className="w-full">
@@ -208,14 +229,16 @@ export function CaptainShare({ rows }: { rows: SquadRow[] }) {
   const H = 110;
   const M = { top: 18, right: 24, bottom: 26, left: 24 };
 
-  const xi = rows.filter((r) => !r.onBench);
+  // Both sides of this fraction must count the multiplier. Dividing the
+  // doubled captain by an undoubled squad total overstated every share.
+  const xi = counting(rows);
   const cap = xi.find((r) => r.isCaptain && r.multiplier >= 2);
-  const total = xi.reduce((s, r) => s + r.livePoints, 0);
-  const capPts = cap ? cap.livePoints * cap.multiplier : 0;
+  const total = xi.reduce((s, r) => s + contribution(r), 0);
+  const capPts = cap ? contribution(cap) : 0;
   const share = total > 0 ? Math.round((capPts / total) * 100) : 0;
 
   const table = {
-    headers: ["Captain", "Captain pts", "XI pts", "Share"],
+    headers: ["Captain", "Captain pts", "Score", "Share"],
     rows: [[cap?.webName ?? "—", capPts, total, `${share}%`]],
   };
 

@@ -7,7 +7,9 @@ import { AskBar } from "@/components/gaffer/ask/AskBar";
 import { ThemeToggle } from "@/components/primitives/ThemeToggle";
 import { cn } from "@/lib/ui/cn";
 
-// FLOODLIGHT §11 IA — six destinations, all six in the thumb bar.
+// FLOODLIGHT §11 IA — the primary destinations. The thumb bar carries the six
+// that get used mid-gameweek; the stat boards sit behind the Field, which is
+// where you already are when you want them.
 const NAV = [
   { href: "/live", label: "Matchday", short: "Live" },
   { href: "/field", label: "Field", short: "Field" },
@@ -15,6 +17,12 @@ const NAV = [
   { href: "/board", label: "Board", short: "Board" },
   { href: "/leagues", label: "Leagues", short: "Mini" },
   { href: "/arcade", label: "Arcade", short: "Play" },
+] as const;
+
+/** Secondary boards — desktop nav only, linked from the Field as well. */
+const BOARDS = [
+  { href: "/bonus", label: "Bonus" },
+  { href: "/defcon", label: "DEFCON" },
 ] as const;
 
 /**
@@ -47,7 +55,7 @@ export function AppShell({
               <Wordmark />
             </Link>
             <nav aria-label="Primary" className="hidden lg:flex items-center gap-1 ml-2">
-              {NAV.map((item) => (
+              {[...NAV, ...BOARDS].map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

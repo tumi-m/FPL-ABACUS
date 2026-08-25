@@ -31,15 +31,25 @@ export function formatDeltaShort(delta: number): string {
 export const POSITION_SHORT: Record<number, string> = { 1: "GKP", 2: "DEF", 3: "MID", 4: "FWD" };
 
 /**
- * Player headshots. The PL site serves the 2025/26 asset set
- * (premierleague25/photos/players/110x140/{code}.png — no p prefix) and new
- * signings exist ONLY there; the legacy generic path still has everyone from
- * earlier seasons and stays as the fallback.
+ * Premier League headshot seasons, newest first.
+ *
+ * The PL publishes a fresh set per season under `premierleague{YY}` and only
+ * ever backfills it — a player who moved in the summer exists in the new set
+ * and nowhere else, while an established name may still only be in an older
+ * one. So we ask for the current season first and walk back; `PlayerPhoto`
+ * steps through this list on error and lands on the club crest if none of
+ * them resolve. New faces appear the moment the PL publishes them, with no
+ * code change.
  */
+export const PHOTO_SEASONS = ["premierleague26", "premierleague25"] as const;
+
 export function playerImgSources(photo: string): string[] {
   const code = photo.replace(/\.(jpg|png)$/i, "");
   return [
-    `https://resources.premierleague.com/premierleague25/photos/players/110x140/${code}.png`,
+    ...PHOTO_SEASONS.map(
+      (season) => `https://resources.premierleague.com/${season}/photos/players/110x140/${code}.png`,
+    ),
+    // The retired generic set — still the only home of some pre-2025 players.
     `https://resources.premierleague.com/premierleague/photos/players/250x250/p${code}.png`,
   ];
 }

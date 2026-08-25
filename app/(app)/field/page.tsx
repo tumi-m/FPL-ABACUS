@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { FieldClient } from "@/components/gaffer/field/FieldClient";
 import type { TopPerformersData, TopRow } from "@/components/gaffer/field/TopPerformers";
+import { clubOf } from "@/config/clubs";
+import type { PerfPlayer } from "@/lib/engines/performance";
 import { buildMatchday } from "@/lib/server/buildMatchday";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getLive } from "@/lib/fpl/endpoints";
@@ -46,24 +48,54 @@ export default async function FieldPage({
   // frame from bootstrap totals. Degrades to null quietly.
   const top = await buildTopPerformers(result.model.event.id, gwParam == null).catch(() => null);
 
-  return <FieldClient initialModel={result.model} top={top} />;
+  // FPL's own published expectation for this gameweek, for the squad only —
+  // the "projected" side of the delivery chart. One bootstrap read, cached.
+  const expectedByElement = await squadExpectations(result.model.squad.map((r) => r.element)).catch(
+    () => ({}),
+  );
+
+  return (
+    <FieldClient initialModel={result.model} top={top} expectedByElement={expectedByElement} />
+  );
 }
 
-/** The market's form board — all players, both timeframes, no projections. */
+/** The market's form board — season actuals, expectations and the gap. */
 async function buildTopPerformers(eventId: number, includeGw: boolean): Promise<TopPerformersData | null> {
   const boot = await getBootstrapLite();
-  const season: TopRow[] = Object.values(boot.elements).map((el) => ({
-    element: el.id,
-    webName: el.web_name,
-    pos: el.element_type,
-    teamId: el.team,
-    photo: el.photo,
-    minutes: el.minutes,
-    xg: el.xgTotal,
-    xa: el.xaTotal,
-    xgc: el.xgcTotal,
-    points: el.total_points,
-  }));
+  const season: PerfPlayer[] = Object.values(boot.elements)
+    // Departed players still sit in the bootstrap and nobody can pick them.
+    .filter((el) => el.status !== "u")
+    .map((el) => ({
+      id: el.id,
+      name: el.web_name,
+      pos: el.element_type,
+      teamId: el.team,
+      code: clubOf(el.team).code,
+      photo: el.photo,
+      cost: el.now_cost,
+      minutes: el.minutes,
+      starts: el.starts,
+      points: el.total_points,
+      goals: el.goals_scored,
+      assists: el.assists,
+      cleanSheets: el.cleanSheets,
+      goalsConceded: el.goalsConceded,
+      saves: el.saves,
+      bonus: el.bonus,
+      bps: el.bps,
+      defcon: el.defcon,
+      tackles: el.tackles,
+      recoveries: el.recoveries,
+      cbi: el.cbi,
+      yellowCards: el.yellowCards,
+      redCards: el.redCards,
+      xg: el.xgTotal,
+      xa: el.xaTotal,
+      xgi: el.xgiTotal,
+      xgc: el.xgcTotal,
+      owned: el.selected_by_percent,
+    }));
+
   let gw: TopRow[] = [];
   if (includeGw) {
     const live = await getLive(eventId);
@@ -82,8 +114,28 @@ async function buildTopPerformers(eventId: number, includeGw: boolean): Promise<
           xa: e.stats.expected_assists,
           xgc: e.stats.expected_goals_conceded,
           points: e.stats.total_points,
+          goals: e.stats.goals_scored,
+          assists: e.stats.assists,
+          cleanSheets: e.stats.clean_sheets,
+          saves: e.stats.saves,
+          bonus: e.stats.bonus,
+          bps: e.stats.bps,
+          defcon: e.stats.defensive_contribution ?? 0,
+          yellowCards: e.stats.yellow_cards,
+          redCards: e.stats.red_cards,
         };
       });
   }
   return { currentGw: eventId, gw, season };
+}
+
+/** ep_this for the squad — nothing else needs to cross the wire. */
+async function squadExpectations(elements: number[]): Promise<Record<number, number>> {
+  const boot = await getBootstrapLite();
+  const out: Record<number, number> = {};
+  for (const id of elements) {
+    const ep = boot.elements[id]?.ep_this;
+    if (ep != null && ep > 0) out[id] = ep;
+  }
+  return out;
 }

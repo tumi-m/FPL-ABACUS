@@ -64,6 +64,8 @@
   --color-persona-kofi: var(--persona-kofi);
   --color-persona-mei: var(--persona-mei);
   --color-persona-ana: var(--persona-ana);
+  --color-defcon: var(--defcon);
+  --color-defcon-hit: var(--defcon-hit);
   --color-heat-1: var(--heat-1);
   --color-heat-2: var(--heat-2);
   --color-heat-3: var(--heat-3);
@@ -175,6 +177,11 @@
   --magenta:#F86CCA;      /* differential · ownership    */
   --on-accent:#04121F;
 
+  /* defensive contributions — read on turf, never confused with the grass.
+     Steel while the meter fills, hot white-gold the moment it is banked. */
+  --defcon:#8FB8FF;
+  --defcon-hit:#FFE27A;
+
   /* persona identity accents (v6) — chrome only, always paired with the
      gaffer's name; never meaning-coded like the accents above */
   --persona-oleg:#5FA8E8;  /* steel blue — The Tactician          */
@@ -284,6 +291,7 @@
     --ink-hi:#0B1D36; --ink-mid:#3D516B; --ink-lo:#4E6681;
     --volt:#0076B7; --ice:#008FB3; --surge:#008D61; --flare:#CE0B23;
     --ultra:#6A35D9; --amber:#BC7400; --magenta:#B82989; --on-accent:#FFFFFF;
+    --defcon:#2C5BB8; --defcon-hit:#9A6B00;
     --heat-1:#6A53BD; --heat-2:#5778DF; --heat-3:#3BA6F5;
     --heat-4:#28D3F4; --heat-5:#47F5E3; --heat-6:#82FFC5;
     --flare-l:rgba(0,118,183,.10); --flare-r:rgba(0,143,179,.09); --flare-b:rgba(106,53,217,.07);
@@ -322,6 +330,7 @@
   --ink-hi:#0B1D36; --ink-mid:#3D516B; --ink-lo:#4E6681;
   --volt:#0076B7; --ice:#008FB3; --surge:#008D61; --flare:#CE0B23;
   --ultra:#6A35D9; --amber:#BC7400; --magenta:#B82989; --on-accent:#FFFFFF;
+  --defcon:#2C5BB8; --defcon-hit:#9A6B00;
   --heat-1:#6A53BD; --heat-2:#5778DF; --heat-3:#3BA6F5;
   --heat-4:#28D3F4; --heat-5:#47F5E3; --heat-6:#82FFC5;
   --flare-l:rgba(0,118,183,.10); --flare-r:rgba(0,143,179,.09); --flare-b:rgba(106,53,217,.07);

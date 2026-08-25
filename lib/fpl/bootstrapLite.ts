@@ -38,6 +38,29 @@ export interface ElementLite {
   xgTotal: number;
   xaTotal: number;
   xgcTotal: number;
+  /** Expected goal involvements — FPL publishes it, so we do not re-derive it. */
+  xgiTotal: number;
+  /** This gameweek's published expectation, the "projected" side of the
+   *  actual-vs-projected read. */
+  ep_this: number | null;
+
+  /* ── Season actuals. Everything the over/underperformance work needs comes
+        from one bootstrap read; no per-player summary fetches. ── */
+  cleanSheets: number;
+  goalsConceded: number;
+  ownGoals: number;
+  saves: number;
+  pensSaved: number;
+  pensMissed: number;
+  yellowCards: number;
+  redCards: number;
+  starts: number;
+  /** Defensive contributions — the DEFCON stat FPL scores from 2025/26. */
+  defcon: number;
+  tackles: number;
+  recoveries: number;
+  /** Clearances, blocks and interceptions. */
+  cbi: number;
 }
 
 export interface BootstrapLite {
@@ -97,6 +120,21 @@ export const getBootstrapLite = () =>
         xgTotal: el.expected_goals,
         xaTotal: el.expected_assists,
         xgcTotal: el.expected_goals_conceded,
+        xgiTotal: el.expected_goal_involvements,
+        ep_this: typeof el.ep_this === "number" ? el.ep_this : null,
+        cleanSheets: el.clean_sheets,
+        goalsConceded: el.goals_conceded,
+        ownGoals: el.own_goals,
+        saves: el.saves,
+        pensSaved: el.penalties_saved,
+        pensMissed: el.penalties_missed,
+        yellowCards: el.yellow_cards,
+        redCards: el.red_cards,
+        starts: el.starts,
+        defcon: el.defensive_contribution,
+        tackles: el.tackles,
+        recoveries: el.recoveries,
+        cbi: el.clearances_blocks_interceptions,
       };
     }
 

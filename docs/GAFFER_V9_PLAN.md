@@ -93,6 +93,74 @@ produced the error now returns a Price watch card with its estimate note, the
 gate's name search returns an empty result set rather than a 500, and the
 newsdesk renders.
 
+### V9-H — the Field reads like a broadcast ✅
+Owner batch on what the pitch and its boards actually show.
+
+**Five new charts, and the maths that was already written.** `lib/quant` held a
+Nash captaincy objective, a Shapley permutation sampler and a rank-at-risk
+measure that nothing ever rendered. They are on screen now, in
+`components/gaffer/field/DecisionCharts.tsx`:
+- **Rank at risk** — the Dixon–Coles Monte Carlo's XI totals converted to rank
+  through the curve's local slope; median, the 5% tail and the mean rank given
+  you land in it. Says so when the good half of the band runs into first place.
+- **The Crossover** — the Nash objective (Δμ + B)/σ_Δ over your captaincy
+  candidates, with the points-behind level at which each challenger overtakes.
+- **The Ledger** — Shapley attribution over the multiverse counterfactuals,
+  400 permutations, so the bars sum to the rank move they explain.
+- **Process vs outcome** — finishing against xG, creation against xA, the
+  official-minus-projected bonus bounce, and your score against the field.
+- **Delivery** — every player's live points against the expectation FPL
+  published for the week, both counting the multiplier.
+The simulation feed is fetched once per Field view after hydration and shared;
+`buildCorrelationWeb` now returns per-player sd and the XI total draws.
+
+**Two accuracy bugs in the existing charts.** `livePoints` is the raw player
+score; the multiplier lives beside it. "Points by position" summed raw points,
+so the captain's second helping vanished and the bars did not add up to the
+score they claimed to explain. "Captain share" was worse — it divided a
+doubled captain by an undoubled squad total and overstated every share. Both
+now go through one `contribution()` helper.
+
+**Faces or kits.** `PlayerAvatar` + `AvatarToggle` (Focal's switch): a
+device-wide preference in localStorage, live across every board on the page,
+with `ShirtKit` drawing twenty club shirts from the rail tokens — pattern as
+well as colour, because three clubs wear red.
+
+**The green rings are gone.** The DEFCON meter was `--surge` on green turf,
+which read as decoration. New `--defcon` / `--defcon-hit` tokens: steel while
+the work is being done, gold the moment the two points are banked.
+
+**Match events on the token.** Goals, assists, the shutout (keepers and
+defenders only, dimmed until the whistle), keeper saves once they are worth a
+point, bookings, own goals and missed penalties — each a shape *and* a hue, so
+no two marks a player can hold at once look alike. The captain is a real
+armband now: a volt disc overhanging the frame plus a volt ring on the face,
+and "3C" under a Triple Captain.
+
+**2026/27 faces.** `PHOTO_SEASONS` puts `premierleague26` first and falls back
+to `premierleague25`, then the retired generic set, then the crest.
+
+### V9-I — the stat boards ✅
+`lib/engines/performance.ts` (+39 tests) is the one definition of a player's
+season: per-90s, actual against expected, and the shrinkage that stops a hot
+cameo topping a board (half weight at 900 minutes). Expected clean sheets are
+the Poisson shutout probability e^(−xGC/90) across starts. Minutes floors
+scale to how much football has been played, never below half a match.
+
+- **Top performers**, rebuilt: three boards over one dataset — *Actual*
+  (goals, assists, clean sheets, saves, DEFCON, conceded, cards, G+A/90,
+  points per £m), *Expected* (xG, xA, xGI, xGC, rates), and *Over/under*, the
+  gap, judged per position — keepers and defenders on shutouts, midfielders on
+  involvement, forwards on finishing. The gap view carries a scatter against
+  the parity line and diverging bars.
+- **`/bonus`** — season totals plus the real 3·2·1 split read from each
+  gameweek's own feed, bonus per 90, and BPS-per-bonus conversion with the
+  plot of who cashes their BPS and who collects it behind somebody else.
+- **`/defcon`** — contributions and per-90 rates against the line each
+  position must clear (ten for defenders, twelve otherwise), the tackles /
+  CBI / recoveries mix, measured threshold crossings from the weeks
+  themselves, and bookings.
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.

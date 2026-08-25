@@ -17,6 +17,10 @@ export interface CorrelationWebPayload {
   meanPoints: Record<number, number>;
   /** Normalised marginal variance contribution per player (sums to 1). */
   riskShare: Record<number, number>;
+  /** Per-player simulated points sd — the risk arm of the Nash captaincy read. */
+  sdPoints: Record<number, number>;
+  /** A sample of simulated XI totals (multiplier-weighted) for the rank band. */
+  totals: number[];
   /** The XI's simulated points sd. */
   portfolioSd: number;
   effectiveBets: number;
@@ -94,8 +98,28 @@ export async function buildCorrelationWeb(teamId: number, gw?: number): Promise<
   if (!ctx || ctx.players.length < 3) return null;
   const { players: webPlayers, fixtures: webFixtures, fit } = ctx;
 
-  const web = simulateWeb(webPlayers, webFixtures, fit, undefined, { M: 800, seed: 2026 });
+  const web = simulateWeb(webPlayers, webFixtures, fit, undefined, {
+    M: 800,
+    seed: 2026,
+    // The per-draw matrix is what turns eleven independent-looking players
+    // into one distribution of gameweek totals.
+    keepDraws: true,
+  });
   const risk = marginalRisk(webPlayers, web.correlation, web.variance);
+
+  // Collapse the draw matrix into XI totals, applying the pick multipliers so
+  // the captain counts twice exactly as he does on the scoreboard.
+  const totals: number[] = [];
+  if (web.drawsMatrix) {
+    const M = web.draws;
+    const mults = webPlayers.map((p) => ctx.multipliers.get(p.elementId) ?? 1);
+    for (let m = 0; m < M; m++) {
+      let sum = 0;
+      for (let i = 0; i < webPlayers.length; i++) sum += web.drawsMatrix[i * M + m] * mults[i];
+      totals.push(Number(sum.toFixed(2)));
+    }
+    totals.sort((a, b) => a - b);
+  }
 
   const pairs: { a: number; b: number; rho: number }[] = [];
   for (const [key, rho] of web.correlation) {
@@ -109,12 +133,18 @@ export async function buildCorrelationWeb(teamId: number, gw?: number): Promise<
   for (const p of webPlayers) meanPoints[p.elementId] = web.meanPoints.get(p.elementId) ?? 0;
   const riskShare: Record<number, number> = {};
   for (const p of webPlayers) riskShare[p.elementId] = Number((risk.share.get(p.elementId) ?? 0).toFixed(4));
+  const sdPoints: Record<number, number> = {};
+  for (const p of webPlayers) {
+    sdPoints[p.elementId] = Number(Math.sqrt(Math.max(0, web.variance.get(p.elementId) ?? 0)).toFixed(3));
+  }
 
   return {
     players: webPlayers.map((p) => ({ elementId: p.elementId, webName: boot.elements[p.elementId]?.web_name ?? `#${p.elementId}` })),
     pairs,
     meanPoints,
     riskShare,
+    sdPoints,
+    totals,
     portfolioSd: Number(risk.portfolioSd.toFixed(2)),
     effectiveBets: web.effectiveBets,
     draws: web.draws,
