@@ -66,7 +66,7 @@ Seven assistant intents, all router-first, all numbers from engines:
 
 ### V5-G — UX depth ✅ (this commit)
 - [x] Week Machine lite: `lib/engines/weekPhase.ts` maps the existing `GwPhase` onto
-      Autopsy/Workshop/War Room(≤36h to deadline)/Reveal/Match/Wait with headline + focus
+      Digest/Workshop/War Room(≤36h to deadline)/Reveal/Match/Wait with headline + focus
       surface (8 tests incl. `getGwPhase` ordering pins). LiveBar now reports every phase;
       HeroScore carries the moment line with an escape hatch link. Nav is never gated —
       always escapable.

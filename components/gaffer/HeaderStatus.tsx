@@ -1,5 +1,6 @@
 import "server-only";
 
+import Link from "next/link";
 import { cache } from "react";
 import { getEntry } from "@/lib/fpl/endpoints";
 import { loadGwContext, liveBarData } from "@/lib/server/gw";
@@ -35,8 +36,14 @@ export async function LiveBarSlot({ teamId }: { teamId: number }) {
 
 export async function TeamPill({ teamId }: { teamId: number }) {
   const { entry, live } = await loadHeader(teamId);
+  // The brand now opens the Arcade, so this is the way back to the gate — and
+  // the pill names your team, which is the obvious thing to tap to change it.
   return (
-    <span className="hidden sm:inline-flex h-8 items-center gap-2 rounded-full card-ring pl-3 pr-3 text-xs text-ink-2">
+    <Link
+      href="/"
+      aria-label={`${entry?.name ?? `Team ${teamId}`} — change team`}
+      className="hidden sm:inline-flex h-8 items-center gap-2 rounded-full card-ring pl-3 pr-3 text-xs text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-1"
+    >
       {entry?.name ?? `Team ${teamId}`}
       {live?.gwPoints != null && (
         <span className="inline-flex items-baseline gap-1.5 border-l border-line pl-2">
@@ -50,6 +57,6 @@ export async function TeamPill({ teamId }: { teamId: number }) {
           )}
         </span>
       )}
-    </span>
+    </Link>
   );
 }

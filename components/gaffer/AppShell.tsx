@@ -7,17 +7,16 @@ import { AskBar } from "@/components/gaffer/ask/AskBar";
 import { ThemeToggle } from "@/components/primitives/ThemeToggle";
 import { cn } from "@/lib/ui/cn";
 
-// FLOODLIGHT §11 IA — the primary destinations. The thumb bar carries the six
-// that get used mid-gameweek. The stat boards are not among them: Bonus and
-// DEFCON are modes on the Field now, so they are reached from the screen whose
-// question they answer rather than from a strip of their own.
+// FLOODLIGHT §11 IA — the primary destinations. The thumb bar carries the five
+// that get used mid-gameweek, and nothing else: the stat boards are modes on
+// the Field, and the Arcade — where you pick your gaffer — hangs off the badge
+// in the header, which is a picture of the gaffers themselves.
 const NAV = [
   { href: "/live", label: "Matchday", short: "Live" },
   { href: "/field", label: "Field", short: "Field" },
   { href: "/planner", label: "Planner", short: "Plan" },
   { href: "/board", label: "Board", short: "Board" },
   { href: "/leagues", label: "Leagues", short: "Mini" },
-  { href: "/arcade", label: "Arcade", short: "Play" },
 ] as const;
 
 /**
@@ -50,7 +49,14 @@ export function AppShell({
       <div className="relative z-10 flex min-h-dvh flex-col">
         <header className="sticky top-0 z-40 h-14 bg-surface-0/90 backdrop-blur border-b border-hairline">
           <div className="mx-auto flex h-full max-w-[1360px] items-center gap-4 px-4 md:px-6">
-            <Link href="/" className="text-lg shrink-0">
+            {/* The brand is the way into the Arcade: the badge is the four
+                gaffers, and the Arcade is where you choose which one talks to
+                you. It came off the thumb bar to make room there. */}
+            <Link
+              href="/arcade"
+              aria-label="The Arcade — pick your gaffer"
+              className="text-lg shrink-0 rounded-md transition-opacity dur-instant hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
+            >
               <Wordmark />
             </Link>
             <nav aria-label="Primary" className="hidden lg:flex items-center gap-1 ml-2">

@@ -405,16 +405,49 @@ test.describe("authenticated routes", () => {
     }
   });
 
-  test("thumb bar carries all six destinations", async ({ page }) => {
+  test("thumb bar carries the five mid-gameweek destinations", async ({ page }) => {
     await asTeam(page);
     // The thumb bar is the small-screen navigation — it is hidden from lg up.
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/live");
     const bar = page.getByRole("navigation", { name: "Primary mobile" });
     await expect(bar).toBeVisible();
-    for (const label of ["Matchday", "Field", "Planner", "Board", "Leagues", "Arcade"]) {
+    for (const label of ["Matchday", "Field", "Planner", "Board", "Leagues"]) {
       await expect(bar.getByRole("link", { name: label })).toBeVisible();
     }
+    // the Arcade came off the bar — it hangs off the badge in the header
+    await expect(bar.getByRole("link", { name: "Arcade" })).toHaveCount(0);
+    await expect(bar.locator("a")).toHaveCount(5);
+  });
+
+  test("the brand opens the Arcade and the team pill goes back to the gate", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/live");
+    await page.locator("header").getByRole("link", { name: /The Arcade/ }).click();
+    await expect(page).toHaveURL(/\/arcade/);
+    await expect(page.getByRole("heading", { name: "The Arcade" })).toBeVisible();
+
+    // The gate stays reachable now that the brand no longer points at it: the
+    // team pill carries it on a desktop header, and the Arcade carries it on a
+    // phone, where that pill is hidden.
+    await page.locator("main").getByRole("link", { name: "Change team" }).click();
+    await expect(page).toHaveURL(/localhost:\d+\/$/);
+
+    await page.goto("/live");
+    await page.locator("header").getByRole("link", { name: /change team/i }).click();
+    await expect(page).toHaveURL(/localhost:\d+\/$/);
+  });
+
+  test("a phone reaches the gate through the Arcade", async ({ page }) => {
+    await asTeam(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/live");
+    // the team pill is desktop-only, so the brand is the whole route in
+    await expect(page.locator("header").getByRole("link", { name: /change team/i })).toBeHidden();
+    await page.locator("header").getByRole("link", { name: /The Arcade/ }).click();
+    await expect(page).toHaveURL(/\/arcade/);
+    await page.locator("main").getByRole("link", { name: "Change team" }).click();
+    await expect(page).toHaveURL(/localhost:\d+\/$/);
   });
 
   test("newsdesk renders filters and availability notes", async ({ page }) => {

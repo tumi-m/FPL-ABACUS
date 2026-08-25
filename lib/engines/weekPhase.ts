@@ -6,7 +6,7 @@ import type { GwPhase } from "@/lib/fpl/schemas";
  * Pure and deterministic; never gates navigation — every surface stays
  * reachable ("always escapable").
  */
-export type WeekMoment = "autopsy" | "workshop" | "warroom" | "reveal" | "match" | "wait";
+export type WeekMoment = "digest" | "workshop" | "warroom" | "reveal" | "match" | "wait";
 
 export interface MomentSpec {
   key: WeekMoment;
@@ -30,8 +30,8 @@ export function weekMoment(
     case "final":
     case "bonus_added":
       return {
-        key: "autopsy",
-        label: "Autopsy",
+        key: "digest",
+        label: "Digest",
         headline: "The score is in — see where the points went.",
         focus: "/field/points",
       };

@@ -27,9 +27,9 @@ function momentOf(phase: GwPhase, deadlineMs?: number): MomentSpec {
 }
 
 describe("weekMoment maps every phase onto the week machine", () => {
-  it("final and bonus-added phases are the autopsy", () => {
-    expect(momentOf("final").key).toBe("autopsy");
-    expect(momentOf("bonus_added").label).toBe("Autopsy");
+  it("final and bonus-added phases are the digest", () => {
+    expect(momentOf("final").key).toBe("digest");
+    expect(momentOf("bonus_added").label).toBe("Digest");
     expect(momentOf("bonus_added").focus).toBe("/field/points");
   });
 
