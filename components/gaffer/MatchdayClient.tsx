@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import { HeroScore } from "@/components/gaffer/matchday/HeroScore";
 import { RegretMeter } from "@/components/gaffer/matchday/RegretMeter";
@@ -151,9 +152,12 @@ export function MatchdayClient({
             <span className="upper-label text-2xs text-ink-lo">settled · a past round</span>
           )}
           <span className="text-2xs uppercase-label text-ink-lo">{current.phase}</span>
-          <span className="ml-auto hidden text-2xs text-ink-lo sm:inline">
-            {moment?.headline ?? "Live scores, results and your rank."}
-          </span>
+          <Link
+            href="/squad"
+            className="skewed ml-auto inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-md card-ring px-3 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+          >
+            <span>My team</span>
+          </Link>
         </div>
       </div>
 

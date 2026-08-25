@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LeagueFilters } from "./LeagueFilters";
 import { PageHeader } from "@/components/gaffer/PageHeader";
 import { BackLink } from "@/components/gaffer/BackLink";
+import { GameweekPicker } from "@/components/gaffer/GameweekPicker";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "League" };
@@ -44,7 +45,7 @@ export default async function LeagueDetail({
   searchParams,
 }: {
   params: Promise<{ leagueId: string }>;
-  searchParams: Promise<{ page?: string; view?: string; q?: string; minGw?: string; topN?: string }>;
+  searchParams: Promise<{ page?: string; view?: string; q?: string; minGw?: string; topN?: string; gw?: string }>;
 }) {
   const { leagueId } = await params;
   const sp = await searchParams;
@@ -53,6 +54,7 @@ export default async function LeagueDetail({
   const qFilter = (sp.q ?? "").trim().toLowerCase();
   const minGwFilter = Math.max(0, Number(sp.minGw) || 0);
   const topNFilter = Number(sp.topN) > 0 ? Number(sp.topN) : null;
+  const gwParam = sp.gw != null && /^\d+$/.test(sp.gw) ? Number(sp.gw) : null;
   const id = Number(leagueId);
   if (!Number.isFinite(id)) {
     return <p className="rounded-lg bg-surface-1 card-ring p-8 text-sm text-ink-2">Unknown league.</p>;
@@ -107,6 +109,24 @@ export default async function LeagueDetail({
     return true;
   });
 
+  // A past gameweek is not in the standings payload — FPL only publishes the
+  // current `event_total` — so it comes from the same capped entry-history
+  // read the month view uses. The live week needs none of that.
+  const historicGw = view === "gw" && gwParam != null && gwParam !== currentGw ? gwParam : null;
+  const gwPts = new Map<number, number>();
+  if (historicGw != null) {
+    const points = await Promise.all(
+      rows.slice(0, PAGE_SIZE).map((r) =>
+        getHistory(r.entry)
+          .then((h) => h.current.find((g) => g.event === historicGw)?.points ?? null)
+          .catch(() => null),
+      ),
+    );
+    rows.slice(0, PAGE_SIZE).forEach((r, i) => {
+      if (points[i] != null) gwPts.set(r.entry, points[i]!);
+    });
+  }
+
   // Month view — calendar-month points per manager from cached entry histories.
   let monthLabel = "";
   const monthPts = new Map<number, number>();
@@ -130,18 +150,33 @@ export default async function LeagueDetail({
   }
 
   // View ordering — season keeps FPL rank order; gw/month re-sort by the metric.
-  if (view === "gw") rows = [...rows].sort((a, b) => b.event_total - a.event_total || b.total - a.total);
+  if (view === "gw")
+    rows = [...rows].sort(
+      (a, b) =>
+        (historicGw != null ? (gwPts.get(b.entry) ?? -1) - (gwPts.get(a.entry) ?? -1) : b.event_total - a.event_total) ||
+        b.total - a.total,
+    );
   if (view === "month") rows = [...rows].sort((a, b) => (monthPts.get(b.entry) ?? -1) - (monthPts.get(a.entry) ?? -1) || b.total - a.total);
   const displayPos = (r: StandingRow, i: number) => (view === "season" ? r.rank : i + 1);
-  const metricOf = (r: StandingRow) => (view === "season" || view === "gw" ? r.event_total : monthPts.get(r.entry));
-  const metricName = view === "month" ? `Month${monthLabel ? ` · ${monthLabel}` : ""}` : view === "gw" ? "Gameweek" : "Season";
+  const metricOf = (r: StandingRow) =>
+    view === "month"
+      ? monthPts.get(r.entry)
+      : historicGw != null
+        ? gwPts.get(r.entry)
+        : r.event_total;
+  const metricName =
+    view === "month"
+      ? `Month${monthLabel ? ` · ${monthLabel}` : ""}`
+      : view === "gw"
+        ? `GW${historicGw ?? currentGw}`
+        : "Season";
 
   // Toggle hrefs carry every active filter forward.
   const viewHref = (v: View, page?: number) => {
     const p = new URLSearchParams();
     if (v !== "season") p.set("view", v);
     if (page != null && page > 1) p.set("page", String(page));
-    for (const k of ["q", "minGw", "topN"] as const) {
+    for (const k of ["q", "minGw", "topN", "gw"] as const) {
       const val = sp[k];
       if (val) p.set(k, val);
     }
@@ -249,6 +284,19 @@ export default async function LeagueDetail({
             );
           })}
         </nav>
+        {view === "gw" && (
+          <div className="flex items-center gap-2">
+            <GameweekPicker
+              gw={historicGw ?? currentGw}
+              latest={currentGw}
+              basePath={`/leagues/${id}`}
+              keep={{ view: "gw", q: sp.q, minGw: sp.minGw, topN: sp.topN }}
+            />
+            {historicGw != null && (
+              <span className="text-2xs text-ink-lo">first 50 managers</span>
+            )}
+          </div>
+        )}
         {view === "month" && rows.length > 0 && (
           <p className="text-2xs text-ink-lo">Month totals computed for the first 50 managers</p>
         )}
@@ -261,7 +309,9 @@ export default async function LeagueDetail({
             <TableRow>
               <TableHead className="w-10">#</TableHead>
               <TableHead>Manager</TableHead>
-              <TableHead className="text-right">{view === "month" ? "Month" : "GW"}</TableHead>
+              <TableHead className="text-right">
+                {view === "month" ? "Month" : historicGw != null ? `GW${historicGw}` : "GW"}
+              </TableHead>
               {view === "season" && <TableHead className="text-right">Move</TableHead>}
               <TableHead className="text-right">Total</TableHead>
             </TableRow>

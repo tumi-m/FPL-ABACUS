@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/ui/cn";
 import { Est } from "@/components/gaffer/Est";
 import { PlannerPitch, type PitchMode, type PitchSlot } from "@/components/gaffer/planner/PlannerPitch";
@@ -89,6 +90,12 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
 
   const plan = activePlan(plans);
   const moves = plan.moves;
+
+  // ?out=&in= — the Board's suggestions arrive here with the swap named, so
+  // "worth doing next" lands on the desk staged rather than leaving you to
+  // find both players again. Applied once, and only if it is still legal.
+  const params = useSearchParams();
+  const deepLinked = React.useRef(false);
 
   const persist = React.useCallback(
     (next: PlanMove[]) => {
@@ -192,6 +199,24 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
     },
     [selected, swapCtx],
   );
+
+  React.useEffect(() => {
+    if (deepLinked.current) return;
+    const outId = Number(params.get("out"));
+    const inId = Number(params.get("in"));
+    if (!Number.isFinite(outId) || !Number.isFinite(inId) || outId <= 0 || inId <= 0) return;
+    deepLinked.current = true;
+    // The suggestion was legal when the Board rendered it; prices and squads
+    // move, so it is checked again here and simply selected if it no longer is.
+    const res = checkSwap(outId, inId, swapCtx);
+    if (res.ok) {
+      persist(stageMove(moves, outId, inId));
+    } else {
+      setSelected(outId);
+      setNotice(res.reason ?? "That move is no longer available");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
 
   const pick = (inId: number) => {
     if (selected == null) return;

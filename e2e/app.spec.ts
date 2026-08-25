@@ -139,10 +139,22 @@ test.describe("authenticated routes", () => {
     await expect(best).toHaveText(/pts|k|,|\d/);
   });
 
-  test("squad lists the fifteen", async ({ page }) => {
+  test("my team lists the fifteen with faces", async ({ page }) => {
     await asTeam(page);
     await page.goto("/squad");
-    await expect(page.getByText("Your 15")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "My team" })).toBeVisible();
+    const rows = page.locator("main ul > li");
+    await expect(rows).toHaveCount(15);
+    // the identity block is a face (or its kit stand-in), not a bare crest
+    await expect(rows.first().locator("img, svg").first()).toBeVisible();
+  });
+
+  test("home links through to my team", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/live");
+    await page.getByRole("link", { name: "My team" }).click();
+    await expect(page).toHaveURL(/\/squad/);
+    await expect(page.getByRole("heading", { name: "My team" })).toBeVisible();
   });
 
   test("leagues index lists mini-leagues", async ({ page }) => {
@@ -191,8 +203,11 @@ test.describe("authenticated routes", () => {
     await page.goto(href!); // page 1
     const dataRows = await page.locator("tbody tr").count();
     if (dataRows >= 50) {
+      // The standings arrive server-rendered, and under a loaded runner that
+      // first paint can take longer than the default five seconds — the last
+      // fixed timeout in this test, and the one that still flaked.
       const more = page.getByRole("button", { name: /load 50 more/i });
-      await expect(more).toBeVisible();
+      await expect(more).toBeVisible({ timeout: 20_000 });
       await more.click();
       // SPA navigation: the old button stays mounted while page 2 loads, and
       // the URL lands a beat after the click — asserting it flat raced the

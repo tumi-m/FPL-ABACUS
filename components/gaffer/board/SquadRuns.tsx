@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { CrestTile } from "@/components/gaffer/ClubCrest";
+import { CrestBadge } from "@/components/gaffer/CrestBadge";
+import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { clubOf } from "@/config/clubs";
 import { cn } from "@/lib/ui/cn";
 import { POSITION_SHORT } from "@/lib/ui/format";
@@ -30,6 +31,8 @@ export interface SquadMember {
   webName: string;
   pos: Pos;
   teamId: number;
+  /** FPL photo code, for the face; the kit stands in when it is missing. */
+  photo: string;
 }
 
 /**
@@ -68,6 +71,8 @@ export function SquadRuns({
   gws: number[];
 }) {
   const [span, setSpan] = React.useState<number>(6);
+  // The device-wide faces/kits preference, same as every other board.
+  const [avatar] = useAvatarMode();
   const range = React.useMemo(() => gws.slice(0, span), [gws, span]);
 
   // Both sides of the same grid, so each player can be read on their own.
@@ -162,7 +167,22 @@ export function SquadRuns({
                 <tr key={p.element}>
                   <th scope="row" className="sticky left-0 z-10 bg-surface-1 px-1 text-left font-normal">
                     <span className="inline-flex items-center gap-1.5">
-                      <CrestTile teamId={p.teamId} className="h-4 w-4 shrink-0" />
+                      {/* face over crest, the way every other squad list reads */}
+                      <span className="relative inline-block h-7 w-7 shrink-0">
+                        <span className="block h-7 w-7 overflow-hidden rounded-md bg-surface-3">
+                          <PlayerAvatar
+                            photo={p.photo}
+                            teamId={p.teamId}
+                            mode={avatar}
+                            className="h-7 w-7 object-cover object-top"
+                          />
+                        </span>
+                        <CrestBadge
+                          teamId={p.teamId}
+                          size={12}
+                          className="absolute -bottom-0.5 -right-0.5 rounded-[2px] bg-surface-1"
+                        />
+                      </span>
                       <span className="truncate text-[13px] text-ink-hi">{p.webName}</span>
                       <span className="upper-label text-[9px] text-ink-lo">{POSITION_SHORT[p.pos]}</span>
                     </span>

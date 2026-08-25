@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CrestTile } from "@/components/gaffer/ClubCrest";
+import { CrestBadge } from "@/components/gaffer/CrestBadge";
 import { clubOf } from "@/config/clubs";
 import { cn } from "@/lib/ui/cn";
 import {
@@ -231,7 +231,10 @@ export function FixtureTicker({ data }: { data: TickerData }) {
                         aria-hidden
                         className={cn("h-5 w-[3px] shrink-0 rounded-full", mine ? "bg-volt" : "bg-transparent")}
                       />
-                      <CrestTile teamId={row.teamId} className="h-4 w-4 shrink-0" />
+                      {/* The real badge. CrestTile is a code tile sized 36×30,
+                          so forcing it to 16px squashed it behind the code
+                          beside it — two of the same three letters, overlapped. */}
+                      <CrestBadge teamId={row.teamId} size={20} />
                       <span className={cn("fig-num text-[13px]", mine ? "text-ink-hi" : "text-ink-2")}>
                         {club.code}
                       </span>
