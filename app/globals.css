@@ -220,6 +220,38 @@
 
   /* chrome */
   --gloss:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,0) 42%);
+
+  /* ── liquid glass ────────────────────────────────────────────────────────
+     Floating chrome reads as a pane of glass over the page: the content
+     behind it blurs and gains saturation, a specular rim catches the light
+     along the top edge, and a soft sheen falls across the upper half.
+
+     Real refraction is not available to CSS — nothing can sample and bend the
+     backdrop — so the material stops at blur, saturation and the highlight
+     rather than faking a lens badly. The tint is mixed from the theme's own
+     raised surface, so glass is dark over the dark theme and near-white over
+     the light one without a second set of values. */
+  --glass-blur:20px;
+  --glass-sat:1.7;
+  --glass-tint:color-mix(in oklab, var(--bg-raised) 58%, transparent);
+  --glass-tint-strong:color-mix(in oklab, var(--bg-raised) 78%, transparent);
+  --glass-tint-edge:color-mix(in oklab, var(--bg-raised) 66%, transparent);
+  /* The rim: bright along the top where light would catch a bevel, a whisper
+     along the bottom where it bounces back up, and a hairline all round. */
+  --glass-rim:
+    inset 0 1px 0 rgba(255,255,255,.30),
+    inset 0 -1px 0 rgba(255,255,255,.07),
+    0 0 0 1px color-mix(in oklab, var(--line-hi) 55%, transparent);
+  /* What a floating pane throws onto the page beneath it. Separate from the
+     rim so a pane that sits *on* the page (the header) can take the rim
+     alone, and one that floats *over* it (a sheet) can take both. */
+  --glass-drop:0 24px 56px -24px rgba(0,0,0,.80);
+  --glass-sheen:linear-gradient(
+    150deg,
+    rgba(255,255,255,.14) 0%,
+    rgba(255,255,255,.05) 26%,
+    rgba(255,255,255,0) 52%
+  );
   --bevel:inset 0 1px 0 rgba(230,248,255,.16);
   --lift:var(--bevel), 0 20px 44px -20px rgba(0,0,0,.9), 0 0 0 1px var(--line);
   --glow:var(--bevel), 0 0 0 1px rgba(10,208,255,.45), 0 14px 44px -12px rgba(10,208,255,.42);
@@ -298,6 +330,26 @@
     --ink-hi:#0B1D36; --ink-mid:#3D516B; --ink-lo:#4E6681;
     --volt:#0076B7; --ice:#008FB3; --surge:#008D61; --flare:#CE0B23;
     --ultra:#6A35D9; --amber:#BC7400; --magenta:#B82989; --on-accent:#FFFFFF;
+    /* Light glass needs more body than dark glass. Dark ink over a bright
+       backdrop has less contrast to spare, and what shows through a light
+       pane arrives brighter — the turf came through the header green enough
+       to eat the team name at the dark theme's 58%. */
+    --glass-tint:color-mix(in oklab, var(--bg-raised) 78%, transparent);
+    --glass-tint-strong:color-mix(in oklab, var(--bg-raised) 90%, transparent);
+    --glass-tint-edge:color-mix(in oklab, var(--bg-raised) 84%, transparent);
+    /* On a near-white surface a bright rim is invisible and the shadow does
+       the separating instead. */
+    --glass-rim:
+      inset 0 1px 0 rgba(255,255,255,.85),
+      inset 0 -1px 0 rgba(11,29,54,.05),
+      0 0 0 1px color-mix(in oklab, var(--line-hi) 75%, transparent);
+    --glass-drop:0 20px 44px -24px rgba(11,29,54,.30);
+    --glass-sheen:linear-gradient(
+      150deg,
+      rgba(255,255,255,.55) 0%,
+      rgba(255,255,255,.18) 30%,
+      rgba(255,255,255,0) 56%
+    );
     --defcon:#2C5BB8; --defcon-hit:#9A6B00;
     --heat-1:#6A53BD; --heat-2:#5778DF; --heat-3:#3BA6F5;
     --heat-4:#28D3F4; --heat-5:#47F5E3; --heat-6:#82FFC5;
@@ -337,6 +389,26 @@
   --ink-hi:#0B1D36; --ink-mid:#3D516B; --ink-lo:#4E6681;
   --volt:#0076B7; --ice:#008FB3; --surge:#008D61; --flare:#CE0B23;
   --ultra:#6A35D9; --amber:#BC7400; --magenta:#B82989; --on-accent:#FFFFFF;
+  /* Light glass needs more body than dark glass. Dark ink over a bright
+     backdrop has less contrast to spare, and what shows through a light
+     pane arrives brighter — the turf came through the header green enough
+     to eat the team name at the dark theme's 58%. */
+  --glass-tint:color-mix(in oklab, var(--bg-raised) 78%, transparent);
+  --glass-tint-strong:color-mix(in oklab, var(--bg-raised) 90%, transparent);
+  --glass-tint-edge:color-mix(in oklab, var(--bg-raised) 84%, transparent);
+  /* On a near-white surface a bright rim is invisible and the shadow does the
+     separating instead. */
+  --glass-rim:
+    inset 0 1px 0 rgba(255,255,255,.85),
+    inset 0 -1px 0 rgba(11,29,54,.05),
+    0 0 0 1px color-mix(in oklab, var(--line-hi) 75%, transparent);
+  --glass-drop:0 20px 44px -24px rgba(11,29,54,.30);
+  --glass-sheen:linear-gradient(
+    150deg,
+    rgba(255,255,255,.55) 0%,
+    rgba(255,255,255,.18) 30%,
+    rgba(255,255,255,0) 56%
+  );
   --defcon:#2C5BB8; --defcon-hit:#9A6B00;
   --heat-1:#6A53BD; --heat-2:#5778DF; --heat-3:#3BA6F5;
   --heat-4:#28D3F4; --heat-5:#47F5E3; --heat-6:#82FFC5;
@@ -605,6 +677,94 @@
 @utility dur-slow {
   transition-duration: var(--dur-slow);
 }
+/* ── liquid glass ──────────────────────────────────────────────────────────
+   One material, four weights, so the whole app speaks the same surface.
+
+     glass         chrome the page scrolls behind — the header, the thumb bar
+     glass-lift    a pane that floats *over* the page: sheets, menus, toasts.
+                   Tinted further, because it has to carry text over whatever
+                   the page happens to be showing, and it throws a shadow
+     glass-dark    chrome over photography, where white text is fixed and the
+                   theme must not flip the pane near-white beneath it
+     glass-edge    the look without the cost — rim and sheen, no blur
+
+   Where it goes: floating chrome. Where it does NOT go: cards and rows inside
+   the scrolling page. `backdrop-filter` costs a GPU pass per element per
+   frame, and a list of forty glass rows drops a phone's scroll to single
+   figures. The material is for things the page moves *behind*, not for the
+   page — which is what `glass-edge` is for: on a solid surface, or nested
+   inside another pane, there is nothing varied behind an element to blur, so
+   the blur buys nothing and the rim carries the whole read.
+
+   The sheen is a background *image* over the tint rather than a pseudo-
+   element. That keeps the material a single painted box: no ::before to
+   position, no stacking context forced on the children, and it works on an
+   element whose `position` belongs to its layout (a sticky header, a fixed
+   bar) instead of fighting it.
+
+   Two escape hatches, both required rather than polish: browsers without
+   `backdrop-filter` get an opaque surface, and so does anyone who has asked
+   the OS to reduce transparency. Neither is allowed to leave text on a
+   see-through ground. */
+@utility glass {
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-rim);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+}
+@utility glass-lift {
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-rim), var(--glass-drop);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+}
+/* Over photography the theme does not apply: the landing hero and the pitch
+   scrim are dark pictures carrying white text in every theme, so this pane is
+   fixed dark. Mixing it from the surface would turn it near-white in the light
+   theme and leave white text on white. */
+@utility glass-dark {
+  background-color: rgba(5,13,25,.44);
+  background-image: linear-gradient(
+    150deg,
+    rgba(255,255,255,.16) 0%,
+    rgba(255,255,255,.05) 28%,
+    rgba(255,255,255,0) 54%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.24),
+    inset 0 -1px 0 rgba(255,255,255,.05),
+    0 0 0 1px rgba(255,255,255,.14);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  backdrop-filter: blur(14px) saturate(1.35);
+}
+@utility glass-edge {
+  background-color: var(--glass-tint-edge);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-rim);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .glass-lift { background-color: var(--bg-raised); }
+  .glass-dark { background-color: rgba(5,13,25,.88); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .glass-lift, .glass-edge {
+    background-color: var(--bg-raised);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .glass-dark {
+    background-color: #050D19;
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 @utility card-ring {
   box-shadow: var(--bevel), 0 0 0 1px var(--line);
 }

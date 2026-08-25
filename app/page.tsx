@@ -153,7 +153,7 @@ function FeatureBand() {
         {FEATURES.map((f) => (
           <li
             key={f.title}
-            className="rounded-lg border border-white/10 bg-white/[0.04] p-4 backdrop-blur-[2px]"
+            className="rounded-lg glass-dark p-4"
           >
             <h3 className="fig-num text-base leading-none text-white/95">{f.title}</h3>
             <p className="mt-2 text-xs leading-relaxed text-white/65">{f.body}</p>

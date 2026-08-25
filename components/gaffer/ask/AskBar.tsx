@@ -206,7 +206,7 @@ export function AskBar() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Ask the Gaffer"
-        className="hidden sm:inline-flex h-8 items-center gap-2 rounded-full card-ring px-3 text-xs text-ink-lo transition-colors dur-instant hover:text-ink-hi"
+        className="hidden sm:inline-flex h-8 items-center gap-2 rounded-full glass-edge px-3 text-xs text-ink-lo transition-colors dur-instant hover:text-ink-hi"
       >
         <GafferBadge size="1.15em" />
         Ask the Gaffer
@@ -218,7 +218,7 @@ export function AskBar() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Ask the Gaffer"
-        className="skewed inline-flex h-11 items-center gap-1.5 rounded-md bg-raised card-ring px-3.5 text-xs uppercase-label font-semibold text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi sm:hidden"
+        className="skewed inline-flex h-11 items-center gap-1.5 rounded-md glass-edge px-3.5 text-xs uppercase-label font-semibold text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi sm:hidden"
       >
         Ask <GafferBadge />
       </button>

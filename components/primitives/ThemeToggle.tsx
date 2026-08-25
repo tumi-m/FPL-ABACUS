@@ -59,7 +59,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         aria-label={`Theme: ${current.label.toLowerCase()} — switch to ${next.label.toLowerCase()}`}
         onClick={() => choose(next.mode)}
         className={cn(
-          "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full card-ring text-ink-3 transition-colors dur-instant hover:text-ink-1 sm:hidden",
+          "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full glass-edge text-ink-3 transition-colors dur-instant hover:text-ink-1 sm:hidden",
           className,
         )}
       >
@@ -69,7 +69,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       <div
         role="radiogroup"
         aria-label="Theme"
-        className={cn("hidden items-center gap-0.5 rounded-full card-ring p-0.5 sm:inline-flex", className)}
+        className={cn("hidden items-center gap-0.5 rounded-full glass-edge p-0.5 sm:inline-flex", className)}
       >
         {OPTIONS.map((o) => (
           <button

@@ -13,7 +13,12 @@ import { cn } from "@/lib/ui/cn";
  * a compact chip in the app header, and a full read on the landing page where
  * there is room to say what the week is actually doing.
  *
- * Both go to Matchday, which is where the detail lives.
+ * Both go to Matchday, which is where the detail lives, and both are glass —
+ * but not the same glass. The chip sits inside the header, which is already a
+ * blurred pane, so it takes the rim and the sheen and skips a second blur that
+ * would cost a GPU pass to filter an image that is already uniform. The panel
+ * sits on the landing photograph, where the tint has to stay dark whatever the
+ * theme does: its text is white in both.
  */
 
 /** Header chip — the state in a glance, never over the content. */
@@ -30,7 +35,7 @@ export function StatusChip({ data }: { data: LiveBarData }) {
           ? `Live, gameweek ${data.gameweek}, ${data.fixturesInPlay} fixtures in play`
           : `Gameweek ${data.gameweek} — ${moment?.label}`
       }
-      className="skewed inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md card-ring px-2.5 text-2xs uppercase-label text-ink-mid num-tabular transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi sm:px-3"
+      className="skewed inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md glass-edge px-2.5 text-2xs uppercase-label text-ink-mid num-tabular transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi sm:px-3"
     >
       {isLive ? (
         <>
@@ -74,7 +79,7 @@ export function StatusPanel({ data }: { data: LiveBarData }) {
   return (
     <Link
       href="/live"
-      className="group inline-flex items-center gap-3 rounded-lg border border-white/15 bg-black/40 px-4 py-2.5 backdrop-blur-[2px] transition-colors dur-instant hover:border-white/30 hover:bg-black/55"
+      className="group inline-flex items-center gap-3 rounded-lg glass-dark px-4 py-2.5 transition-colors dur-instant hover:bg-black/55"
     >
       {isLive ? (
         <>
