@@ -282,13 +282,16 @@ test.describe("authenticated routes", () => {
     await page.goto("/field");
     // Bonus is worth up to three points and read as decoration when it was
     // three pips on a token corner. It is a badge in the strip now, and the
-    // legend says so — an icon nobody can name is worse than no icon.
-    const legend = page.getByText("What the marks mean");
-    await expect(legend).toBeVisible();
-    await legend.click();
-    for (const mark of ["Goal", "Assist", "Bonus", "Clean sheet", "Booking"]) {
-      await expect(page.getByRole("listitem").filter({ hasText: mark }).first()).toBeVisible();
+    // key names it without being opened — a legend folded inside a disclosure
+    // is a legend nobody reads.
+    const key = page.locator("details").filter({ hasText: "all marks" }).first();
+    await expect(key).toBeVisible();
+    for (const mark of ["Goal", "Assist", "Bonus", "Clean sheet", "Saves"]) {
+      await expect(key.getByText(mark, { exact: true }).first()).toBeVisible();
     }
+    // and the rarer marks are one tap away
+    await key.getByText("all marks").click();
+    await expect(key.getByRole("listitem").filter({ hasText: "DEFCON ring" })).toBeVisible();
   });
 
   test("risk carries the treatment table with the injury and the return date", async ({ page }) => {
@@ -301,6 +304,33 @@ test.describe("authenticated routes", () => {
     await expect(
       table.getByText(/flagged/).or(table.getByText(/fit and available/)).first(),
     ).toBeVisible();
+  });
+
+  test("the field carries the season charts under the gameweek", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field");
+    const season = page.getByRole("region", { name: "Your fifteen this season" });
+    await season.scrollIntoViewIfNeeded();
+    // The gameweek says what happened; these say whether the players are good.
+    for (const title of [
+      "Goals against expected",
+      "Against expectation",
+      "Who actually starts",
+      "Points per pound",
+    ]) {
+      await expect(season.getByText(title, { exact: true }).first()).toBeVisible();
+    }
+  });
+
+  test("points attribution shows the working, not just the total", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field/points");
+    await expect(page.getByText("Where your points come from")).toBeVisible();
+    await expect(page.getByText("Where the score came from")).toBeVisible();
+    const table = page.getByRole("region", { name: "Points by player" });
+    await expect(table).toBeVisible();
+    // every one of the fifteen, with its own stat line
+    await expect(table.locator("tbody tr")).toHaveCount(15);
   });
 
   test("field token tap opens the shared peek sheet", async ({ page }) => {

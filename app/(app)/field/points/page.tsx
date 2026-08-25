@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { PointsWaterfall } from "@/components/charts/PointsWaterfall";
+import { PointsByLine, PointsTable } from "@/components/gaffer/field/PointsBreakdown";
 import { buildMatchday } from "@/lib/server/buildMatchday";
 import { COPY } from "@/lib/copy/deck";
 import { PageHeader } from "@/components/gaffer/PageHeader";
@@ -60,6 +61,10 @@ export default async function FieldPointsPage() {
       </div>
 
       <PointsWaterfall rows={model.squad} />
+
+      {/* the waterfall says how the total was built; these say what it is made of */}
+      <PointsByLine rows={model.squad} />
+      <PointsTable rows={model.squad} />
     </div>
   );
 }

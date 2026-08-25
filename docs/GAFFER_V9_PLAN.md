@@ -462,6 +462,55 @@ the same contract every other enhancement has since V9-K. Measured after all
 of it: `/field` 206 kB of JavaScript against 205 kB before, so the whole
 feature set cost about a kilobyte.
 
+### V9-S — a pitch that lines up, and the season under the gameweek ✅
+
+**The pitch was ragged because the tokens were different heights.** A player
+with no badges had no badge strip, so his name, his xG line and his points pill
+all sat higher than his neighbour's — eleven tokens, eleven baselines. Both
+slots keep their height now whether or not there is anything in them, so a row
+reads as a row.
+
+**The vice-captain is the captain's colour.** It was grey on grey and vanished
+against the turf; it is volt now, outlined rather than filled, so it reads as
+the understudy at a glance instead of a second armband.
+
+**The key is on the page, not inside it.** The legend was a disclosure at the
+bottom of the pitch — which is a legend nobody reads. The five common marks are
+named on the strip itself; the rarer ones and the DEFCON ring open from it.
+
+**Four charts, the season underneath the gameweek.** The decision board asks
+what this week did to your rank; these ask whether the players are any good, on
+the axes the analytics sites are built around:
+
+- **Goals against expected** — the scatter with a parity line. Above it he has
+  out-scored his chances, below it he has not, and the line is parity rather
+  than a target. Dots go hollow under 450 minutes, because a rate off less
+  football than that is not a rate.
+- **Against expectation** — G−xG and A−xA as a diverging pair per player, the
+  Opta shape: a forward beating his xG while creating nothing is a different
+  bet from one doing both.
+- **Who actually starts** — starts against gameweeks played, least secure
+  first. A projection is worth nothing on a player who does not start, and it
+  is the number most projections quietly assume.
+- **Points per pound** — price against season points with your own squad's
+  value line through it, so "good value" means good against what you actually
+  own rather than against the market.
+
+All four read the bootstrap the page already loaded — `SquadRow` gained a
+`season` block — so none of it costs a request.
+
+**The waterfall grew up.** Names rotated thirty-five degrees were unreadable
+and cost the chart its bottom edge; the axis carries faces now, with the name
+upright beneath and the club colour under the portrait so a photo that fails
+still identifies the player. In-bar figures went from 12px to 16px, the total
+from 15 to 19. Under it: **where the score came from by line** (captaincy
+included, so a doubled forward shows the weight he carried) and **a table of
+every player** with minutes, the same event badges the pitch uses, and the
+multiplier shown as `9×2` rather than a bare 18.
+
+Measured after all of it: `/field` 209 kB of JavaScript against 206 kB, and
+`/field/points` 192 kB.
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.
