@@ -181,11 +181,11 @@ test.describe("authenticated routes", () => {
   test("top performers ranks the market by metric and timeframe", async ({ page }) => {
     await asTeam(page);
     await page.goto("/field?mode=top");
-    await expect(page.getByLabel("Top performers board")).toBeVisible();
-    // season frame always has data — flip to it and sort by points
     const board = page.getByLabel("Top performers board");
-    await board.getByRole("button", { name: "Season" }).click();
-    await board.getByRole("button", { name: "Points", exact: true }).click();
+    await expect(board).toBeVisible();
+    // season frame always has data — flip to it and rank on season points
+    await board.getByRole("group", { name: "Timeframe" }).getByRole("button", { name: "Season" }).click();
+    await board.getByLabel("Metric").selectOption("points");
     const rows = board.getByRole("table").locator("tbody tr");
     await expect(rows.first()).toBeVisible();
     const first = Number(await rows.first().locator("td").last().innerText());
@@ -252,6 +252,56 @@ test.describe("authenticated routes", () => {
     await expect(handoff).toBeVisible();
     await handoff.click();
     await expect(page).toHaveURL(/\/planner/);
+  });
+
+  test("field carries the decision board and the artwork switch", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field");
+    // faces or kits, persisted per device
+    const artwork = page.getByRole("group", { name: "Player artwork" }).first();
+    await expect(artwork).toBeVisible();
+    await artwork.getByRole("button", { name: "Kits" }).click();
+    await expect(page.locator('svg[aria-label$="kit"]').first()).toBeVisible();
+    await page.reload();
+    await expect(page.locator('svg[aria-label$="kit"]').first()).toBeVisible();
+    await page.getByRole("group", { name: "Player artwork" }).first().getByRole("button", { name: "Faces" }).click();
+
+    // the five decision charts live under the pitch
+    const board = page.getByRole("region", { name: "Decision board" });
+    await expect(board).toBeVisible();
+    await expect(board.getByText("Process vs outcome")).toBeVisible();
+    await expect(board.getByText("Against expectation")).toBeVisible();
+    await expect(board.getByText(/The Ledger/)).toBeVisible();
+  });
+
+  test("top performers switches between actual, expected and the gap", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field?mode=top");
+    const region = page.getByRole("region", { name: "Top performers board" });
+    await expect(region).toBeVisible();
+    await region.getByRole("group", { name: "Board" }).getByRole("button", { name: "Actual" }).click();
+    await expect(region.getByRole("table").first()).toBeVisible();
+    // the engineered view adds actual-vs-expected columns and its charts
+    await region.getByRole("group", { name: "Board" }).getByRole("button", { name: "Over / under" }).click();
+    await expect(region.getByText(/shrunk for minutes/).first()).toBeVisible();
+  });
+
+  test("bonus board ranks the 1-2-3 and explains the conversion", async ({ page }) => {
+    await asTeam(page);
+    const res = await page.goto("/bonus");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "Bonus" })).toBeVisible();
+    await expect(page.getByText(/BPS spent per bonus point taken/)).toBeVisible();
+    await expect(page.getByRole("table").first()).toBeVisible();
+  });
+
+  test("defcon monsters ranks defensive work against the scoring line", async ({ page }) => {
+    await asTeam(page);
+    const res = await page.goto("/defcon");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("heading", { name: "DEFCON monsters" })).toBeVisible();
+    await expect(page.getByText(/Defenders score two points at ten/)).toBeVisible();
+    await expect(page.getByRole("group", { name: "Position" })).toBeVisible();
   });
 
   test("thumb bar carries all six destinations", async ({ page }) => {

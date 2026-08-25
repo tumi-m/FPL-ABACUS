@@ -30,6 +30,10 @@ Non-negotiables: zero raw hex outside `globals.css` (sole exception: `config/bra
 - Engines are pure functions in `lib/engines/*`; composition happens server-side (`lib/server/buildMatchday.ts`).
 - Durable state in Postgres via drizzle (`lib/db/schema.ts`): cohort EO snapshots, price history, GW archives, score distributions. **Every read goes through `dbRead` (`lib/db/read.ts`)** — stored data is always an enhancement, so a missing schema or a failing query returns empty rather than throwing. `hasDb` is not a sufficient guard on its own: it says a database is configured, not migrated.
 - Never stream a raw error message to the client. The cause goes to the server log; the user gets a sentence.
+- **One definition of a player's season**: `lib/engines/performance.ts` (per-90s, actual vs expected, minutes shrinkage, DEFCON thresholds). Top performers, `/bonus` and `/defcon` all read it — never re-derive a rate in a component.
+- `SquadRow.livePoints` is the RAW player score. Anything claiming to explain your gameweek total must multiply by `row.multiplier` (`contribution()` in `FieldCharts.tsx`), or the captain silently disappears.
+- Faces vs kits is a device preference: use `PlayerAvatar` + `useAvatarMode`, never `PlayerPhoto` directly in a new board.
+- DEFCON has its own tokens (`--defcon`, `--defcon-hit`). Never encode data in green on the pitch — the turf is green.
 - Cron endpoints under `/api/cron/*` guarded by `CRON_SECRET` (Vercel sends it automatically). Frequent schedule runs from GitHub Actions `.github/workflows/prod-cron.yml` using repo secrets `PROD_URL` + `CRON_SECRET` (Hobby plan allows only daily Vercel crons).
 - Team id persists via cookie `gaffer_team`; theme via localStorage + `data-theme`.
 - **One transfer desk.** `/planner` is the only place transfers are staged: rules in `lib/engines/planner.ts` (pure, tested), composition in `lib/server/buildPlanner.ts`, UI in `components/gaffer/planner/*`. Plans persist per team under `gaffer_board_v2_{teamId}` via `lib/engines/boardPlans.ts`. The Board and the Field link to it; neither stages moves itself.

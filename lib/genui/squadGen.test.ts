@@ -36,6 +36,21 @@ function el(id: number, pos: number, cost: number, ep: number, team: number, own
     xgTotal: 0,
     xaTotal: 0,
     xgcTotal: 0,
+    xgiTotal: 0,
+    ep_this: ep,
+    cleanSheets: 0,
+    goalsConceded: 0,
+    ownGoals: 0,
+    saves: 0,
+    pensSaved: 0,
+    pensMissed: 0,
+    yellowCards: 0,
+    redCards: 0,
+    starts: 0,
+    defcon: 0,
+    tackles: 0,
+    recoveries: 0,
+    cbi: 0,
   };
 }
 

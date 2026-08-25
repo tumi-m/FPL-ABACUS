@@ -9,10 +9,18 @@ import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { PeekSheet } from "@/components/gaffer/field/PeekSheet";
 import { PositionContribution, Availability, BonusLeaders, CaptainShare } from "@/components/gaffer/field/FieldCharts";
+import {
+  Crossover,
+  DecisionLedger,
+  Delivery,
+  ProcessVsOutcome,
+  RankAtRisk,
+} from "@/components/gaffer/field/DecisionCharts";
 import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
 import { Est } from "@/components/gaffer/Est";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
-import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
+import { PlayerAvatar, AvatarToggle, useAvatarMode, type AvatarMode } from "@/components/gaffer/PlayerAvatar";
+import { MatchEventStrip, matchEvents } from "@/components/gaffer/field/MatchEvents";
 import { TopPerformers, type TopPerformersData } from "@/components/gaffer/field/TopPerformers";
 import { COPY } from "@/lib/copy/deck";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
@@ -39,6 +47,8 @@ interface WebPayload {
   pairs: { a: number; b: number; rho: number }[];
   meanPoints: Record<number, number>;
   riskShare: Record<number, number>;
+  sdPoints: Record<number, number>;
+  totals: number[];
   portfolioSd: number;
   effectiveBets: number;
   draws: number;
@@ -60,9 +70,12 @@ interface RivalPayload {
 export function FieldClient({
   initialModel,
   top,
+  expectedByElement = {},
 }: {
   initialModel: MatchdayModel;
   top?: TopPerformersData | null;
+  /** FPL's published expectation for this gameweek, per element. */
+  expectedByElement?: Record<number, number>;
 }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -113,10 +126,17 @@ export function FieldClient({
   // peek — ONE shared sheet for token taps (v4 spec)
   const [peekElement, setPeekElement] = React.useState<number | null>(null);
 
+  // faces or kits — a device-wide preference, shared with every other board.
+  const [avatar, setAvatar] = useAvatarMode();
+
   // ── correlation web (modes 5+6) — fetched only when a mode needs it ─────
   const wantsWeb = mode === "correlation" || mode === "risk";
+  // Fetched on every Field view now: the correlation modes paint arcs with it
+  // and the decision board below the pitch runs its rank band and captaincy
+  // objective off the same draws. It is a client fetch after hydration, so it
+  // never delays first paint, and SWR dedupes it for five minutes.
   const { data: web, isLoading: webLoading } = useSWR<WebPayload | null>(
-    wantsWeb ? ["gaffer-web", entry] : null,
+    historical ? null : ["gaffer-web", entry],
     async ([, e]: [string, number]) => {
       const res = await fetch(`/api/gaffer/web?entry=${e}`);
       if (!res.ok) throw new Error(String(res.status));
@@ -124,6 +144,35 @@ export function FieldClient({
     },
     { revalidateOnFocus: false, dedupingInterval: 300_000, keepPreviousData: true },
   );
+  // ── decision board feeds ────────────────────────────────────────────────
+  // The simulation arrives with everything the rank band and the captaincy
+  // objective need; until it does, those two charts say they are waiting.
+  const decisionWeb = React.useMemo(
+    () =>
+      web && web.totals.length > 0
+        ? {
+            meanPoints: web.meanPoints,
+            sdPoints: web.sdPoints,
+            totals: web.totals,
+            portfolioSd: web.portfolioSd,
+            draws: web.draws,
+          }
+        : null,
+    [web],
+  );
+  const decisionWebLoading = webLoading && !web;
+
+  /**
+   * How far you are chasing, which is what turns variance from a liability
+   * into an asset in the captaincy objective. A loaded rival is the honest
+   * target; without one, the live field average stands in.
+   */
+  const pointsBehind = React.useMemo(() => {
+    if (rival) return Math.max(0, rival.totals.gw - model.hero.gwPoints);
+    const avg = model.rankContext.fieldAvg;
+    return avg > 0 ? Math.max(0, Math.round(avg - model.hero.gwPoints)) : 0;
+  }, [rival, model.hero.gwPoints, model.rankContext.fieldAvg]);
+
   const webByElement = React.useMemo(() => {
     if (!web) return null;
     return {
@@ -352,7 +401,9 @@ export function FieldClient({
             </button>
           );
         })}
-        <div className="ml-auto flex items-center gap-1.5 pr-1">
+        {/* artwork switch — the pitch's look changed where the pitch is read */}
+        <AvatarToggle mode={avatar} onChange={setAvatar} className="ml-auto border-0 shadow-none" />
+        <div className="flex items-center gap-1.5 pr-1">
           <input
             value={rivalIdRaw}
             onChange={(e) => setRivalIdRaw(e.target.value)}
@@ -433,7 +484,22 @@ export function FieldClient({
           striped and marked; never a flat rectangle. Top mode swaps the turf
           for the performers board. */}
       {mode === "top" && top ? (
-        <section aria-label="Top performers" className="rounded-lg has-gloss card-lift bg-raised p-4 md:p-5">
+        <section aria-label="Top performers" className="space-y-3 rounded-lg has-gloss card-lift bg-raised p-4 md:p-5">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <span className="mr-auto upper-label text-2xs text-ink-lo">Deeper boards</span>
+            {[
+              { href: "/bonus", label: "Bonus" },
+              { href: "/defcon", label: "DEFCON monsters" },
+            ].map((b) => (
+              <Link
+                key={b.href}
+                href={b.href}
+                className="skewed inline-flex h-9 items-center rounded-md card-ring px-3 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+              >
+                <span>{b.label}</span>
+              </Link>
+            ))}
+          </div>
           <TopPerformers data={top} />
         </section>
       ) : (
@@ -491,6 +557,7 @@ export function FieldClient({
             <ComparePitch
               rows={rows} mode={mode} rival={rival}
               swingByElement={swingByElement} leverageByElement={leverageByElement} rivalSet={rivalSet}
+              avatar={avatar}
             />
           ) : rival && rivalView === "table" ? (
             <CompareTable rows={model.squad} rival={rival} />
@@ -519,6 +586,7 @@ export function FieldClient({
                           lev={leverageByElement.get(p.element)}
                           webMean={webByElement?.mean.get(p.element)}
                           riskShare={webByElement?.risk.get(p.element)}
+                          avatar={avatar}
                         />
                       </button>
                     </li>
@@ -544,6 +612,7 @@ export function FieldClient({
                   mode={mode}
                   swing={swingByElement.get(p.element)}
                   lev={leverageByElement.get(p.element)}
+                  avatar={avatar}
                 />
               </button>
             </li>
@@ -553,6 +622,44 @@ export function FieldClient({
       )}
 
       <EOScatter rows={model.squad} onSelect={(el) => setPeekElement(el)} />
+
+      {/* the decision board — the Monte Carlo and Nash engines the app already
+          carried, finally on screen. The simulation feed is fetched once and
+          shared; the two charts that need it say so while it loads. */}
+      <section aria-label="Decision board" className="space-y-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="upper-label text-2xs text-ink-lo">The decision board</h2>
+          <p className="text-2xs text-ink-lo">
+            Simulation and attribution — every figure here is an estimate, and says so.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ProcessVsOutcome
+            rows={model.squad}
+            fieldAvg={model.rankContext.fieldAvg}
+            gwPoints={model.hero.gwPoints}
+          />
+          <Delivery rows={model.squad} expectedByElement={expectedByElement} />
+          {decisionWeb ? (
+            <>
+              <RankAtRisk
+                web={decisionWeb}
+                estimatedRank={model.hero.estimatedLiveRank ?? model.hero.officialLiveRank}
+                ranksPerPoint={model.rankContext.ranksPerPoint}
+              />
+              <Crossover rows={model.squad} web={decisionWeb} pointsBehind={pointsBehind} />
+            </>
+          ) : (
+            <p className="rounded-lg bg-surface-1 card-ring p-6 text-center text-sm text-ink-lo lg:col-span-2">
+              {decisionWebLoading
+                ? "Simulating the gameweek — 800 Monte Carlo draws…"
+                : "The simulation needs your picks and some finished fixtures to lean on."}
+            </p>
+          )}
+          <DecisionLedger multiverse={model.multiverse} />
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <PositionContribution rows={model.squad} />
         <Availability rows={model.squad} />
@@ -624,16 +731,17 @@ function fmt90(v: number | null | undefined): string {
 
 /** Player face in a club-rail frame with armband, DEFCON arc and state ring. */
 export function ShirtToken({
-  row, mode, swing, lev, webMean, riskShare,
+  row, mode, swing, lev, webMean, riskShare, avatar = "face",
 }: {
   row: SquadRow; mode: Mode; swing?: SwingRow; lev?: LevRow;
-  webMean?: number; riskShare?: number;
+  webMean?: number; riskShare?: number; avatar?: AvatarMode;
 }) {
   const club = clubOf(row.teamId);
   const done = row.fixtureState === "done";
   const live = row.fixtureState === "live";
   const val = modeValue(row, mode, swing, lev, webMean, riskShare);
   const defconPct = row.defconThreshold < 99 ? Math.min(1, row.defconCount / row.defconThreshold) : 0;
+  const defconHit = defconPct >= 1;
   // risk mode — token SIZE encodes the marginal variance share (neutral colour)
   const riskScale = mode === "risk" && riskShare != null ? 0.78 + Math.min(0.65, riskShare * 5.5) : 1;
 
@@ -659,12 +767,31 @@ export function ShirtToken({
           style={{ boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--surge) 40%, transparent)" }}
         />
       )}
-      {/* DEFCON progress arc */}
+      {/* DEFCON meter — defensive contributions against the two-point
+          threshold. It used to be a green ring on green turf, which read as
+          decoration; now the colour carries the state: steel while the work is
+          still being done, gold the moment the two points are banked. */}
       {defconPct > 0 && (
-        <svg aria-hidden viewBox="0 0 40 40" className="absolute -left-1.5 -top-1.5 h-6 w-6 -rotate-90">
-          <circle cx="20" cy="20" r="17" fill="none" stroke="var(--bg-overlay)" strokeWidth="5" />
-          <circle cx="20" cy="20" r="17" fill="none" stroke="var(--surge)" strokeWidth="5" strokeDasharray={`${defconPct * 106.8} 106.8`} strokeLinecap="round" />
-        </svg>
+        <span
+          className="absolute -left-1.5 -top-1.5 h-6 w-6"
+          title={`${row.webName}: ${row.defconCount} of ${row.defconThreshold} defensive contributions${
+            defconHit ? " — 2 points banked" : ""
+          }`}
+        >
+          <svg aria-hidden viewBox="0 0 40 40" className="h-full w-full -rotate-90">
+            <circle cx="20" cy="20" r="17" fill="none" stroke="var(--bg-overlay)" strokeWidth="5" />
+            <circle
+              cx="20" cy="20" r="17" fill="none"
+              stroke={defconHit ? "var(--defcon-hit)" : "var(--defcon)"}
+              strokeWidth="5"
+              strokeDasharray={`${defconPct * 106.8} 106.8`}
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="sr-only">
+            {row.defconCount} of {row.defconThreshold} defensive contributions
+          </span>
+        </span>
       )}
       {/* bonus dots — the actual 1·2·3, official or projected */}
       {row.bonus > 0 && (
@@ -675,18 +802,26 @@ export function ShirtToken({
         </span>
       )}
 
-      {/* face — club rail frame, scaled by variance share in risk mode */}
+      {/* face — club rail frame, scaled by variance share in risk mode. The
+          frame clips its own contents, so the armband lives in this wrapper
+          instead and is free to overhang the corner. */}
       <span
-        className="relative mx-auto block h-12 w-12 overflow-hidden rounded-md transition-transform dur-base"
+        className="relative mx-auto block h-12 w-12 transition-transform dur-base"
         style={{ transform: `scale(${riskScale.toFixed(2)})`, transformOrigin: "center bottom" }}
       >
+      <span className="relative block h-full w-full overflow-hidden rounded-md">
         <span
           aria-hidden
           className="absolute inset-0"
           style={{ background: `linear-gradient(180deg, color-mix(in oklab, ${club.rail} 22%, var(--surface-2)), var(--surface-2))` }}
         />
-        {row.photo ? (
-          <PlayerPhoto photo={row.photo} teamId={row.teamId} className="relative h-full w-full object-cover object-top" />
+        {row.photo || avatar === "kit" ? (
+          <PlayerAvatar
+            photo={row.photo}
+            teamId={row.teamId}
+            mode={avatar}
+            className="relative h-full w-full object-cover object-top"
+          />
         ) : (
           <span aria-hidden className="grid h-full w-full place-items-center">
             <CrestTile teamId={row.teamId} />
@@ -695,14 +830,39 @@ export function ShirtToken({
         <span
           aria-hidden
           className="absolute inset-0 rounded-md"
-          style={{ boxShadow: "inset 0 0 0 1px color-mix(in oklab, " + club.rail + " 35%, transparent), inset 0 -10px 12px -8px rgba(0,0,0,.5)" }}
+          style={{
+            boxShadow: row.isCaptain
+              ? "inset 0 0 0 2px var(--volt), inset 0 -10px 12px -8px rgba(0,0,0,.5)"
+              : "inset 0 0 0 1px color-mix(in oklab, " + club.rail + " 35%, transparent), inset 0 -10px 12px -8px rgba(0,0,0,.5)",
+          }}
         />
+      </span>
+
         {row.isCaptain && (
           <span
-            aria-label="Captain"
-            className="absolute -bottom-1 left-1/2 z-10 -translate-x-1/2 rounded-full bg-volt px-1 text-[9px] font-bold leading-none text-on-accent"
+            aria-label={row.multiplier >= 3 ? "Triple captain" : "Captain"}
+            title={row.multiplier >= 3 ? "Triple captain — scores treble" : "Captain — scores double"}
+            className={cn(
+              "absolute -right-1.5 -top-1.5 z-20 grid place-items-center rounded-full",
+              "bg-volt font-extrabold leading-none text-on-accent",
+              row.multiplier >= 3 ? "h-[19px] w-[19px] text-[10px]" : "h-[18px] w-[18px] text-[11px]",
+            )}
+            style={{
+              boxShadow:
+                "0 0 0 2px var(--bg-raised), 0 0 10px 1px color-mix(in oklab, var(--volt) 55%, transparent)",
+            }}
           >
-            C
+            {row.multiplier >= 3 ? "3C" : "C"}
+          </span>
+        )}
+        {row.isVice && !row.isCaptain && (
+          <span
+            aria-label="Vice-captain"
+            title="Vice-captain — takes the armband if the captain does not play"
+            className="absolute -right-1.5 -top-1.5 z-20 grid h-[16px] w-[16px] place-items-center rounded-full bg-surface-3 text-[10px] font-bold leading-none text-ink-mid"
+            style={{ boxShadow: "0 0 0 2px var(--bg-raised), inset 0 0 0 1px var(--line-hi)" }}
+          >
+            V
           </span>
         )}
       </span>
@@ -710,6 +870,9 @@ export function ShirtToken({
       {row.subbedInFor !== null && (
         <span aria-label="Projected auto-substitute" title="Projected auto-sub in" className="absolute right-0 top-7 text-xs font-bold text-ultra">⇅</span>
       )}
+
+      {/* what he has actually done — goals, assists, the shutout, cards */}
+      <MatchEventStrip events={matchEvents(row.liveStats, { pos: row.pos, fixtureDone: done })} />
 
       <span className="mt-0.5 block truncate text-2xs font-semibold text-ink-hi">{row.webName}</span>
 
@@ -754,10 +917,11 @@ export function ShirtToken({
 
 /** Two XIs on one pitch — yours near half, theirs far, shared dimmed on halfway. */
 function ComparePitch({
-  rows, mode, rival, swingByElement, leverageByElement, rivalSet,
+  rows, mode, rival, swingByElement, leverageByElement, rivalSet, avatar = "face",
 }: {
   rows: SquadRow[][]; mode: Mode; rival: RivalPayload;
   swingByElement: Map<number, SwingRow>; leverageByElement: Map<number, LevRow>; rivalSet: Set<number>;
+  avatar?: AvatarMode;
 }) {
   const rivalStarters = rival.rows.filter((r) => !r.onBench);
   const rivalBands = [1, 2, 3, 4].map((pos) => rivalStarters.filter((r) => r.pos === pos));
@@ -770,7 +934,7 @@ function ComparePitch({
         <ul key={`rv${i}`} className="flex flex-wrap items-start justify-center gap-2 opacity-90">
           {band.map((r) => (
             <li key={r.element} className={cn(rivalSet.has(r.element) && "opacity-40 blur-[0.4px]")}>
-              <ShirtToken row={r} mode="points" />
+              <ShirtToken row={r} mode="points" avatar={avatar} />
             </li>
           ))}
         </ul>
@@ -782,7 +946,7 @@ function ComparePitch({
         <ul key={`me${i}`} className="flex flex-wrap items-start justify-center gap-2">
           {row.map((p) => (
             <li key={p.element} className={rivalSet.has(p.element) ? "opacity-40" : ""}>
-              <ShirtToken row={p} mode={mode} swing={swingByElement.get(p.element)} lev={leverageByElement.get(p.element)} />
+              <ShirtToken row={p} mode={mode} swing={swingByElement.get(p.element)} lev={leverageByElement.get(p.element)} avatar={avatar} />
             </li>
           ))}
         </ul>
