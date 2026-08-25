@@ -612,7 +612,7 @@ export function FieldClient({
       <section aria-label={`Your team on the pitch, ${mode} mode`} className="rounded-lg has-gloss card-lift overflow-hidden bg-raised p-3 md:p-5">
         <div
           ref={pitchRef}
-          className="relative overflow-hidden rounded-lg px-2 py-4 md:px-6"
+          className="on-turf relative overflow-hidden rounded-lg px-2 py-4 md:px-6"
           style={{
             background:
               "radial-gradient(120% 90% at 50% -10%, rgba(210,255,235,.16), transparent 55%), repeating-linear-gradient(90deg, rgba(6,32,20,.35) 0 64px, rgba(12,52,32,.18) 64px 128px), linear-gradient(178deg, #0B3B24, #062415 82%)",
