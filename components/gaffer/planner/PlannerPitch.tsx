@@ -200,7 +200,7 @@ function PitchTile({
       aria-pressed={selected}
       aria-label={`${p.name}, ${POS_NAME[p.pos]}, £${(p.cost / 10).toFixed(1)}m${staged ? ", transfer staged" : ""}`}
       className={cn(
-        "group relative flex w-full flex-col items-center rounded-md bg-raised/85 p-1.5 text-center backdrop-blur-[2px] transition-colors dur-instant",
+        "group relative flex w-full flex-col items-center rounded-md glass-edge p-1.5 text-center transition-colors dur-instant",
         selected ? "bg-surface-3" : "card-ring hover:bg-surface-3",
       )}
       style={

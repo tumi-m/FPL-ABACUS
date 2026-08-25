@@ -547,7 +547,7 @@ export function FieldClient({
             <span className="fig-num text-2xl leading-none">{rival.totals.gw}</span>
             <span className="upper-label text-2xs text-ink-lo">{rival.teamName ?? `Entry ${rival.entry}`}</span>
           </div>
-          <div role="group" aria-label="Compare view" className="flex gap-1 rounded-md card-ring p-1">
+          <div role="group" aria-label="Compare view" className="flex gap-1 rounded-md glass-edge p-1">
             {(["field", "table"] as const).map((v) => (
               <button
                 key={v}

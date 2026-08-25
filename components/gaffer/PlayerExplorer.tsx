@@ -106,7 +106,7 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
           aria-label="Search players"
           className="h-9 w-44 text-sm"
         />
-        <div role="group" aria-label="Position filter" className="inline-flex rounded-full card-ring p-0.5">
+        <div role="group" aria-label="Position filter" className="inline-flex rounded-full glass-edge p-0.5">
           {[null, 1, 2, 3, 4].map((p) => (
             <button
               key={String(p)}

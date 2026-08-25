@@ -211,7 +211,7 @@ export function TopPerformers({ data }: { data: TopPerformersData }) {
   return (
     <section aria-label="Top performers board" className="space-y-3">
       {/* which question you are asking */}
-      <div role="group" aria-label="Board" className="flex flex-wrap gap-1 rounded-md card-ring p-1">
+      <div role="group" aria-label="Board" className="flex flex-wrap gap-1 rounded-md glass-edge p-1">
         {BOARDS.map((b) => (
           <button
             key={b.id}
@@ -246,7 +246,7 @@ export function TopPerformers({ data }: { data: TopPerformersData }) {
           </select>
         </label>
 
-        <div role="group" aria-label="Position" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Position" className="flex gap-1 rounded-md glass-edge p-1">
           {POS_TABS.map((t) => (
             <button
               key={t.label}
@@ -266,7 +266,7 @@ export function TopPerformers({ data }: { data: TopPerformersData }) {
           ))}
         </div>
 
-        <div role="group" aria-label="Timeframe" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Timeframe" className="flex gap-1 rounded-md glass-edge p-1">
           {(["gw", "season"] as const).map((f) => (
             <button
               key={f}

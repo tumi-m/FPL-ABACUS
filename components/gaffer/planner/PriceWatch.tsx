@@ -88,7 +88,7 @@ export function PriceWatch({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <div role="group" aria-label="Price direction" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Price direction" className="flex gap-1 rounded-md glass-edge p-1">
           {(
             [
               { key: "rises", label: "Rising" },
@@ -110,7 +110,7 @@ export function PriceWatch({
             </button>
           ))}
         </div>
-        <div role="group" aria-label="Position filter" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Position filter" className="flex gap-1 rounded-md glass-edge p-1">
           {[null, 1, 2, 3, 4].map((k) => (
             <button
               key={k ?? "all"}

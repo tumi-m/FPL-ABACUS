@@ -269,7 +269,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
 
       {/* plan slots — one desk per strategy, all device-local */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div role="group" aria-label="Plans" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Plans" className="flex gap-1 rounded-md glass-edge p-1">
           {plans.plans.map((pl) => (
             <button
               key={pl.id}
@@ -313,7 +313,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-      <div role="group" aria-label="Planner sections" className="flex flex-wrap gap-1 rounded-md card-ring p-1">
+      <div role="group" aria-label="Planner sections" className="flex flex-wrap gap-1 rounded-md glass-edge p-1">
         {(
           [
             { key: "squad", label: "Squad & transfers" },
@@ -342,7 +342,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
           <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div role="group" aria-label="Pitch figure" className="flex gap-1 rounded-md card-ring p-1">
+              <div role="group" aria-label="Pitch figure" className="flex gap-1 rounded-md glass-edge p-1">
                 {MODES.map((m) => (
                   <button
                     key={m.key}

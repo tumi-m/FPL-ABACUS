@@ -117,7 +117,7 @@ export function BonusBoard({ data }: { data: BonusBoardData }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <div role="group" aria-label="Timeframe" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Timeframe" className="flex gap-1 rounded-md glass-edge p-1">
           {(
             [
               { id: "season", label: "Season" },
@@ -140,7 +140,7 @@ export function BonusBoard({ data }: { data: BonusBoardData }) {
           ))}
         </div>
 
-        <div role="group" aria-label="Position" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Position" className="flex gap-1 rounded-md glass-edge p-1">
           {POS_TABS.map((t) => (
             <button
               key={t.label}
