@@ -111,7 +111,7 @@ export function FixtureTicker({ data }: { data: TickerData }) {
     <section aria-label="League fixture ticker" className="space-y-3">
       {/* controls — everything local, so the grid answers on the tap */}
       <div className="flex flex-wrap items-center gap-2">
-        <div role="group" aria-label="Side" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Side" className="flex gap-1 rounded-md glass-edge p-1">
           {SIDES.map((s) => (
             <button
               key={s.key}
@@ -130,7 +130,7 @@ export function FixtureTicker({ data }: { data: TickerData }) {
         </div>
 
         {/* the range, Focal-style: two ends you set rather than a fixed horizon */}
-        <label className="inline-flex items-center gap-1.5 rounded-md card-ring px-2 py-1">
+        <label className="inline-flex items-center gap-1.5 rounded-md glass-edge px-2 py-1">
           <span className="upper-label text-2xs text-ink-lo">From</span>
           <select
             aria-label="First gameweek"
@@ -159,7 +159,7 @@ export function FixtureTicker({ data }: { data: TickerData }) {
           </select>
         </label>
 
-        <div role="group" aria-label="Sort" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Sort" className="flex gap-1 rounded-md glass-edge p-1">
           {(["run", "club"] as const).map((s) => (
             <button
               key={s}

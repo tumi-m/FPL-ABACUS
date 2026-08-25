@@ -127,7 +127,7 @@ export function DefconBoard({ data }: { data: DefconBoardData }) {
           </select>
         </label>
 
-        <div role="group" aria-label="Position" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Position" className="flex gap-1 rounded-md glass-edge p-1">
           {POS_TABS.map((t) => (
             <button
               key={t.label}

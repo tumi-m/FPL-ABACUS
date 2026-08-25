@@ -55,7 +55,7 @@ export function FixtureTicker({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="Ticker window" className="flex gap-1 rounded-md card-ring p-1">
+          <div role="group" aria-label="Ticker window" className="flex gap-1 rounded-md glass-edge p-1">
             {[3, 5, gws.length].filter((n, i, a) => n > 0 && a.indexOf(n) === i).map((n) => (
               <button
                 key={n}
@@ -71,7 +71,7 @@ export function FixtureTicker({
               </button>
             ))}
           </div>
-          <div role="group" aria-label="Ticker order" className="flex gap-1 rounded-md card-ring p-1">
+          <div role="group" aria-label="Ticker order" className="flex gap-1 rounded-md glass-edge p-1">
             {(
               [
                 { key: "total", label: "Best run" },

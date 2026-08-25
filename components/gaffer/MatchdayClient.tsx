@@ -165,7 +165,7 @@ export function MatchdayClient({
       {/* ── Mobile ─────────────────────────────────────────────── */}
       <div className="space-y-4 lg:hidden">
         <HeroScore model={current} moment={moment} />
-        <div role="group" aria-label="Matchday panels" className="grid grid-cols-4 gap-1 rounded-full card-ring p-1">
+        <div role="group" aria-label="Matchday panels" className="grid grid-cols-4 gap-1 rounded-full glass-edge p-1">
           {(
             [
               ["scores", "Scores"],
@@ -233,7 +233,7 @@ function PitchTableToggle({
 }) {
   return (
     <div className="flex justify-center">
-      <div role="group" aria-label="Team view" className="inline-flex rounded-full card-ring p-0.5">
+      <div role="group" aria-label="Team view" className="inline-flex rounded-full glass-edge p-0.5">
         {(["pitch", "table"] as const).map((v) => (
           <button
             key={v}

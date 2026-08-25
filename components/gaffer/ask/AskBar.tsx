@@ -292,7 +292,7 @@ export function AskBar() {
                   key={s}
                   type="button"
                   onClick={() => void ask(s)}
-                  className="rounded-full card-ring px-3 py-1.5 text-xs text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+                  className="rounded-full glass-edge px-3 py-1.5 text-xs text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
                 >
                   {s}
                 </button>

@@ -32,7 +32,7 @@ export function SwingFeed({ model }: { model: MatchdayModel }) {
     <section aria-label="Swing feed" className="flex h-full flex-col rounded-lg bg-surface-1 card-ring">
       <header className="flex items-center justify-between gap-2 px-4 pt-4">
         <h2 className="text-2xs font-semibold uppercase tracking-wide text-ink-3">Swing feed</h2>
-        <div role="group" aria-label="Filter events" className="inline-flex rounded-full card-ring p-0.5">
+        <div role="group" aria-label="Filter events" className="inline-flex rounded-full glass-edge p-0.5">
           {(["all", "yours", "field"] as const).map((f) => (
             <button
               key={f}

@@ -104,7 +104,7 @@ export function MarketPanel({
   return (
     <section
       aria-label="Player market"
-      className="flex min-h-0 flex-col gap-3 rounded-lg bg-raised card-ring p-3 md:p-4 lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100dvh-6rem)]"
+      className="flex min-h-0 flex-col gap-3 rounded-lg glass-edge p-3 md:p-4 lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100dvh-6rem)]"
     >
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="upper-label text-2xs text-ink-lo">
@@ -128,7 +128,7 @@ export function MarketPanel({
       </label>
 
       {/* position */}
-      <div role="group" aria-label="Position" className="flex gap-1 rounded-md card-ring p-1">
+      <div role="group" aria-label="Position" className="flex gap-1 rounded-md glass-edge p-1">
         {POS_TABS.map((t) => (
           <button
             key={t.label}
@@ -150,7 +150,7 @@ export function MarketPanel({
       {/* the shortlist's own horizon */}
       <div className="flex items-center justify-between gap-2">
         <span className="upper-label text-2xs text-ink-lo">Ranked over</span>
-        <div role="group" aria-label="Market window" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Market window" className="flex gap-1 rounded-md glass-edge p-1">
           {WINDOWS.filter((n) => n <= gws.length).map((n) => (
             <button
               key={n}

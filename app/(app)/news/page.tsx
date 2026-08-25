@@ -103,7 +103,7 @@ export default async function NewsPage({
         </div>
       </div>
 
-      <div role="group" aria-label="Filter" className="flex gap-1 rounded-md card-ring p-1">
+      <div role="group" aria-label="Filter" className="flex gap-1 rounded-md glass-edge p-1">
         {FILTERS.map((f) => (
           <Link
             key={f.key}

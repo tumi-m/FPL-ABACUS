@@ -686,7 +686,10 @@
                    the page happens to be showing, and it throws a shadow
      glass-dark    chrome over photography, where white text is fixed and the
                    theme must not flip the pane near-white beneath it
-     glass-edge    the look without the cost — rim and sheen, no blur
+     glass-edge    the look without the cost — rim and sheen, no blur. This
+                   is the one that makes the material app-wide: every
+                   segmented control, every toggle tray, the header's own
+                   chips, the planner's tokens and its market column
 
    Where it goes: floating chrome. Where it does NOT go: cards and rows inside
    the scrolling page. `backdrop-filter` costs a GPU pass per element per

@@ -121,7 +121,7 @@ export function SquadRuns({
         <h2 className="upper-label text-2xs text-ink-lo">
           Your fifteen · hardest run first
         </h2>
-        <div role="group" aria-label="Squad horizon" className="flex gap-1 rounded-md card-ring p-1">
+        <div role="group" aria-label="Squad horizon" className="flex gap-1 rounded-md glass-edge p-1">
           {SPANS.map((n) => (
             <button
               key={n}
