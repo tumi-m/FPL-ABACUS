@@ -569,6 +569,23 @@
 }
 
 /* broadcast lower-third — the header for every screen */
+/* The turf is a dark surface in EVERY theme, so the page inks — which flip to
+   navy under the light theme — come out unreadable on it: player names and the
+   xG line were dark-on-dark. Anything drawn on a pitch takes its inks from
+   here instead, so a component added to the turf later cannot forget. The
+   dark theme's inks are already light, so this only pins them. */
+.on-turf{
+  --ink-hi: var(--ink-on-dark);
+  --ink-mid: rgba(255,255,255,.80);
+  --ink-lo: rgba(255,255,255,.64);
+  /* --ink-1/2/3 alias the three above at :root, and a custom property is
+     substituted where it is declared — so the aliases have to be restated. */
+  --ink-1: var(--ink-on-dark);
+  --ink-2: rgba(255,255,255,.80);
+  --ink-3: rgba(255,255,255,.64);
+  color: var(--ink-on-dark);
+}
+
 .lower3{ display:flex; border-radius:4px; overflow:hidden; box-shadow:var(--lift); }
 .lower3-flag{ width:12px; transform:skewX(var(--skew)) scaleX(1.4); }
 .lower3-body{
