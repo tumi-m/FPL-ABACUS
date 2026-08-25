@@ -9,8 +9,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "entry query param required" }, { status: 400 });
   }
 
+  // A historical view must poll its own week, not silently get handed the
+  // current one — the client asks for the week it is showing.
+  const gwParam = Number(req.nextUrl.searchParams.get("gw"));
+  const gw = Number.isFinite(gwParam) && gwParam > 0 ? gwParam : undefined;
+
   try {
-    const result = await buildMatchday(entryId);
+    const result = await buildMatchday(entryId, gw);
     if (!result.ok) {
       if (result.reason === "picks-not-set") {
         return NextResponse.json({ error: "picks-not-set" }, { status: 200 });

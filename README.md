@@ -16,7 +16,7 @@ Enter any FPL team ID on `/`. No auth, no paywall.
 
 | Route | What it answers |
 |---|---|
-| `/live` | What is happening to my score and my rank right now |
+| `/live` | **Home** — the round's live scores and results, and what they are doing to my score and my rank |
 | `/field` | Where the points, ownership, swing, leverage and risk sit in my XI — plus the market boards: top performers, bonus, DEFCON |
 | `/planner` | **Who should I bring in** — pitch + full market, projected over six gameweeks, with the chip lane, the fixture ticker and the price watch |
 | `/board` | **Whose fixtures turn** — all twenty clubs tickered over any range of gameweeks, attack and defence scored apart, ranked by the run ahead |

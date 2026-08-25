@@ -12,7 +12,7 @@ import { cn } from "@/lib/ui/cn";
 // the Field, and the Arcade — where you pick your gaffer — hangs off the badge
 // in the header, which is a picture of the gaffers themselves.
 const NAV = [
-  { href: "/live", label: "Matchday", short: "Live" },
+  { href: "/live", label: "Home", short: "Home" },
   { href: "/field", label: "Field", short: "Field" },
   { href: "/planner", label: "Planner", short: "Plan" },
   { href: "/board", label: "Board", short: "Board" },

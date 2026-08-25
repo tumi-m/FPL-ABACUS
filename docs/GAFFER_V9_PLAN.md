@@ -349,6 +349,41 @@ grid structurally cannot tell you.
 Club rows link through to `/players?club=<id>`, which the explorer now honours
 (and its search matches club codes, so "ars" finds Arsenal's players).
 
+### V9-P — Home, and the card that showed nothing ✅
+
+**Regret · Relief was rendering blank, for two reasons.** It replays the
+alternatives you had with the same fifteen — captain someone else, start your
+bench player, roll instead of taking the hit — and prices each. Two bugs sat
+on top of each other:
+
+1. *It priced only in ranks.* Ranks need the sampled rank curve, and since
+   V9-K no page waits for that, so on many renders every branch priced at zero
+   and the card showed an empty bar and two em-dashes with no explanation —
+   which reads as "nothing happened" rather than "I could not work it out". It
+   falls back to points now, which need nothing but the live feed, labelled as
+   what they are. The card that used to say "—  —" says "−6 pts · Captaining
+   J.Timber instead".
+2. *The meter had never drawn a bar.* Both arms carried a 50% margin on top of
+   a `right-1/2`/`left-1/2` pin, which pushed them clean out of the container.
+   Removing the margins is the whole fix; the arms have presumably been
+   invisible since the component was written.
+
+**Matchday is Home.** Same route, and the round leads it: a scoreboard of
+every fixture grouped by what it is doing — in play first with the minute,
+then results, then what is still to come with kickoff times — and the matches
+your players are in sorted to the front of each block, marked with a count.
+It used to be an unsorted rail at the very bottom of the page.
+
+**The gameweek picker is shared.** `GameweekPicker` was the Field's; Home
+needs the same control and the same behaviour, so both call one component. Two
+pickers that drift apart is how a back button starts lying.
+
+Two bugs fell out of adding it: `/api/gaffer/live` ignored `?gw=`, so a
+historical view's poll would quietly replace the week you were reading with
+the current one — the Field has had this since it grew a gameweek stepper. The
+endpoint honours the parameter now, both clients key their SWR cache on the
+gameweek, and neither polls a settled past week at all.
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.
