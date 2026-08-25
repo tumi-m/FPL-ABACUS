@@ -28,7 +28,8 @@ Non-negotiables: zero raw hex outside `globals.css` (sole exception: `config/bra
 
 - One copy of upstream FPL data serves everyone: all traffic through `lib/fpl/*`, cached in `lib/cache/swr.ts` (single-flight SWR → Upstash Redis REST, MemoryStore fallback).
 - Engines are pure functions in `lib/engines/*`; composition happens server-side (`lib/server/buildMatchday.ts`).
-- Durable state in Postgres via drizzle (`lib/db/schema.ts`): cohort EO snapshots, price history, GW archives, score distributions.
+- Durable state in Postgres via drizzle (`lib/db/schema.ts`): cohort EO snapshots, price history, GW archives, score distributions. **Every read goes through `dbRead` (`lib/db/read.ts`)** — stored data is always an enhancement, so a missing schema or a failing query returns empty rather than throwing. `hasDb` is not a sufficient guard on its own: it says a database is configured, not migrated.
+- Never stream a raw error message to the client. The cause goes to the server log; the user gets a sentence.
 - Cron endpoints under `/api/cron/*` guarded by `CRON_SECRET` (Vercel sends it automatically). Frequent schedule runs from GitHub Actions `.github/workflows/prod-cron.yml` using repo secrets `PROD_URL` + `CRON_SECRET` (Hobby plan allows only daily Vercel crons).
 - Team id persists via cookie `gaffer_team`; theme via localStorage + `data-theme`.
 - **One transfer desk.** `/planner` is the only place transfers are staged: rules in `lib/engines/planner.ts` (pure, tested), composition in `lib/server/buildPlanner.ts`, UI in `components/gaffer/planner/*`. Plans persist per team under `gaffer_board_v2_{teamId}` via `lib/engines/boardPlans.ts`. The Board and the Field link to it; neither stages moves itself.

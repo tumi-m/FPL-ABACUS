@@ -239,7 +239,14 @@ export async function POST(req: NextRequest) {
         }
         await send({ type: "done" });
       } catch (err) {
-        await send({ type: "error", message: String(err instanceof Error ? err.message : err) });
+        // The real cause belongs in the server log, not in the user's face:
+        // this used to stream raw Postgres text ("relation ... does not
+        // exist") straight into the console sheet.
+        console.error("[ask] resolve failed", err);
+        await send({
+          type: "error",
+          message: "the desk could not answer that one. Try again in a moment.",
+        });
       } finally {
         controller.close();
       }

@@ -4,6 +4,7 @@
  */
 import { desc, gt, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { dbRead } from "@/lib/db/read";
 import { hasDb } from "@/lib/env";
 import { newsItem } from "@/lib/db/schema";
 import { urlHashOf } from "@/lib/news/sources";
@@ -50,24 +51,25 @@ export interface StoredNewsRow {
 
 /** Newest window of tagged news; caller does squad-specific ranking. */
 export async function recentItems(limit = 120, maxAgeDays = 10): Promise<StoredNewsRow[]> {
-  if (!hasDb) return [];
-  const since = new Date(Date.now() - maxAgeDays * 86_400_000);
-  return db()
-    .select({
-      urlHash: newsItem.urlHash,
-      url: newsItem.url,
-      source: newsItem.source,
-      title: newsItem.title,
-      summary: newsItem.summary,
-      publishedAt: newsItem.publishedAt,
-      elementIds: newsItem.elementIds,
-      teamIds: newsItem.teamIds,
-      relevance: newsItem.relevance,
-    })
-    .from(newsItem)
-    .where(gt(newsItem.publishedAt, since))
-    .orderBy(desc(newsItem.publishedAt))
-    .limit(limit);
+  return dbRead("news items", () => [] as StoredNewsRow[], async () => {
+    const since = new Date(Date.now() - maxAgeDays * 86_400_000);
+    return db()
+      .select({
+        urlHash: newsItem.urlHash,
+        url: newsItem.url,
+        source: newsItem.source,
+        title: newsItem.title,
+        summary: newsItem.summary,
+        publishedAt: newsItem.publishedAt,
+        elementIds: newsItem.elementIds,
+        teamIds: newsItem.teamIds,
+        relevance: newsItem.relevance,
+      })
+      .from(newsItem)
+      .where(gt(newsItem.publishedAt, since))
+      .orderBy(desc(newsItem.publishedAt))
+      .limit(limit);
+  });
 }
 
 /** Housekeeping — drop anything older than the retention window. */
