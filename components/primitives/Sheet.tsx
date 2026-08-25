@@ -10,13 +10,19 @@ const DialogClose = DialogPrimitive.Close;
 
 function overlayClass() {
   return cn(
-    "fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]",
+    "fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px]",
     "data-[state=open]:[animation:gaffer-overlay-in_160ms_ease-out]",
   );
 }
 
+/**
+ * The sheet itself is glass — it floats over the page, which is the one place
+ * the material belongs. The scrim behind it stays light so there is still
+ * something varied for the pane to refract; a fully opaque backdrop would make
+ * the blur invisible and the glass indistinguishable from a flat card.
+ */
 const contentBase =
-  "fixed z-50 bg-surface-2 text-ink-1 focus:outline-none transition-transform dur-base ease-out-quint";
+  "fixed z-50 glass-lift text-ink-1 focus:outline-none transition-transform dur-base ease-out-quint";
 
 const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
@@ -31,10 +37,10 @@ const DialogContent = React.forwardRef<
       className={cn(
         contentBase,
         side === "center" &&
-          "left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg card-ring p-6 max-h-[85dvh] overflow-auto",
+          "left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg p-6 max-h-[85dvh] overflow-auto",
         side === "bottom" &&
-          "inset-x-0 bottom-0 rounded-t-xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] overlay-shadow max-h-[85dvh] overflow-auto data-[state=open]:[animation:gaffer-sheet-up_240ms_cubic-bezier(.22,1,.36,1)]",
-        side === "right" && "inset-y-0 right-0 w-full max-w-md p-6 overlay-shadow overflow-auto",
+          "inset-x-0 bottom-0 rounded-t-xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] max-h-[85dvh] overflow-auto data-[state=open]:[animation:gaffer-sheet-up_240ms_cubic-bezier(.22,1,.36,1)]",
+        side === "right" && "inset-y-0 right-0 w-full max-w-md p-6 overflow-auto",
         className,
       )}
       {...props}

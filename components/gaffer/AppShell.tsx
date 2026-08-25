@@ -28,6 +28,12 @@ const NAV = [
  * thumb bar, which meant it sat on top of whatever you were reading on a
  * phone. It lives in the header now, with the fuller read on the landing page
  * and everything behind it one tap away at Matchday.
+ *
+ * Both bars are glass: the page passes behind them blurred rather than
+ * disappearing under an opaque slab, so you keep your place while scrolling.
+ * They are the two elements in the app that every screen scrolls behind, which
+ * is exactly what the material is for — and the ring the glass carries does
+ * the separating that a border used to, so there is no second hairline.
  */
 export function AppShell({
   teamId,
@@ -47,7 +53,7 @@ export function AppShell({
     <div className="min-h-dvh">
       <div className="atmos" aria-hidden="true" />
       <div className="relative z-10 flex min-h-dvh flex-col">
-        <header className="sticky top-0 z-40 h-14 bg-surface-0/90 backdrop-blur border-b border-hairline">
+        <header className="sticky top-0 z-40 h-14 glass">
           <div className="mx-auto flex h-full max-w-[1360px] items-center gap-4 px-4 md:px-6">
             {/* The brand is the way into the Arcade: the badge is the four
                 gaffers, and the Arcade is where you choose which one talks to
@@ -88,8 +94,12 @@ export function AppShell({
 
         <nav
           aria-label="Primary mobile"
-          className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface-0/90 px-2 pt-2 backdrop-blur pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
-          style={{ gridTemplateColumns: `repeat(${NAV.length}, minmax(0, 1fr))`, display: "grid", gap: 6 }}
+          /* `display` belongs in the class list, not the style attribute: an
+             inline `display:grid` outranks every class, so `lg:hidden` never
+             fired and the phone thumb bar sat under the desktop nav on wide
+             screens. Only the column count — which follows NAV — stays inline. */
+          className="lg:hidden grid gap-1.5 fixed inset-x-0 bottom-0 z-40 glass px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
+          style={{ gridTemplateColumns: `repeat(${NAV.length}, minmax(0, 1fr))` }}
         >
           {NAV.map((item) => (
             <Link

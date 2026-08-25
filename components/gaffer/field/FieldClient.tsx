@@ -479,8 +479,8 @@ export function FieldClient({
         );
       })()}
 
-      {/* mode segmented control — skewed chrome */}
-      <div role="group" aria-label="Field mode" className="flex flex-wrap gap-1 rounded-md card-ring p-1">
+      {/* mode segmented control — skewed chrome, in the same glass as the bars */}
+      <div role="group" aria-label="Field mode" className="flex flex-wrap gap-1 rounded-md glass-edge p-1">
         {MODES.map((m) => {
           const gated = historical && m.id !== "points";
           return (
