@@ -234,20 +234,74 @@ test.describe("authenticated routes", () => {
     expect(res.headers()["content-type"]).toContain("image/");
   });
 
-  test("board renders the fixture grid with URL-state controls", async ({ page }) => {
+  test("board tickers the whole league, not just your fifteen", async ({ page }) => {
     await asTeam(page);
     const res = await page.goto("/board");
     expect(res?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "The Board" })).toBeVisible();
-    await expect(page.getByRole("group", { name: "Horizon" })).toBeVisible();
-    await expect(page.getByRole("group", { name: "Colour model" })).toBeVisible();
+
+    // A fixture ticker you can only see your own clubs in is no ticker at all.
+    const ticker = page.getByRole("region", { name: "League fixture ticker" });
+    await expect(ticker).toBeVisible();
+    const clubRows = ticker.getByRole("table").locator("tbody tr");
+    await expect(clubRows).toHaveCount(20);
+
+    // and it opens on the run, ranked
+    await expect(ticker.getByRole("button", { name: "Best run" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
-  test("board horizon and colour model persist in the URL", async ({ page }) => {
+  test("attack and defence are different fixtures, and the range re-scores", async ({ page }) => {
     await asTeam(page);
-    await page.goto("/board?h=10&c=fdr");
-    await expect(page.getByRole("button", { name: "FDR" })).toHaveAttribute("aria-pressed", "true");
-    await expect(page).toHaveURL(/h=10&c=fdr/);
+    await page.goto("/board");
+    const ticker = page.getByRole("region", { name: "League fixture ticker" });
+    const firstClub = () => ticker.getByRole("table").locator("tbody tr").first().locator("th").innerText();
+
+    const attackTop = await firstClub();
+    await ticker.getByRole("button", { name: "Defence" }).click();
+    await expect(ticker.getByRole("button", { name: "Defence" })).toHaveAttribute("aria-pressed", "true");
+    const defenceTop = await firstClub();
+    // The best attacking run and the best defensive run are not the same club:
+    // that is the whole reason the two are scored apart.
+    expect(defenceTop).not.toBe(attackTop);
+
+    // widening the range changes the scores without a request
+    const runOf = () =>
+      ticker.getByRole("table").locator("tbody tr").first().locator("td").last().innerText();
+    const six = await runOf();
+    await ticker.getByLabel("Last gameweek").selectOption("8");
+    await expect.poll(runOf).not.toBe(six);
+  });
+
+  test("board marks your clubs and can filter to them", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/board");
+    const ticker = page.getByRole("region", { name: "League fixture ticker" });
+    const all = await ticker.getByRole("table").locator("tbody tr").count();
+
+    await ticker.getByRole("button", { name: "My clubs" }).click();
+    const mine = await ticker.getByRole("table").locator("tbody tr").count();
+    expect(mine).toBeGreaterThan(0);
+    expect(mine).toBeLessThan(all);
+  });
+
+  test("board keeps a position-aware read of your own squad", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/board");
+    const squad = page.getByRole("region", { name: "Your squad's fixture runs" });
+    await expect(squad).toBeVisible();
+    await expect(squad.getByText(/scored on clean sheets kept/)).toBeVisible();
+  });
+
+  test("a club row on the board opens that club's players", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/board");
+    const ticker = page.getByRole("region", { name: "League fixture ticker" });
+    await ticker.getByRole("table").locator("tbody tr").first().getByRole("link").click();
+    await expect(page).toHaveURL(/\/players\?club=\d+/);
+    await expect(page.getByRole("button", { name: "show all clubs" })).toBeVisible();
   });
 
   test("field renders the pitch with faces and the gameweek picker", async ({ page }) => {

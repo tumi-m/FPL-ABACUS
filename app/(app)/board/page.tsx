@@ -3,53 +3,29 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getFixturesAll, getPicks } from "@/lib/fpl/endpoints";
-import { HeatGrid } from "@/components/charts/HeatGrid";
-import {
-  bucket,
-  buildFixtureModel,
-  cellCode,
-  easiness,
-  fdrHeat,
-  oddsStubHeat,
-  projectFixture,
-  quantileCuts,
-  type ColourModel,
-} from "@/lib/engines/fixtureModel";
-import type { Pos } from "@/lib/engines/types";
+import { PageHeader } from "@/components/gaffer/PageHeader";
+import { FixtureTicker, type TickerData } from "@/components/gaffer/board/FixtureTicker";
+import { SquadRuns } from "@/components/gaffer/board/SquadRuns";
+import { buildFixtureModel } from "@/lib/engines/fixtureModel";
+import { buildTicker } from "@/lib/engines/fixtureTicker";
 import { computeGwProfiles } from "@/lib/server/buildBoardDesk";
+import type { Pos } from "@/lib/engines/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "The Board" };
+export const metadata = {
+  title: "The Board",
+  description:
+    "The league's fixture run, club by club — attacking and defensive difficulty scored separately, ranked over any range of gameweeks.",
+};
 
-const HORIZONS = ["6", "8", "10", "eos"] as const;
-type HorizonKey = (typeof HORIZONS)[number];
-const MODELS: { key: ColourModel; label: string }[] = [
-  { key: "xg", label: "xG" },
-  { key: "fdr", label: "FDR" },
-  { key: "odds", label: "Odds*" },
-];
-
-function parseHorizon(h: string | undefined): HorizonKey {
-  return (HORIZONS as readonly string[]).includes(h ?? "") ? (h as HorizonKey) : "8";
-}
-
-export default async function BoardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ h?: string; c?: string }>;
-}) {
+export default async function BoardPage() {
   const store = await cookies();
   const raw = store.get("gaffer_team")?.value;
   const teamId = raw && /^\d+$/.test(raw) ? Number(raw) : null;
   if (!teamId) redirect("/?next=/board");
 
-  const params = await searchParams;
-  const horizonKey = parseHorizon(params.h);
-  const colourModel: ColourModel =
-    params.c === "fdr" || params.c === "odds" ? params.c : "xg";
-
-  // Bootstrap gates the gameweek number, so it goes first; everything after it
-  // is independent and runs as one wave instead of four serial round trips.
+  // Bootstrap gates the gameweek number, so it goes first; everything after is
+  // independent and runs as one wave rather than serial round trips.
   const boot = await getBootstrapLite();
   const currentGw =
     boot.events.find((e) => e.is_current)?.id ??
@@ -59,179 +35,92 @@ export default async function BoardPage({
     getPicks(teamId, currentGw, true),
     getFixturesAll(),
   ]);
-
   const squadIds: number[] =
     picksRes.status === "fulfilled" ? picksRes.value.picks.map((p) => p.element) : [];
-
   const allFixtures: Awaited<ReturnType<typeof getFixturesAll>> =
     fixturesRes.status === "fulfilled" ? fixturesRes.value : [];
 
-  const teamById = new Map(boot.teams.map((t) => [t.id, t]));
-  const lastGw = boot.events[boot.events.length - 1]?.id ?? 38;
-  const horizonLen = horizonKey === "eos" ? Math.min(38, lastGw - currentGw + 1) : Number(horizonKey);
-  const horizonGws = boot.events.filter((e) => e.id >= currentGw).slice(0, horizonLen);
-
-  // Rolling-window opponent rates — completed matches only.
+  // Rolling-window opponent rates from completed matches only.
   const model = buildFixtureModel(allFixtures, { upToGw: currentGw });
 
-  interface WorkCell {
-    value: number;
-    text: string;
-    title?: string;
-    /** null → excluded from the grid's quantile cut points. */
-    ease: number | null;
-  }
+  // The whole rest of the season goes to the client in one payload. Twenty
+  // clubs by at most thirty-eight weeks is small, and shipping it whole is
+  // what lets the range, the side and the sort answer instantly instead of
+  // costing a request each — which is the difference between a ticker you
+  // fiddle with and a ticker you give up on.
+  const seasonGws = boot.events.filter((e) => e.id >= currentGw).map((e) => e.id);
+  const teamIds = boot.teams.map((t) => t.id);
+  const rows = buildTicker(
+    { model, fixtures: allFixtures, teamIds, gws: seasonGws },
+    "attack",
+  );
 
-  const workRows = squadIds
+  const ownedTeamIds = [
+    ...new Set(
+      squadIds
+        .map((id) => boot.elements[id]?.team)
+        .filter((t): t is number => typeof t === "number"),
+    ),
+  ];
+
+  const ticker: TickerData = { gws: seasonGws, rows, ownedTeamIds, currentGw };
+
+  // The squad panel keeps what the old Board did well: your own players,
+  // coloured by position, because a fixture is not the same for Gabriel as for
+  // Watkins even when both play the same club.
+  const squad = squadIds
     .map((id) => boot.elements[id])
     .filter((el): el is NonNullable<typeof el> => el != null)
-    .map((el) => ({ el, pos: el.element_type as Pos }));
+    .map((el) => ({
+      element: el.id,
+      webName: el.web_name,
+      pos: el.element_type as Pos,
+      teamId: el.team,
+    }));
 
-  // Pass one — raw easiness per player-gw.
-  const passOne: WorkCell[][] = workRows.map(({ el, pos }) =>
-    horizonGws.map((gw) => {
-      const fxs = allFixtures.filter(
-        (f) => f.event === gw.id && (f.team_h === el.team || f.team_a === el.team),
-      );
-      if (fxs.length === 0) {
-        return { value: 1, text: "—", title: `GW${gw.id} · ${el.web_name} · no fixture — a sunk hole`, ease: null };
-      }
-      if (fxs.length > 1 && colourModel !== "xg") {
-        return { value: 4, text: "2×", title: `GW${gw.id} · ${el.web_name} · double gameweek`, ease: null };
-      }
-      if (colourModel === "fdr") {
-        const f = fxs[0];
-        const home = f.team_h === el.team;
-        const opp = teamById.get(home ? f.team_a : f.team_h);
-        const diff = home ? f.team_a_difficulty : f.team_h_difficulty;
-        return {
-          value: fdrHeat(diff),
-          text: cellCode(opp?.short_name ?? "?", home),
-          title: `GW${gw.id} · ${el.web_name} · official FDR ${diff}`,
-          ease: null,
-        };
-      }
-      if (colourModel === "odds") {
-        const f = fxs[0];
-        const home = f.team_h === el.team;
-        const opp = teamById.get(home ? f.team_a : f.team_h);
-        return {
-          value: oddsStubHeat(teamById.get(el.team)?.strength ?? 3, opp?.strength ?? 3),
-          text: cellCode(opp?.short_name ?? "?", home),
-          title: `GW${gw.id} · ${el.web_name} · odds stub from overall strength ratings`,
-          ease: null,
-        };
-      }
-      // xG model — position aware, doubles averaged.
-      const proj = fxs.map((f) => {
-        const home = f.team_h === el.team;
-        const oppId = home ? f.team_a : f.team_h;
-        return { p: projectFixture(model, el.team, oppId, home), oppId, home };
-      });
-      const ease = proj.reduce((s, x) => s + easiness(x.p, pos), 0) / proj.length;
-      return {
-        value: 3,
-        text: proj.map((x) => cellCode(teamById.get(x.oppId)?.short_name ?? "?", x.home)).join("/"),
-        title: `GW${gw.id} · ${el.web_name} · xG ~${proj.map((x) => x.p.xgFor.toFixed(2)).join("/")} · conceded ~${proj.map((x) => x.p.xgAgainst.toFixed(2)).join("/")}`,
-        ease,
-      };
-    }),
-  );
-
-  const cuts = quantileCuts(
-    passOne.flat().map((c) => c.ease).filter((v): v is number => v != null),
-    6,
-  );
-
-  // Pass two — bucket onto the six-step heat.
-  const rows = workRows.map(({ el }, i) => ({
-    label: el.web_name,
-    cells: passOne[i].map((c) => ({ ...c, value: c.ease == null ? c.value : bucket(c.ease, cuts) })),
-  }));
-
-  const gwProfiles = computeGwProfiles(allFixtures, horizonGws.map((g) => g.id));
-
-  const qs = (over: { h?: string; c?: string }) => {
-    const p = new URLSearchParams({ h: horizonKey, c: colourModel });
-    for (const [k, v] of Object.entries(over)) p.set(k, v);
-    return `/board?${p.toString()}`;
-  };
+  const profiles = computeGwProfiles(allFixtures, seasonGws.slice(0, 12));
+  const notable = profiles.filter((p) => p.doubles > 0 || p.byes > 0);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="fig-num text-[22px] leading-none">The Board</h1>
-          <p className="mt-1 text-2xs uppercase-label text-ink-lo">
-            Fixture reality · rolling window shrunk to league mean (k=6)
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="The Board"
+        meta="The league's fixture run · attack and defence scored apart"
+        action={
+          <Link
+            href="/planner"
+            className="skewed inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-md bg-volt px-3 text-2xs uppercase-label text-on-accent transition-transform dur-instant hover:-translate-y-px"
+          >
+            <span>Open the Planner</span>
+          </Link>
+        }
+      />
 
-      {/* controls — skewed chrome, state in the URL */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div role="group" aria-label="Horizon" className="flex gap-1 rounded-md card-ring p-1">
-          {HORIZONS.map((key) => (
-            <Link
-              key={key}
-              href={qs({ h: key })}
-              aria-pressed={horizonKey === key}
-              role="button"
-              className={`skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant ${
-                horizonKey === key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi"
-              }`}
-            >
-              <span>{key === "eos" ? "EoS" : key}</span>
-            </Link>
-          ))}
-        </div>
-        <div role="group" aria-label="Colour model" className="flex gap-1 rounded-md card-ring p-1">
-          {MODELS.map((m) => (
-            <Link
-              key={m.key}
-              href={qs({ c: m.key })}
-              aria-pressed={colourModel === m.key}
-              role="button"
-              className={`skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant ${
-                colourModel === m.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi"
-              }`}
-            >
-              <span>{m.label}</span>
-            </Link>
-          ))}
-        </div>
-        <p className="ml-auto max-w-[46ch] text-2xs leading-relaxed text-ink-lo">
-          UPPERCASE home, lowercase away. Attackers colour by what your side should score; keepers
-          and defenders by what it should concede.
-        </p>
-      </div>
+      {/* the hero: twenty clubs, ranked by the run ahead */}
+      <FixtureTicker data={ticker} />
 
-      {/* fixture grid — the screen's hero */}
-      <section aria-label="Fixture difficulty grid" className="space-y-2">
-        <h2 className="upper-label text-2xs text-ink-lo">Fixture grid</h2>
-        <HeatGrid
-          ariaLabel={`Fixture difficulty grid across the ${horizonKey === "eos" ? "rest of the season" : `next ${horizonLen} gameweeks`}`}
-          rows={rows}
-        />
-      </section>
+      {/* the calendar's own shape — only the weeks where it is not a full slate */}
+      {notable.length > 0 && (
+        <section aria-label="Blanks and doubles ahead" className="space-y-2">
+          <h2 className="upper-label text-2xs text-ink-lo">Blanks &amp; doubles ahead</h2>
+          <ul className="flex flex-wrap gap-2 text-xs text-ink-3 num-tabular">
+            {notable.map((p) => {
+              const parts: string[] = [];
+              if (p.doubles > 0) parts.push(`${p.doubles} double${p.doubles === 1 ? "" : "s"}`);
+              if (p.byes > 0) parts.push(`${p.byes} blank${p.byes === 1 ? "" : "s"}`);
+              return (
+                <li key={p.id} className="rounded-full card-ring px-2.5 py-1">
+                  GW{p.id}: {parts.join(" · ")}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
-      <section aria-label="Blanks and doubles in the horizon" className="space-y-2">
-        <h2 className="upper-label text-2xs text-ink-lo">Blanks &amp; doubles</h2>
-        <ul className="flex flex-wrap gap-2 text-xs text-ink-3 num-tabular">
-          {gwProfiles.map((p) => {
-            const parts: string[] = [];
-            if (p.doubles > 0) parts.push(`${p.doubles} double${p.doubles === 1 ? "" : "s"}`);
-            if (p.byes > 0) parts.push(`${p.byes} blank`);
-            return (
-              <li key={p.id} className="rounded-full card-ring px-2.5 py-1">
-                GW{p.id}: {parts.length > 0 ? parts.join(" · ") : "full slate"}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      {/* your fifteen, position-aware */}
+      <SquadRuns squad={squad} rows={rows} gws={seasonGws} />
 
-      {/* Transfers live on the Planner now — one desk, not two. */}
       <Link
         href="/planner"
         className="flex flex-wrap items-center justify-between gap-3 rounded-lg has-gloss card-lift bg-raised p-4 transition-colors dur-instant hover:bg-surface-3 md:p-5"

@@ -19,7 +19,7 @@ Enter any FPL team ID on `/`. No auth, no paywall.
 | `/live` | What is happening to my score and my rank right now |
 | `/field` | Where the points, ownership, swing, leverage and risk sit in my XI — plus the market boards: top performers, bonus, DEFCON |
 | `/planner` | **Who should I bring in** — pitch + full market, projected over six gameweeks, with the chip lane, the fixture ticker and the price watch |
-| `/board` | How kind the fixture run is, per player, over any horizon |
+| `/board` | **Whose fixtures turn** — all twenty clubs tickered over any range of gameweeks, attack and defence scored apart, ranked by the run ahead |
 | `/leagues` | Where I stand and what my rivals own |
 
 The Planner is the only place transfers are staged: rules in

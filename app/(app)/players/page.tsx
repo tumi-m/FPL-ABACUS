@@ -10,6 +10,7 @@ export default async function PlayersPage() {
     id: el.id,
     webName: el.web_name,
     pos: el.element_type,
+    teamId: el.team,
     teamShort: boot.teams.find((t) => t.id === el.team)?.short_name ?? "",
     price: el.now_cost,
     status: el.status,
