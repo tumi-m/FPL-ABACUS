@@ -6,6 +6,7 @@ import "server-only";
  * confirmations; powers the gate's team-name / manager-name search.
  */
 import { db } from "@/lib/db";
+import { dbRead } from "@/lib/db/read";
 import { hasDb } from "@/lib/env";
 import { entryDirectory } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
@@ -52,19 +53,21 @@ export async function searchEntries(
   mode: "team" | "manager",
   limit = 20,
 ): Promise<DirectoryRow[]> {
-  if (!hasDb) return [];
-  const needle = `%${q.replace(/([%_\\])/g, "\\$1")}%`;
-  const column = mode === "team" ? entryDirectory.teamName : entryDirectory.managerName;
-  const rows = await db()
-    .select({
-      entry: entryDirectory.entry,
-      teamName: entryDirectory.teamName,
-      managerName: entryDirectory.managerName,
-      rank: entryDirectory.rank,
-    })
-    .from(entryDirectory)
-    .where(sql`${column} ilike ${needle}`)
-    .orderBy(sql`${entryDirectory.rank} asc nulls last`, sql`${entryDirectory.seenAt} desc`)
-    .limit(limit);
-  return rows;
+  // No directory yet is a normal answer here — the gate already tells the user
+  // to paste an ID instead. It must never be an error.
+  return dbRead("entry directory search", () => [] as DirectoryRow[], async () => {
+    const needle = `%${q.replace(/([%_\\])/g, "\\$1")}%`;
+    const column = mode === "team" ? entryDirectory.teamName : entryDirectory.managerName;
+    return db()
+      .select({
+        entry: entryDirectory.entry,
+        teamName: entryDirectory.teamName,
+        managerName: entryDirectory.managerName,
+        rank: entryDirectory.rank,
+      })
+      .from(entryDirectory)
+      .where(sql`${column} ilike ${needle}`)
+      .orderBy(sql`${entryDirectory.rank} asc nulls last`, sql`${entryDirectory.seenAt} desc`)
+      .limit(limit);
+  });
 }

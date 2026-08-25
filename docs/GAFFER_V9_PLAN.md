@@ -65,8 +65,39 @@ The gate sat on a trophy shot with no explanation. The hero now carries the
 tagline and the description over a scrim that guarantees contrast against a
 bright photograph, plus a four-card band naming what the app actually does.
 
+### V9-G — stored data degrades, it does not throw ✅
+Owner report: asking "Will anyone rise tonight?" answered
+`Something went wrong: relation "price_change" does not exist`.
+
+Root cause: `DATABASE_URL` is set on production but the schema was never
+applied, so `hasDb` was true and the price reader queried tables that do not
+exist. `hasDb` alone was never a sufficient guard — it says a database is
+configured, not that it is usable.
+
+- `lib/db/read.ts` — `dbRead(label, fallback, run)`. Every stored-data read is
+  an enhancement over something that already works without it, so a read that
+  cannot be served returns the caller's empty value instead of throwing.
+  `classifyDbError` separates an unmigrated schema (SQLSTATE 42P01/42703) from
+  a failing one, and the operator gets one warning per call site naming the
+  fix: **run `pnpm db:migrate`**. 12 unit tests.
+- `priceStore` (snapshots, ledger, coverage), `entryDirectory.searchEntries`
+  and `news/store.recentItems` now read through it. The price resolver's
+  existing honest fallback — "stored hourly snapshots have not covered this
+  player yet" — is what the user sees.
+- `/api/ask` no longer streams raw error text to the browser. The cause goes
+  to the server log; the console says the desk could not answer that one.
+  Postgres messages, connection strings and upstream URLs stop leaking.
+
+Verified against a real Postgres with an empty schema: the question that
+produced the error now returns a Price watch card with its estimate note, the
+gate's name search returns an empty result set rather than a 500, and the
+newsdesk renders.
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.
 - Price watch runs on the public net-transfer proxy for everyone; wiring it to
   `lib/server/priceStore.ts` when a database is configured would sharpen it.
+- **Production has not been migrated.** The app degrades honestly now, but the
+  price gauge, cohort EO, the entry directory and the newsdesk stay empty until
+  `pnpm db:migrate` runs against the production `DATABASE_URL`.
