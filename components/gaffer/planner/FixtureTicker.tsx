@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
-import { CrestBadge } from "@/components/gaffer/ClubCrest";
+import { CrestBadge } from "@/components/gaffer/CrestBadge";
 import { fdrHeatStep, runScore } from "@/lib/engines/planner";
 import type { PlannerClub, PlannerGw, Ticker } from "@/lib/engines/planner";
 

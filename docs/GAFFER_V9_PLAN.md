@@ -384,6 +384,47 @@ the current one — the Field has had this since it grew a gameweek stepper. The
 endpoint honours the parameter now, both clients key their SWR cache on the
 gameweek, and neither polls a settled past week at all.
 
+### V9-Q — crests, faces, and what to do about it ✅
+
+**The Board wears the real badges.** Club rows carried `CrestTile` — a 36×30
+code tile, not a crest — forced to 16px, so it squashed behind the three
+letters beside it: the same code twice, overlapping. `CrestBadge` (the actual
+FPL badge, code tile as fallback) at its own size instead. Your fifteen get
+faces, badged with their club, honouring the device's faces/kits preference
+like every other list.
+
+**"Worth doing next" closes the Board.** The ticker says whose fixtures turn;
+this says what follows. `lib/engines/suggest.ts` (+12 tests) prices every legal
+one-for-one swap over the same horizon the grid is coloured by, and the rules
+go through `checkSwap` — the Planner's own — so a suggestion you cannot make
+never appears. Tapping one opens the Planner with the swap staged
+(`?out=&in=`), because the Planner stays the only desk that moves a player.
+
+Two things the first cut got wrong, both caught on screen rather than in a
+test:
+- It offered the same signing against four different outgoings. You can sign
+  him once. It is a greedy matching now — best pair first, then the best pair
+  among players neither side has spent — so the list is a set of moves you
+  could make *together*.
+- A fixed 180-minute floor on candidates emptied the board in GW1, when nobody
+  has played two matches. It scales with the season via `defaultMinutesFloor`,
+  the same fix the rate boards needed in V9-I.
+
+**The mini-league gets the gameweek picker.** Same shared control as the Field
+and Home. A past gameweek is not in the standings payload — FPL publishes only
+the current `event_total` — so it reads the same capped entry histories the
+month view uses, and says so.
+
+**`/squad` is My team**, with faces, and linked from Home's header so it is one
+tap from anywhere.
+
+**A server-component crash, found on the way.** `CrestBadge` keeps state for
+its broken-image fallback, but lived in `ClubCrest.tsx` beside the stateless
+`ClubFlag` and `CrestTile` with no `"use client"` — so rendering it from a
+server component threw `useState is not a function` and blanked the page. It
+has its own client module now; the two stateless marks stay server-safe, which
+is what the pages importing them need.
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.

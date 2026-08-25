@@ -9,9 +9,22 @@ import { SquadRuns } from "@/components/gaffer/board/SquadRuns";
 import { buildFixtureModel } from "@/lib/engines/fixtureModel";
 import { buildTicker } from "@/lib/engines/fixtureTicker";
 import { computeGwProfiles } from "@/lib/server/buildBoardDesk";
+import { buildPlanner } from "@/lib/server/buildPlanner";
+import { suggestTransfers } from "@/lib/engines/suggest";
+import { defaultMinutesFloor } from "@/lib/engines/performance";
+import {
+  RecommendedTransfers,
+  type SuggestionRow,
+} from "@/components/gaffer/board/RecommendedTransfers";
 import type { Pos } from "@/lib/engines/types";
 
 export const dynamic = "force-dynamic";
+
+/** The horizon the suggestions are priced over — the usual planning window. */
+const SUGGEST_WEEKS = 6;
+/* The minutes floor scales to how much football has been played. A fixed
+   180 would empty this board through the opening weeks — in GW1 nobody has
+   played two matches — which is the same trap the rate boards fell into. */
 export const metadata = {
   title: "The Board",
   description:
@@ -31,9 +44,13 @@ export default async function BoardPage() {
     boot.events.find((e) => e.is_current)?.id ??
     Math.max(1, (boot.events.find((e) => e.is_next)?.id ?? 2) - 1);
 
-  const [picksRes, fixturesRes] = await Promise.allSettled([
+  // The planner already assembles the market with horizon projections, your
+  // fifteen and the bank — the suggestion engine needs exactly that, so it is
+  // reused rather than rebuilt. Its failure must not take the ticker with it.
+  const [picksRes, fixturesRes, plannerRes] = await Promise.allSettled([
     getPicks(teamId, currentGw, true),
     getFixturesAll(),
+    buildPlanner(teamId, SUGGEST_WEEKS),
   ]);
   const squadIds: number[] =
     picksRes.status === "fulfilled" ? picksRes.value.picks.map((p) => p.element) : [];
@@ -76,7 +93,40 @@ export default async function BoardPage() {
       webName: el.web_name,
       pos: el.element_type as Pos,
       teamId: el.team,
+      photo: el.photo,
     }));
+
+  // What to actually do about the grid above.
+  const planner = plannerRes.status === "fulfilled" ? plannerRes.value : null;
+  let suggestions: SuggestionRow[] = [];
+  if (planner && !planner.squadUnavailable) {
+    const byId = new Map(planner.players.map((p) => [p.id, p]));
+    const sellOf = new Map(planner.squad.map((sl) => [sl.element, sl.sellPrice]));
+    const mine = planner.squad
+      .map((sl) => byId.get(sl.element))
+      .filter((p): p is NonNullable<typeof p> => p != null);
+
+    suggestions = suggestTransfers({
+      squad: mine,
+      market: planner.players,
+      bankTenths: planner.bankTenths,
+      sellPriceOf: (id) => sellOf.get(id) ?? byId.get(id)?.cost ?? 0,
+      weeks: SUGGEST_WEEKS,
+      minMinutes: defaultMinutesFloor(planner.players),
+    }).flatMap((sg) => {
+      const out = byId.get(sg.outId);
+      const incoming = byId.get(sg.inId);
+      if (!out || !incoming) return [];
+      const side = (p: typeof out) => ({
+        name: p.name,
+        pos: p.pos,
+        teamId: p.team,
+        photo: p.photo,
+        cost: p.cost,
+      });
+      return [{ ...sg, out: side(out), in: side(incoming) }];
+    });
+  }
 
   const profiles = computeGwProfiles(allFixtures, seasonGws.slice(0, 12));
   const notable = profiles.filter((p) => p.doubles > 0 || p.byes > 0);
@@ -120,6 +170,15 @@ export default async function BoardPage() {
 
       {/* your fifteen, position-aware */}
       <SquadRuns squad={squad} rows={rows} gws={seasonGws} />
+
+      {/* and what follows from all of it */}
+      <RecommendedTransfers
+        rows={suggestions}
+        weeks={SUGGEST_WEEKS}
+        freeTransfers={planner?.freeTransfers ?? 1}
+        bankTenths={planner?.bankTenths ?? 0}
+        squadUnavailable={planner == null || planner.squadUnavailable}
+      />
 
       <Link
         href="/planner"

@@ -1,16 +1,18 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import Image from "next/image";
+
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getEntry, getPicks } from "@/lib/fpl/endpoints";
-import { formatPrice, POSITION_SHORT, crest } from "@/lib/ui/format";
+import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
+import { SelfAvatar } from "@/components/gaffer/PlayerAvatarClient";
+import { CrestBadge } from "@/components/gaffer/CrestBadge";
 import { Badge } from "@/components/primitives/Badge";
 import { KitWeave } from "@/components/generative/KitWeave";
 import { COPY } from "@/lib/copy/deck";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Squad" };
+export const metadata = { title: "My team" };
 
 const STATUS_TONE = {
   a: "default",
@@ -63,7 +65,7 @@ export default async function SquadPage() {
       <div className="relative overflow-hidden rounded-lg has-gloss card-lift bg-raised px-5 py-4">
         <KitWeave teamIds={squadTeamIds} />
         <header className="relative flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="fig-num text-[22px] leading-none">Your 15</h1>
+          <h1 className="fig-num text-[22px] leading-none">My team</h1>
           <p className="upper-label text-2xs text-ink-lo num-tabular">
             Value £{(value / 10).toFixed(1)}m · Bank £{(bank / 10).toFixed(1)}m · Transfers {totalTransfers}
           </p>
@@ -83,7 +85,22 @@ export default async function SquadPage() {
                 className="flex items-center gap-3 rounded-md bg-surface-1 px-3 py-2.5 card-ring transition-colors dur-instant hover:bg-surface-3"
               >
                 <span className="w-6 text-right text-xs text-ink-3 num-tabular">{p.position}</span>
-                <Image src={crest(el.team_code)} alt="" width={24} height={24} className="h-6 w-6 object-contain" />
+                {/* the face, with the crest badged on it — the same identity
+                    block the Field and the boards use */}
+                <span className="relative inline-block h-10 w-10 shrink-0">
+                  <span className="block h-10 w-10 overflow-hidden rounded-md bg-surface-3">
+                    <SelfAvatar
+                      photo={el.photo}
+                      teamId={el.team}
+                      className="h-10 w-10 object-cover object-top"
+                    />
+                  </span>
+                  <CrestBadge
+                    teamId={el.team}
+                    size={14}
+                    className="absolute -bottom-1 -right-1 rounded-[2px] bg-surface-1"
+                  />
+                </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-ink-1">{el.web_name}</span>
                   <span className="block text-xs text-ink-3">
@@ -104,9 +121,20 @@ export default async function SquadPage() {
         })}
       </ul>
 
-      <p className="text-xs text-ink-3">
-        Season view deep-dive (price pressure per player, xP horizon) arrives with the projection wiring on the Deadline Desk.
-      </p>
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/field"
+          className="skewed inline-flex h-10 items-center rounded-md card-ring px-4 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+        >
+          <span>See them on the pitch</span>
+        </Link>
+        <Link
+          href="/planner"
+          className="skewed inline-flex h-10 items-center rounded-md card-ring px-4 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+        >
+          <span>Plan a transfer</span>
+        </Link>
+      </div>
     </div>
   );
 }
