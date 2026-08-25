@@ -17,12 +17,10 @@ Enter any FPL team ID on `/`. No auth, no paywall.
 | Route | What it answers |
 |---|---|
 | `/live` | What is happening to my score and my rank right now |
-| `/field` | Where the points, ownership, swing, leverage and risk sit in my XI |
+| `/field` | Where the points, ownership, swing, leverage and risk sit in my XI — plus the market boards: top performers, bonus, DEFCON |
 | `/planner` | **Who should I bring in** — pitch + full market, projected over six gameweeks, with the chip lane, the fixture ticker and the price watch |
 | `/board` | How kind the fixture run is, per player, over any horizon |
 | `/leagues` | Where I stand and what my rivals own |
-| `/bonus` | Who takes the 1·2·3, how, and what it cost them in BPS |
-| `/defcon` | Defensive contributions against the line each position must clear, and bookings |
 
 The Planner is the only place transfers are staged: rules in
 `lib/engines/planner.ts` (pure, unit-tested), composition in

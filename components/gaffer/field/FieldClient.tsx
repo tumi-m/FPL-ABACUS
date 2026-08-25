@@ -22,13 +22,29 @@ import { CrestTile } from "@/components/gaffer/ClubCrest";
 import { PlayerAvatar, AvatarToggle, useAvatarMode, type AvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { MatchEventStrip, matchEvents } from "@/components/gaffer/field/MatchEvents";
 import { TopPerformers, type TopPerformersData } from "@/components/gaffer/field/TopPerformers";
+import { BonusBoard, type BonusBoardData } from "@/components/gaffer/boards/BonusBoard";
+import { DefconBoard, type DefconBoardData } from "@/components/gaffer/boards/DefconBoard";
 import { COPY } from "@/lib/copy/deck";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 const POLL_LIVE_MS = 20_000;
 const POLL_IDLE_MS = 300_000;
 
-type Mode = "points" | "ownership" | "swing" | "leverage" | "correlation" | "risk" | "top";
+type Mode =
+  | "points" | "ownership" | "swing" | "leverage" | "correlation" | "risk"
+  | "top" | "bonus" | "defcon";
+
+/**
+ * The stat boards — Top, Bonus and DEFCON — read the whole player market, so
+ * they live behind their own fetch rather than in every Field payload. They sit
+ * next to Risk in the same control because that is where you are when you want
+ * them: the pitch answers "what is my team doing", the boards answer "who else
+ * is doing it", and making you leave the page to ask broke the thought.
+ */
+const BOARD_MODES = ["top", "bonus", "defcon"] as const;
+type BoardMode = (typeof BOARD_MODES)[number];
+const isBoardMode = (m: Mode): m is BoardMode => (BOARD_MODES as readonly string[]).includes(m);
+
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "points", label: "Points", hint: "Live points per player" },
   { id: "ownership", label: "Ownership", hint: "Effective ownership in the selected cohort — template fades, differentials burn" },
@@ -37,10 +53,38 @@ const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "correlation", label: "Correlation", hint: "Arcs join players whose GW outcomes move together — stacking shrinks your effective bets" },
   { id: "risk", label: "Risk", hint: "Token size is each player's share of your XI's variance" },
   { id: "top", label: "Top", hint: "Top performers — highest xG, xA and fewest expected concessions, this GW or the season" },
+  { id: "bonus", label: "Bonus", hint: "The 1·2·3 — who takes bonus, how, and what it cost them in BPS" },
+  { id: "defcon", label: "DEFCON", hint: "Defensive contributions, per-90 rates, threshold hits and bookings" },
 ];
 
-/** Keys 1–7 select the pitch modes. */
-const KEY_MODES: Mode[] = ["points", "ownership", "swing", "leverage", "correlation", "risk", "top"];
+/** Keys 1–9 select the pitch modes and the boards. */
+const KEY_MODES: Mode[] = [
+  "points", "ownership", "swing", "leverage", "correlation", "risk",
+  "top", "bonus", "defcon",
+];
+
+/** What each board's endpoint hands back. */
+interface BoardPayloads {
+  top: TopPerformersData;
+  bonus: BonusBoardData;
+  defcon: DefconBoardData;
+}
+
+/** Titles for the boards, which used to be pages with headings of their own. */
+const BOARD_HEADS: Record<BoardMode, { title: string; blurb: string }> = {
+  top: {
+    title: "Top performers",
+    blurb: "Season actuals, what the underlying numbers expected, and the gap between them",
+  },
+  bonus: {
+    title: "Bonus",
+    blurb: "The 1·2·3 · who takes it, how, and what it cost them in BPS",
+  },
+  defcon: {
+    title: "DEFCON monsters",
+    blurb: "Defensive contributions · rates against the line · bookings",
+  },
+};
 
 interface WebPayload {
   players: { elementId: number; webName: string }[];
@@ -69,11 +113,9 @@ interface RivalPayload {
 
 export function FieldClient({
   initialModel,
-  top,
   expectedByElement = {},
 }: {
   initialModel: MatchdayModel;
-  top?: TopPerformersData | null;
   /** FPL's published expectation for this gameweek, per element. */
   expectedByElement?: Record<number, number>;
 }) {
@@ -128,6 +170,26 @@ export function FieldClient({
 
   // faces or kits — a device-wide preference, shared with every other board.
   const [avatar, setAvatar] = useAvatarMode();
+
+  // ── the stat boards — fetched when one is opened, never before ──────────
+  // Each carries the whole selectable market, about seven hundred rows. Sent
+  // with the page they were the single biggest thing on the wire and most
+  // visits never looked at them, so the pitch renders first and a board
+  // arrives on its own request. SWR caches per board, so flipping back to one
+  // you have already seen is instant.
+  const boardMode = isBoardMode(mode) ? mode : null;
+  const { data: board, isLoading: boardLoading, error: boardError } = useSWR<
+    BoardPayloads[BoardMode]
+  >(
+    boardMode ? ["gaffer-board", boardMode, historical ? gw : null] : null,
+    async ([, b, g]: [string, BoardMode, number | null]) => {
+      const qs = g == null ? `board=${b}` : `board=${b}&gw=${g}`;
+      const res = await fetch(`/api/gaffer/boards?${qs}`);
+      if (!res.ok) throw new Error(String(res.status));
+      return (await res.json()) as BoardPayloads[BoardMode];
+    },
+    { revalidateOnFocus: false, dedupingInterval: 120_000 },
+  );
 
   // ── correlation web (modes 5+6) — fetched only when a mode needs it ─────
   const wantsWeb = mode === "correlation" || mode === "risk";
@@ -401,24 +463,30 @@ export function FieldClient({
             </button>
           );
         })}
-        {/* artwork switch — the pitch's look changed where the pitch is read */}
-        <AvatarToggle mode={avatar} onChange={setAvatar} className="ml-auto border-0 shadow-none" />
-        <div className="flex items-center gap-1.5 pr-1">
-          <input
-            value={rivalIdRaw}
-            onChange={(e) => setRivalIdRaw(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && loadRival()}
-            placeholder="Compare id or name"
-            className="h-7 w-40 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi placeholder:text-ink-lo focus:outline-none focus-visible:outline focus-visible:outline-volt"
-            aria-label="Rival entry id or manager name"
-          />
-          <button
-            onClick={() => (rival ? clearRival() : loadRival())}
-            className="skewed rounded-sm bg-raised px-2.5 py-1 text-xs uppercase-label text-ink-mid hover:text-ink-hi"
-          >
-            <span>{rival ? "Clear" : "Compare"}</span>
-          </button>
-        </div>
+        {/* The artwork switch and the compare box belong to the pitch. A board
+            has its own artwork switch and nobody's rival, so neither follows
+            you in — the control row stays about the board you are reading. */}
+        {!boardMode && (
+          <>
+            <AvatarToggle mode={avatar} onChange={setAvatar} className="ml-auto border-0 shadow-none" />
+            <div className="flex items-center gap-1.5 pr-1">
+              <input
+                value={rivalIdRaw}
+                onChange={(e) => setRivalIdRaw(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && loadRival()}
+                placeholder="Compare id or name"
+                className="h-7 w-40 rounded-sm border border-line bg-sunk px-2 text-xs text-ink-hi placeholder:text-ink-lo focus:outline-none focus-visible:outline focus-visible:outline-volt"
+                aria-label="Rival entry id or manager name"
+              />
+              <button
+                onClick={() => (rival ? clearRival() : loadRival())}
+                className="skewed rounded-sm bg-raised px-2.5 py-1 text-xs uppercase-label text-ink-mid hover:text-ink-hi"
+              >
+                <span>{rival ? "Clear" : "Compare"}</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {rivalError && <p role="alert" className="text-sm text-flare">{rivalError}</p>}
@@ -481,26 +549,35 @@ export function FieldClient({
       )}
 
       {/* the pitch — broadcast turf: tournament green under the floodlights,
-          striped and marked; never a flat rectangle. Top mode swaps the turf
-          for the performers board. */}
-      {mode === "top" && top ? (
-        <section aria-label="Top performers" className="space-y-3 rounded-lg has-gloss card-lift bg-raised p-4 md:p-5">
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <span className="mr-auto upper-label text-2xs text-ink-lo">Deeper boards</span>
-            {[
-              { href: "/bonus", label: "Bonus" },
-              { href: "/defcon", label: "DEFCON monsters" },
-            ].map((b) => (
-              <Link
-                key={b.href}
-                href={b.href}
-                className="skewed inline-flex h-9 items-center rounded-md card-ring px-3 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
-              >
-                <span>{b.label}</span>
-              </Link>
-            ))}
-          </div>
-          <TopPerformers data={top} />
+          striped and marked; never a flat rectangle. A board mode swaps the
+          turf for that board. */}
+      {boardMode ? (
+        <section
+          aria-label={MODES.find((m) => m.id === boardMode)?.label ?? "Board"}
+          aria-busy={boardLoading || undefined}
+          className="space-y-3 rounded-lg has-gloss card-lift bg-raised p-4 md:p-5"
+        >
+          <header>
+            <h2 className="fig-num text-[19px] leading-none">{BOARD_HEADS[boardMode].title}</h2>
+            <p className="mt-1 max-w-[70ch] text-2xs uppercase-label text-ink-lo">
+              {BOARD_HEADS[boardMode].blurb}
+            </p>
+          </header>
+          {board ? (
+            boardMode === "top" ? (
+              <TopPerformers data={board as TopPerformersData} />
+            ) : boardMode === "bonus" ? (
+              <BonusBoard data={board as BonusBoardData} />
+            ) : (
+              <DefconBoard data={board as DefconBoardData} />
+            )
+          ) : boardError ? (
+            <p role="alert" className="py-10 text-center text-sm text-ink-lo">
+              {COPY.upstreamDown.body}
+            </p>
+          ) : (
+            <BoardSkeleton />
+          )}
         </section>
       ) : (
       <section aria-label={`Your team on the pitch, ${mode} mode`} className="rounded-lg has-gloss card-lift overflow-hidden bg-raised p-3 md:p-5">
@@ -549,11 +626,7 @@ export function FieldClient({
             </svg>
           )}
 
-          {mode === "top" && top ? (
-            <div className="rounded-lg bg-surface-1 card-ring p-4">
-              <TopPerformers data={top} />
-            </div>
-          ) : rival && rivalView === "field" ? (
+          {rival && rivalView === "field" ? (
             <ComparePitch
               rows={rows} mode={mode} rival={rival}
               swingByElement={swingByElement} leverageByElement={leverageByElement} rivalSet={rivalSet}
@@ -621,6 +694,11 @@ export function FieldClient({
       </section>
       )}
 
+      {/* Everything below reads your squad, so a market board replaces it
+          rather than burying it — and a board view stops paying for charts
+          nobody scrolled to. */}
+      {!boardMode && (
+        <>
       <EOScatter rows={model.squad} onSelect={(el) => setPeekElement(el)} />
 
       {/* the decision board — the Monte Carlo and Nash engines the app already
@@ -666,6 +744,8 @@ export function FieldClient({
         <BonusLeaders rows={model.squad} />
         <CaptainShare rows={model.squad} />
       </div>
+        </>
+      )}
 
       <PeekSheet
         element={peekElement}
@@ -718,9 +798,30 @@ function modeValue(
       // neutral colour by spec — size carries the encoding, the pill just states it
       return { text: riskShare != null ? `${Math.round(riskShare * 100)}%` : "—", tone: "plain" };
     case "top":
-      // the board replaces the pitch — tokens never render in this mode
+    case "bonus":
+    case "defcon":
+      // the board replaces the pitch — tokens never render in these modes
       return { text: String(row.livePoints), tone: "plain" };
   }
+}
+
+/**
+ * The board's placeholder while its market fetch is in flight.
+ *
+ * Shaped like what arrives — a control row, two charts, a table — so the
+ * layout does not jump when the real thing lands.
+ */
+function BoardSkeleton() {
+  return (
+    <div className="space-y-3" aria-label="Loading board">
+      <div className="h-9 w-full max-w-md rounded-md bg-surface-3/60" />
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="h-56 rounded-lg bg-surface-3/40" />
+        <div className="h-56 rounded-lg bg-surface-3/40" />
+      </div>
+      <div className="h-72 rounded-lg bg-surface-3/40" />
+    </div>
+  );
 }
 
 /** Compact per-90 figure — ".31" under 1, one decimal above. */

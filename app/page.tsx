@@ -4,6 +4,7 @@ import { Wordmark } from "@/components/gaffer/Wordmark";
 import { TeamIdGate } from "@/components/gaffer/TeamIdGate";
 import { HeroLineup } from "@/components/gaffer/HeroLineup";
 import { ClubMap } from "@/components/gaffer/ClubMap";
+import { LandingStatus } from "@/components/gaffer/LandingStatus";
 
 export default async function Landing({
   searchParams,
@@ -67,6 +68,11 @@ export default async function Landing({
           <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-white/80">
             {brand.description}
           </p>
+          {/* the week's state, where the status pill used to float over every
+              app screen. It reads itself in after hydration so this page stays
+              static and the gate — the one thing here that has to be instant —
+              never waits on the FPL API. */}
+          <LandingStatus />
           <p className="sr-only">Enter your FPL team ID to continue</p>
           <div className="mt-7 flex w-full justify-center">
             <TeamIdGate next={target} />
