@@ -100,6 +100,16 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
         news: meta?.news ?? "",
         chanceOfPlaying: meta?.chance_of_playing_this_round ?? null,
       }),
+      season: {
+        goals: meta?.goals_scored ?? 0,
+        assists: meta?.assists ?? 0,
+        xg: meta?.xgTotal ?? 0,
+        xa: meta?.xaTotal ?? 0,
+        minutes: meta?.minutes ?? 0,
+        starts: meta?.starts ?? 0,
+        points: meta?.total_points ?? 0,
+        cost: meta?.now_cost ?? 0,
+      },
       teamId: meta?.team ?? 0,
       xg90: meta?.xg90 ?? null,
       xgc90:

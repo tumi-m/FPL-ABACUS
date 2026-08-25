@@ -10,6 +10,12 @@ import { clubOf } from "@/config/clubs";
 import { EOScatter } from "@/components/charts/EOScatter";
 import { PositionContribution, Availability, BonusLeaders, CaptainShare } from "@/components/gaffer/field/FieldCharts";
 import {
+  ExpectedVsActual,
+  MinutesSecurity,
+  OverUnder,
+  ValueForMoney,
+} from "@/components/gaffer/field/SquadCharts";
+import {
   Crossover,
   DecisionLedger,
   Delivery,
@@ -782,6 +788,22 @@ export function FieldClient({
         <BonusLeaders rows={model.squad} />
         <CaptainShare rows={model.squad} />
       </div>
+
+      {/* the season underneath the gameweek — are the players any good */}
+      <section aria-label="Your fifteen this season" className="space-y-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="upper-label text-2xs text-ink-lo">Your fifteen this season</h2>
+          <p className="text-2xs text-ink-lo">
+            Season totals, not projections — what they have actually done.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ExpectedVsActual rows={model.squad} />
+          <OverUnder rows={model.squad} />
+          <MinutesSecurity rows={model.squad} currentGw={model.event.id} />
+          <ValueForMoney rows={model.squad} />
+        </div>
+      </section>
         </>
       )}
 
@@ -991,8 +1013,12 @@ export function ShirtToken({
           <span
             aria-label="Vice-captain"
             title="Vice-captain — takes the armband if the captain does not play"
-            className="absolute -right-1.5 -top-1.5 z-20 grid h-[16px] w-[16px] place-items-center rounded-full bg-surface-3 text-[10px] font-bold leading-none text-ink-mid"
-            style={{ boxShadow: "0 0 0 2px var(--bg-raised), inset 0 0 0 1px var(--line-hi)" }}
+            /* The vice used to be grey on grey and vanished against the turf.
+               It is the captain's colour now — outlined rather than filled, so
+               it reads as the understudy at a glance rather than a second
+               armband. */
+            className="absolute -right-1.5 -top-1.5 z-20 grid h-[17px] w-[17px] place-items-center rounded-full bg-overlay text-[10px] font-extrabold leading-none text-volt"
+            style={{ boxShadow: "0 0 0 2px var(--bg-raised), inset 0 0 0 1.5px var(--volt)" }}
           >
             V
           </span>
@@ -1036,17 +1062,20 @@ export function ShirtToken({
       {/* expectation line — the real gameweek xG/xGC once the player is on the
           pitch (live feed, same Opta numbers the scoresites carry); the
           season per-90 expectation before kick-off */}
-      {(row.liveStats || row.xg90 != null || row.xgc90 != null) && (
+      {/* Always rendered, so the points pill sits at the same height on every
+          token in the row even when a player has no expectation to show. */}
+      {(
         <span
-          className="mt-0.5 block whitespace-nowrap text-[9px] leading-none text-ink-lo num-tabular"
+          className="mt-0.5 block h-[9px] whitespace-nowrap text-[9px] leading-none text-ink-lo num-tabular"
           title={
             row.liveStats
               ? "This gameweek's live xG and expected goals conceded (xGC) from the FPL/Opta feed"
               : "Season xG per 90 · team expected goals conceded (xGC) for this fixture"
           }
         >
-          xG {fmt90(row.liveStats ? row.liveStats.xg : row.xg90)} · xGC{" "}
-          {fmt90(row.liveStats ? row.liveStats.xgc : row.xgc90)}
+          {row.liveStats || row.xg90 != null || row.xgc90 != null
+            ? `xG ${fmt90(row.liveStats ? row.liveStats.xg : row.xg90)} · xGC ${fmt90(row.liveStats ? row.liveStats.xgc : row.xgc90)}`
+            : "\u00a0"}
         </span>
       )}
 

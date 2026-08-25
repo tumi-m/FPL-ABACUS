@@ -4,6 +4,7 @@ import * as React from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { clubOf } from "@/config/clubs";
+import { playerImg } from "@/lib/ui/format";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 /**
@@ -11,6 +12,11 @@ import type { MatchdayModel } from "@/lib/engines/matchdayModel";
  * scoring player (XI + came-on subs), building cumulatively to the total.
  * Bars wear their CLUB identity colour; the captain keeps a volt armband mark;
  * the total bar is the single volt identity mark. Marks stay flat and upright.
+ *
+ * The axis carries faces rather than names rotated thirty-five degrees. A
+ * rotated name is unreadable at a glance and cost the chart its whole bottom
+ * edge; a face is recognised without being read, and the name sits under it
+ * upright for anyone who needs it.
  */
 export function PointsWaterfall({
   rows,
@@ -20,8 +26,10 @@ export function PointsWaterfall({
   ariaLabel?: string;
 }) {
   const W = 720;
-  const H = 320;
-  const M = { top: 24, right: 16, bottom: 46, left: 40 };
+  const H = 360;
+  // The bottom margin is the face rail: 34px of portrait plus the name under it.
+  const M = { top: 26, right: 16, bottom: 74, left: 40 };
+  const FACE = 30;
 
   const scoring = rows
     .filter((r) => !r.onBench)
@@ -31,6 +39,7 @@ export function PointsWaterfall({
       pts: r.livePoints,
       teamId: r.teamId,
       captain: r.isCaptain && r.multiplier >= 2,
+      photo: r.photo,
     }))
     .sort((a, b) => b.pts - a.pts);
 
@@ -100,26 +109,26 @@ export function PointsWaterfall({
                 <title>{`${b.name}${b.captain ? " (captain)" : ""} — ${b.pts} pts`}</title>
               </rect>
               {/* the point value rides centred in the bar (above it when thin) */}
-              {height >= 16 ? (
+              {height >= 20 ? (
                 <text
-                  x={cx} y={top + height / 2 + 4}
-                  textAnchor="middle" fontSize="12" fontWeight="800"
-                  fill="#fff" opacity={0.95}
+                  x={cx} y={top + height / 2 + 6}
+                  textAnchor="middle" fontSize="16" fontWeight="800"
+                  fill="#fff" opacity={0.97}
                   style={{ fontVariationSettings: '"wdth" 110' }}
                 >
                   {b.pts}
                 </text>
               ) : (
                 <text
-                  x={cx} y={top - 5}
-                  textAnchor="middle" fontSize="11" fontWeight="800"
-                  className="fill-(--ink-mid)"
+                  x={cx} y={top - 6}
+                  textAnchor="middle" fontSize="14" fontWeight="800"
+                  className="fill-(--ink-hi)"
                 >
                   {b.pts}
                 </text>
               )}
               {b.captain && (
-                <text x={cx} y={top - 12} textAnchor="middle" fontSize="9" className="fill-(--volt)" fontWeight="800">
+                <text x={cx} y={top - 14} textAnchor="middle" fontSize="11" className="fill-(--volt)" fontWeight="800">
                   C
                 </text>
               )}
@@ -134,25 +143,62 @@ export function PointsWaterfall({
         />
         <text
           x={(x("total") ?? 0) + bw / 2} y={(y(running) + y(0)) / 2 + 5}
-          textAnchor="middle" fontSize="15" fontWeight="800"
+          textAnchor="middle" fontSize="19" fontWeight="800"
           className="fill-(--on-accent)"
           style={{ fontVariationSettings: '"wdth" 110' }}
         >
           {Math.round(running)}
         </text>
 
-        {/* names upright Barlow; values never skew */}
-        {bars.map((b) => (
-          <text
-            key={`n${b.el}`}
-            x={(x(String(b.el)) ?? 0) + bw / 2} y={H - M.bottom + 14}
-            textAnchor="end" fontSize="10" className="fill-(--ink-mid)"
-            transform={`rotate(-35 ${(x(String(b.el)) ?? 0) + bw / 2} ${H - M.bottom + 14})`}
-          >
-            {b.name}
-          </text>
-        ))}
-        <text x={(x("total") ?? 0) + bw / 2} y={H - M.bottom + 14} textAnchor="middle" fontSize="10" letterSpacing="1.5" className="fill-(--ink-lo)">
+        {/* the face rail — recognised, not read, with the name upright below */}
+        <defs>
+          <clipPath id="wf-face">
+            <rect x="0" y="0" width={FACE} height={FACE} rx="5" />
+          </clipPath>
+        </defs>
+        {bars.map((b) => {
+          const cx = (x(String(b.el)) ?? 0) + bw / 2;
+          const fx = cx - FACE / 2;
+          const fy = H - M.bottom + 8;
+          const club = clubOf(b.teamId);
+          return (
+            <g key={`f${b.el}`}>
+              {/* The club colour sits under the portrait, so a photo that
+                  never loads leaves an identifiable tile rather than a hole. */}
+              <rect x={fx} y={fy} width={FACE} height={FACE} rx="5" fill={club.rail} opacity="0.9" />
+              <text
+                x={cx} y={fy + FACE / 2 + 4} textAnchor="middle" fontSize="10" fontWeight="800"
+                fill={club.lightInk ? "var(--ink-fixed-dark)" : "var(--ink-on-dark)"}
+                opacity="0.9"
+              >
+                {club.code}
+              </text>
+              {b.photo && (
+                <image
+                  href={playerImg(b.photo)}
+                  x={fx} y={fy} width={FACE} height={FACE}
+                  clipPath="url(#wf-face)"
+                  preserveAspectRatio="xMidYMin slice"
+                />
+              )}
+              <rect
+                x={fx} y={fy} width={FACE} height={FACE} rx="5"
+                fill="none" stroke={b.captain ? "var(--volt)" : club.rail}
+                strokeWidth={b.captain ? 2 : 1}
+              />
+              <text
+                x={cx} y={fy + FACE + 12}
+                textAnchor="middle" fontSize="10" className="fill-(--ink-mid)"
+              >
+                {b.name.length > 9 ? `${b.name.slice(0, 8)}…` : b.name}
+              </text>
+            </g>
+          );
+        })}
+        <text
+          x={(x("total") ?? 0) + bw / 2} y={H - M.bottom + 26}
+          textAnchor="middle" fontSize="10" letterSpacing="1.5" className="fill-(--ink-lo)"
+        >
           TOTAL
         </text>
       </svg>

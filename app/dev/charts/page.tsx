@@ -194,5 +194,15 @@ function squadFixture() {
     photo: "",
     liveStats: null,
     availability: readAvailability({ status: "a", news: "", chanceOfPlaying: null }),
+    season: {
+      goals: n.pts > 8 ? 2 : 1,
+      assists: 1,
+      xg: 1.4,
+      xa: 0.9,
+      minutes: 1200,
+      starts: 13,
+      points: 60,
+      cost: 70,
+    },
   }));
 }

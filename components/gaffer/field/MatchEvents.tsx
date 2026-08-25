@@ -218,9 +218,12 @@ export function MatchEventStrip({
   events: MatchEvent[];
   className?: string;
 }) {
-  if (events.length === 0) return null;
+  // The slot keeps its height whether or not there is anything in it. A strip
+  // that collapses to nothing pushes the name and the points pill up on some
+  // tokens and not others, so a row of eleven never lines up — which is what
+  // made the pitch look ragged rather than laid out.
   return (
-    <span className={cn("mt-1 flex items-center justify-center gap-0.5", className)}>
+    <span className={cn("mt-1 flex h-[21px] items-center justify-center gap-0.5", className)}>
       {events.map((e) => (
         <span
           key={e.key}
@@ -267,13 +270,38 @@ const LEGEND: { icon: React.ReactNode; tone: string; label: string; note: string
   { icon: Cross, tone: "var(--flare)", label: "Own goal or penalty missed", note: "" },
 ];
 
+/** The five marks worth naming inline; the rest live behind the disclosure. */
+const KEY_MARKS = LEGEND.slice(0, 5);
+
+/**
+ * The always-visible strip.
+ *
+ * A key folded inside a disclosure at the bottom of a page is a key nobody
+ * reads. The five common marks are named on the row itself, and the full list
+ * — the rarer marks and the DEFCON ring — opens from it.
+ */
 export function MatchEventLegend({ className }: { className?: string }) {
   return (
     <details className={cn("group rounded-md card-ring px-3 py-2", className)}>
-      <summary className="cursor-pointer list-none text-2xs uppercase-label text-ink-lo transition-colors dur-instant hover:text-ink-hi">
-        What the marks mean
-        <span aria-hidden className="ml-1.5 inline-block transition-transform dur-instant group-open:rotate-90">
-          ›
+      <summary className="cursor-pointer list-none transition-colors dur-instant">
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          {KEY_MARKS.map((l) => (
+            <span key={l.label} className="inline-flex items-center gap-1.5">
+              <span
+                className="inline-flex shrink-0 items-center rounded-full bg-overlay px-[3px] py-px leading-none"
+                style={{ color: l.tone, boxShadow: "inset 0 0 0 1px color-mix(in oklab, currentColor 40%, transparent)" }}
+              >
+                <span className="block h-[13px] w-[13px]">{l.icon}</span>
+              </span>
+              <span className="text-2xs text-ink-mid">{l.label}</span>
+            </span>
+          ))}
+          <span className="ml-auto text-2xs uppercase-label text-ink-lo group-hover:text-ink-hi">
+            all marks
+            <span aria-hidden className="ml-1 inline-block transition-transform dur-instant group-open:rotate-90">
+              ›
+            </span>
+          </span>
         </span>
       </summary>
       <ul className="mt-2.5 grid gap-x-5 gap-y-2 sm:grid-cols-2">

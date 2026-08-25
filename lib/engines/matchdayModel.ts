@@ -51,6 +51,24 @@ export interface SquadRow {
   liveStats: import("@/lib/engines/types").LiveStatsLite | null;
   /** FPL's availability flag, read into something sayable. */
   availability: import("@/lib/engines/availability").Availability;
+  /**
+   * The season so far, for the actual-against-expected charts.
+   *
+   * Fifteen players' worth of numbers already sitting in the bootstrap the
+   * page has loaded — nothing extra crosses the wire, and it is the only way
+   * the Field can ask whether a player is finishing what he creates.
+   */
+  season: {
+    goals: number;
+    assists: number;
+    xg: number;
+    xa: number;
+    minutes: number;
+    starts: number;
+    points: number;
+    /** Price in tenths of a million. */
+    cost: number;
+  };
 }
 
 export interface SwingRow {
@@ -241,6 +259,16 @@ export function composeMatchdayModel(deps: {
         news: meta?.news ?? "",
         chanceOfPlaying: meta?.chance_of_playing_this_round ?? null,
       }),
+      season: {
+        goals: meta?.goals_scored ?? 0,
+        assists: meta?.assists ?? 0,
+        xg: meta?.xgTotal ?? 0,
+        xa: meta?.xaTotal ?? 0,
+        minutes: meta?.minutes ?? 0,
+        starts: meta?.starts ?? 0,
+        points: meta?.total_points ?? 0,
+        cost: meta?.now_cost ?? 0,
+      },
     };
   });
 
