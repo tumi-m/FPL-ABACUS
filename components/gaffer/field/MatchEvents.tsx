@@ -194,14 +194,19 @@ export function MatchEventStrip({
           aria-label={e.label}
           role="img"
           className={cn(
-            "inline-flex items-center gap-px rounded-full bg-overlay px-1 py-px leading-none",
+            "inline-flex items-center gap-px rounded-full bg-overlay px-[3px] py-px leading-none",
             e.provisional && "opacity-60",
           )}
           style={{ color: e.tone, boxShadow: "inset 0 0 0 1px color-mix(in oklab, currentColor 40%, transparent)" }}
         >
-          <span className="block h-[9px] w-[9px]">{e.icon}</span>
+          {/* Nine pixels was too small to read a ball from a boot at arm's
+              length. Thirteen with tighter padding keeps the same footprint —
+              three badges still fit under a token — with a glyph half again
+              as big. The strip sizes as one: a goal drawn larger than the
+              shield beside it would read as a broken row, not a louder mark. */}
+          <span className="block h-[13px] w-[13px]">{e.icon}</span>
           {e.count > 1 && (
-            <span className="text-[8px] font-bold num-tabular" style={{ color: e.tone }}>
+            <span className="text-[9px] font-bold num-tabular" style={{ color: e.tone }}>
               {e.count}
             </span>
           )}

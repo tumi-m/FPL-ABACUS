@@ -228,14 +228,14 @@ export function BonusBoard({ data }: { data: BonusBoardData }) {
                   </td>
                   <td className="hidden py-2 text-xs text-ink-mid sm:table-cell">{clubOf(p.teamId).code}</td>
                   <td className="py-2 pr-2 text-right text-xs text-ink-mid">{p.minutes}</td>
-                  <td className="hidden py-2 pr-2 text-right text-xs text-amber md:table-cell">{w?.threes ?? "—"}</td>
+                  <td className="hidden py-2 pr-2 text-right text-xs text-bonus md:table-cell">{w?.threes ?? "—"}</td>
                   <td className="hidden py-2 pr-2 text-right text-xs text-ink-mid md:table-cell">{w?.twos ?? "—"}</td>
                   <td className="hidden py-2 pr-2 text-right text-xs text-ink-lo md:table-cell">{w?.ones ?? "—"}</td>
                   <td className="py-2 pr-2 text-right text-xs text-ink-mid">{bonusRate(p).toFixed(2)}</td>
                   <td className="hidden py-2 pr-2 text-right text-xs text-ink-mid sm:table-cell">
                     {eff == null ? "—" : eff.toFixed(0)}
                   </td>
-                  <td className="py-2 pr-3 text-right font-bold text-amber">{p.bonus}</td>
+                  <td className="py-2 pr-3 text-right font-bold text-bonus">{p.bonus}</td>
                 </tr>
               );
             })}
@@ -294,9 +294,9 @@ function BonusSplit({
   const scale = (v: number) => ((W - M.left - M.right) * v) / max;
 
   const bands = [
-    { key: "threes" as const, label: "3 pts", fill: "var(--amber)" },
-    { key: "twos" as const, label: "2 pts", fill: "color-mix(in oklab, var(--amber) 62%, var(--bg-sunk))" },
-    { key: "ones" as const, label: "1 pt", fill: "color-mix(in oklab, var(--amber) 32%, var(--bg-sunk))" },
+    { key: "threes" as const, label: "3 pts", fill: "var(--bonus)" },
+    { key: "twos" as const, label: "2 pts", fill: "color-mix(in oklab, var(--bonus) 62%, var(--bg-sunk))" },
+    { key: "ones" as const, label: "1 pt", fill: "color-mix(in oklab, var(--bonus) 32%, var(--bg-sunk))" },
   ];
 
   return (
@@ -404,7 +404,7 @@ function BpsConversion({ rows }: { rows: PerfPlayer[] }) {
             cx={sx(p.bps)}
             cy={sy(p.bonus)}
             r={p.bonus > p.bps * slope ? 4.5 : 3.5}
-            fill={p.bonus >= p.bps * slope ? "var(--amber)" : "var(--line-hi)"}
+            fill={p.bonus >= p.bps * slope ? "var(--bonus)" : "var(--line-hi)"}
             opacity={0.8}
           >
             <title>{`${p.name}: ${p.bps} BPS → ${p.bonus} bonus`}</title>

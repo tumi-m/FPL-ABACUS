@@ -932,11 +932,13 @@ export function ShirtToken({
           </span>
         </span>
       )}
-      {/* bonus dots — the actual 1·2·3, official or projected */}
+      {/* Bonus pips — the actual 1·2·3, official or projected. Pink, not
+          amber: amber is the yellow card, and a brace of bonus next to a
+          booking used to be two gold marks the eye had to read twice. */}
       {row.bonus > 0 && (
         <span className="absolute right-0 top-0 flex gap-0.5" aria-label={`${row.bonus} bonus`}>
           {Array.from({ length: Math.min(3, row.bonus) }).map((_, i) => (
-            <span key={i} className="h-1.5 w-1.5 rounded-full bg-amber" />
+            <span key={i} className="h-1.5 w-1.5 rounded-full bg-bonus" />
           ))}
         </span>
       )}
@@ -1150,7 +1152,7 @@ function CompareColumn({ title, rows, tone }: { title: string; rows: SquadRow[];
               </td>
               <td className="px-1.5 py-1.5 text-right font-semibold text-ink-hi">
                 {r.livePoints}
-                {!r.bonusOfficial && r.bonus > 0 && <sup className="text-amber">*</sup>}
+                {!r.bonusOfficial && r.bonus > 0 && <sup className="text-bonus">*</sup>}
               </td>
               <td className="px-1.5 py-1.5 text-right text-ultra">{r.subbedInFor !== null ? "⇅" : ""}</td>
             </tr>
