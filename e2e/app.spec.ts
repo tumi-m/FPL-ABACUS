@@ -55,7 +55,7 @@ test.describe("team ID gate flow", () => {
     await expect(map.getByText("Liverpool tint on")).toBeVisible();
   });
 
-  test("valid ID confirms, lands on Matchday and persists the session cookie", async ({ page }) => {
+  test("valid ID confirms, lands on Home and persists the session cookie", async ({ page }) => {
     await page.goto("/");
     await page.getByLabel("Your FPL team ID").fill(TEAM_ID);
     await page.getByRole("button", { name: "Go" }).click();
@@ -92,10 +92,10 @@ test.describe("team ID gate flow", () => {
 });
 
 test.describe("authenticated routes", () => {
-  test("matchday composes the live model or a graceful fallback", async ({ page }) => {
+  test("home composes the live model or a graceful fallback", async ({ page }) => {
     await asTeam(page);
     await page.goto("/live");
-    await expect(page).toHaveTitle(/Matchday/);
+    await expect(page).toHaveTitle(/Home/);
     // The status chip lives in the header now — it used to float over the page
     // at the bottom of the viewport, which cost a strip of content on a phone.
     const chip = page.locator("header").getByRole("link", { name: /Live|Gameweek/ });
@@ -104,6 +104,39 @@ test.describe("authenticated routes", () => {
     expect(box && box.y).toBeLessThan(56);
     // Either the composed board or an explicit fallback state — never a crash screen.
     await expect(page.locator("main")).not.toBeEmpty();
+  });
+
+  test("home leads with the round's scores, grouped by state", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/live");
+    const board = page.getByRole("region", { name: "Scoreboard" });
+    await expect(board).toBeVisible();
+    // results carry an actual scoreline, not a placeholder dash
+    await expect(board.getByText(/\d+–\d+/).first()).toBeVisible();
+    await expect(board.getByRole("heading", { name: /Results|In play|To come/ }).first()).toBeVisible();
+  });
+
+  test("home carries the same gameweek picker as the Field", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/live");
+    const picker = page.getByRole("combobox", { name: "Gameweek" });
+    await expect(picker).toBeVisible();
+    expect(await picker.locator("option").count()).toBeGreaterThan(0);
+  });
+
+  test("regret and relief price the branches instead of showing dashes", async ({ page }) => {
+    await asTeam(page);
+    await page.setViewportSize({ width: 1300, height: 900 });
+    await page.goto("/live");
+    const card = page.getByRole("region", { name: "Regret and relief" });
+    await card.scrollIntoViewIfNeeded();
+    await expect(card).toBeVisible();
+
+    // The card used to render an empty bar and two em-dashes whenever the rank
+    // curve was missing. Ranks or points, it has to say something.
+    const best = card.getByText(/Best avoided loss/i).locator("xpath=following-sibling::dd[1]");
+    await expect(best).not.toHaveText("—");
+    await expect(best).toHaveText(/pts|k|,|\d/);
   });
 
   test("squad lists the fifteen", async ({ page }) => {
@@ -478,7 +511,7 @@ test.describe("authenticated routes", () => {
     await page.goto("/live");
     const bar = page.getByRole("navigation", { name: "Primary mobile" });
     await expect(bar).toBeVisible();
-    for (const label of ["Matchday", "Field", "Planner", "Board", "Leagues"]) {
+    for (const label of ["Home", "Field", "Planner", "Board", "Leagues"]) {
       await expect(bar.getByRole("link", { name: label })).toBeVisible();
     }
     // the Arcade came off the bar — it hangs off the badge in the header

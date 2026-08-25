@@ -87,6 +87,8 @@ export interface FixtureRailRow {
   minute: number;
   state: "pre" | "live" | "done";
   yourPlayers: number;
+  /** ISO kickoff, so a fixture yet to start can say when. */
+  kickoff: string | null;
 }
 
 export interface MatchdayModel {
@@ -428,6 +430,7 @@ export function composeMatchdayModel(deps: {
       minute: f.minutes,
       state,
       yourPlayers: countYours,
+      kickoff: f.kickoff_time ?? null,
     };
   });
 

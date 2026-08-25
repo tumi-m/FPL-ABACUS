@@ -8,7 +8,8 @@ import { SwingFeed } from "@/components/gaffer/matchday/SwingFeed";
 import { LeverageBoard } from "@/components/gaffer/matchday/LeverageBoard";
 import { MatchPitch } from "@/components/gaffer/matchday/MatchPitch";
 import { SquadTable } from "@/components/gaffer/matchday/SquadTable";
-import { FixturesRail } from "@/components/gaffer/matchday/FixturesRail";
+import { Scoreboard } from "@/components/gaffer/matchday/Scoreboard";
+import { GameweekPicker } from "@/components/gaffer/GameweekPicker";
 import { MomentToast } from "@/components/gaffer/MomentToast";
 import { weekMoment, type MomentSpec } from "@/lib/engines/weekPhase";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
@@ -17,10 +18,17 @@ const POLL_LIVE_MS = 20_000;
 const POLL_IDLE_MS = 300_000;
 const VIEW_KEY = "gaffer_md_view";
 
-type Panel = "feed" | "board" | "team" | "fixtures";
+type Panel = "scores" | "feed" | "board" | "team";
 
-export function MatchdayClient({ initialModel }: { initialModel: MatchdayModel }) {
-  const [panel, setPanel] = React.useState<Panel>("feed");
+export function MatchdayClient({
+  initialModel,
+  historical = false,
+}: {
+  initialModel: MatchdayModel;
+  /** A past gameweek is a fixed record: nothing to poll, nothing to toast. */
+  historical?: boolean;
+}) {
+  const [panel, setPanel] = React.useState<Panel>("scores");
   const [view, setView] = React.useState<"pitch" | "table">("pitch");
   const entry = initialModel.entry.id;
 
@@ -43,15 +51,19 @@ export function MatchdayClient({ initialModel }: { initialModel: MatchdayModel }
   };
 
   const { data } = useSWR<MatchdayModel>(
-    ["gaffer-live", entry],
-    async ([keyEntry]: [string, number]) => {
-      const res = await fetch(`/api/gaffer/live?entry=${keyEntry}`);
+    ["gaffer-live", entry, initialModel.event.id],
+    async ([, keyEntry, gw]: [string, number, number]) => {
+      const res = await fetch(
+        historical ? `/api/gaffer/live?entry=${keyEntry}&gw=${gw}` : `/api/gaffer/live?entry=${keyEntry}`,
+      );
       if (!res.ok) throw new Error(String(res.status));
       return (await res.json()) as MatchdayModel;
     },
     {
       fallbackData: initialModel,
       refreshInterval: (latest?: MatchdayModel) => {
+        // A past gameweek is settled — polling it is pure waste.
+        if (historical) return 0;
         if (typeof document !== "undefined" && document.hidden) return 0;
         const p = latest?.phase ?? initialModel.phase;
         return p === "live" || p === "provisional" ? POLL_LIVE_MS : POLL_IDLE_MS;
@@ -118,20 +130,44 @@ export function MatchdayClient({ initialModel }: { initialModel: MatchdayModel }
       ranksDelta: r.ranksDelta,
     })),
     sampleSize: current.rankContext.sampleSize,
+    // Without the curve the branches price at zero ranks apiece; the card
+    // switches to points rather than showing an empty meter.
+    curveAvailable: current.rankContext.curveAvailable,
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+    <div className="space-y-4">
+      {/* the same picker the Field carries, so a week is chosen one way */}
+      <h1 className="sr-only">Home — GW{current.event.id}</h1>
+      <div className="lower3">
+        <div className="lower3-flag bg-volt" />
+        <div className="lower3-body">
+          <GameweekPicker
+            gw={current.event.id}
+            latest={current.event.latest}
+            basePath="/live"
+          />
+          {historical && (
+            <span className="upper-label text-2xs text-ink-lo">settled · a past round</span>
+          )}
+          <span className="text-2xs uppercase-label text-ink-lo">{current.phase}</span>
+          <span className="ml-auto hidden text-2xs text-ink-lo sm:inline">
+            {moment?.headline ?? "Live scores, results and your rank."}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
       {/* ── Mobile ─────────────────────────────────────────────── */}
       <div className="space-y-4 lg:hidden">
         <HeroScore model={current} moment={moment} />
         <div role="group" aria-label="Matchday panels" className="grid grid-cols-4 gap-1 rounded-full card-ring p-1">
           {(
             [
-              ["feed", "Feed"],
-              ["board", "Board"],
+              ["scores", "Scores"],
               ["team", "Team"],
-              ["fixtures", "Fixtures"],
+              ["board", "Board"],
+              ["feed", "Feed"],
             ] as [Panel, string][]
           ).map(([p, label]) => (
             <button
@@ -158,22 +194,26 @@ export function MatchdayClient({ initialModel }: { initialModel: MatchdayModel }
             <PitchTableToggle view={view} choose={chooseView} />
           </>
         )}
-        {(panel === "feed" || panel === "fixtures") && <FixturesRail model={current} />}
+        {panel === "scores" && <Scoreboard model={current} />}
+        {panel === "feed" && <SwingFeed model={current} />}
       </div>
 
       {/* ── Desktop ────────────────────────────────────────────── */}
       <div className="hidden space-y-4 lg:block">
         <HeroScore model={current} moment={moment} />
-        <RegretMeter {...regretProps} />
-        <LeverageBoard model={current} />
+        {/* Scores lead on Home: the round is the headline, your rank is the
+            gloss on it. It used to sit at the very bottom of the column. */}
+        <Scoreboard model={current} />
         {view === "pitch" ? <MatchPitch model={current} /> : <SquadTable model={current} settled={settled} />}
         <PitchTableToggle view={view} choose={chooseView} />
-        <FixturesRail model={current} />
+        <LeverageBoard model={current} />
+        <RegretMeter {...regretProps} />
       </div>
       <div className="hidden lg:block">
         <div className="sticky top-16 h-[calc(100dvh-6rem)]">
           <SwingFeed model={current} />
         </div>
+      </div>
       </div>
       <MomentToast message={toast} onClose={() => setToast(null)} />
     </div>

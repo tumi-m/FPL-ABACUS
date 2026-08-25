@@ -22,6 +22,7 @@ import { Est } from "@/components/gaffer/Est";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
 import { PlayerAvatar, AvatarToggle, useAvatarMode, type AvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { MatchEventStrip, matchEvents } from "@/components/gaffer/field/MatchEvents";
+import { GameweekPicker } from "@/components/gaffer/GameweekPicker";
 import type { TopPerformersData } from "@/components/gaffer/field/TopPerformers";
 import type { BonusBoardData } from "@/components/gaffer/boards/BonusBoard";
 import type { DefconBoardData } from "@/components/gaffer/boards/DefconBoard";
@@ -172,16 +173,22 @@ export function FieldClient({
   const gw = initialModel.event.id;
   const historical = params.get("gw") != null;
 
+  // Keyed on the gameweek too: a historical view revalidating on the bare
+  // entry key would quietly replace GW3's model with the current one.
   const { data } = useSWR<MatchdayModel>(
-    ["gaffer-live", entry],
-    async ([, e]: [string, number]) => {
-      const res = await fetch(`/api/gaffer/live?entry=${e}`);
+    ["gaffer-live", entry, gw],
+    async ([, e, g]: [string, number, number]) => {
+      const res = await fetch(
+        historical ? `/api/gaffer/live?entry=${e}&gw=${g}` : `/api/gaffer/live?entry=${e}`,
+      );
       if (!res.ok) throw new Error(String(res.status));
       return (await res.json()) as MatchdayModel;
     },
     {
       fallbackData: initialModel,
       refreshInterval: (latest?: MatchdayModel) => {
+        // A settled past week has nothing left to poll for.
+        if (historical) return 0;
         if (typeof document !== "undefined" && document.hidden) return 0;
         const p = latest?.phase ?? initialModel.phase;
         return p === "live" || p === "provisional" ? POLL_LIVE_MS : POLL_IDLE_MS;
@@ -420,26 +427,12 @@ export function FieldClient({
           {/* Gameweek picker. Stepping through a season two arrow-taps at a
               time was a poor way to reach GW12; one control lists them all,
               and on a phone it opens the platform's own wheel. */}
-          <label className="flex items-center gap-2">
-            <span className="sr-only">Gameweek</span>
-            <select
-              value={gw}
-              onChange={(e) => {
-                const next = Number(e.target.value);
-                setGw(next === model.event.latest ? null : next);
-              }}
-              /* colour is inherited: the lower third is its own surface, and a
-                 token picked for page text washes out against it */
-              className="skewed h-9 rounded-md card-ring bg-transparent pl-3 pr-1 fig-num text-lg leading-none transition-colors dur-instant hover:bg-surface-3/40 focus:outline-none focus-visible:outline-2 focus-visible:outline-volt"
-            >
-              {Array.from({ length: model.event.latest }, (_, i) => model.event.latest - i).map((n) => (
-                <option key={n} value={n}>
-                  GW{n}
-                  {n === model.event.latest ? " · current" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
+          <GameweekPicker
+            gw={gw}
+            latest={model.event.latest}
+            basePath="/field"
+            keep={{ mode }}
+          />
           {historical && (
             <button
               type="button"
