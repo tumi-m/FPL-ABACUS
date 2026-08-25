@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/primitives/Table";
 import { Input } from "@/components/primitives/Input";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
@@ -11,6 +12,7 @@ export interface ExplorerRow {
   id: number;
   webName: string;
   pos: number;
+  teamId: number;
   teamShort: string;
   price: number;
   status: string;
@@ -34,14 +36,33 @@ const PRESETS: Record<string, SortKey> = {
 };
 
 export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
+  const params = useSearchParams();
   const [q, setQ] = React.useState("");
   const [posFilter, setPosFilter] = React.useState<number | null>(null);
   const [sort, setSort] = React.useState<{ key: SortKey; dir: 1 | -1 }>({ key: "form", dir: -1 });
 
+  // ?club=<id> — where the fixture ticker sends you. A club with a run worth
+  // buying into is only useful if you can see who plays for it, so the ticker's
+  // row headings land here with the club already picked.
+  const clubParam = Number(params.get("club"));
+  const [club, setClub] = React.useState<number | null>(
+    Number.isFinite(clubParam) && clubParam > 0 ? clubParam : null,
+  );
+  React.useEffect(() => {
+    const n = Number(params.get("club"));
+    setClub(Number.isFinite(n) && n > 0 ? n : null);
+  }, [params]);
+
   const filtered = rows
     .filter((r) => r.status !== "n")
     .filter((r) => (posFilter ? r.pos === posFilter : true))
-    .filter((r) => r.webName.toLowerCase().includes(q.toLowerCase()))
+    .filter((r) => (club ? r.teamId === club : true))
+    .filter((r) => {
+      const needle = q.toLowerCase().trim();
+      if (!needle) return true;
+      // Searching "ars" should find Arsenal's players, not nobody.
+      return r.webName.toLowerCase().includes(needle) || r.teamShort.toLowerCase().includes(needle);
+    })
     .sort((a, b) => {
       const av: string | number = a[sort.key];
       const bv: string | number = b[sort.key];
@@ -62,7 +83,22 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto text-xl font-semibold tracking-tight">Players</h1>
+        <h1 className="mr-auto text-xl font-semibold tracking-tight">
+          Players
+          {club && (
+            <span className="ml-2 align-middle text-sm font-normal text-ink-3">
+              {rows.find((r) => r.teamId === club)?.teamShort ?? `club ${club}`}
+              {" · "}
+              <button
+                type="button"
+                onClick={() => setClub(null)}
+                className="underline decoration-dotted transition-colors dur-instant hover:text-ink-1"
+              >
+                show all clubs
+              </button>
+            </span>
+          )}
+        </h1>
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}

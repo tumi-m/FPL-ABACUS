@@ -315,6 +315,40 @@ a boot at arm's length. Thirteen with tighter padding keeps the same footprint
 strip sizes as one: a goal drawn larger than the shield beside it would read as
 a broken row rather than a louder mark.
 
+### V9-O — the Board became a fixture ticker ✅
+
+The Board gridded your own fifteen players. That answers "how do my fixtures
+look", which is the smaller half of the question a fixture ticker exists for:
+you cannot see a club you do not already own, so it was useless for the thing
+tickers are actually opened to do — find who to buy. Rebuilt around the twenty
+clubs, with your squad marked on it rather than being the whole grid.
+
+**Attack and defence are scored apart.** A club can be a fine attacking
+fixture and a poor defensive one, and one number for both is the compromise
+that makes most tickers useless for picking defenders. `lib/engines/fixtureTicker.ts`
+(+15 tests) scores an attacking run as the goals the model expects that club to
+score across it, and a defensive run as the clean sheets it expects to keep —
+the Poisson shutout probability e^(−xGA) summed over the matches. Both are
+quantities you can read on their own terms, which "3.4 FDR" is not.
+
+**Ranked by the run, over a range you set.** Best runs float to the top, with a
+bar so the gaps between them are visible. The range is two ends you pick rather
+than a fixed horizon, and doubles sum while blanks score nothing and get their
+own tone — a blank is a hole, not a middling fixture, and it is kept out of the
+quantile cuts so it cannot drag ordinary weeks green.
+
+**It answers on the tap.** The whole rest of the season, all twenty clubs and
+both halves of every projection ship in one payload — small — so switching
+side, moving the range and re-sorting are local state. A ticker is scanned by
+fiddling with it; one that costs a request per toggle is one you give up on.
+
+**Your fifteen survived, position-aware.** Keepers and defenders read on clean
+sheets, everyone else on goals, hardest run first — the one thing a club-level
+grid structurally cannot tell you.
+
+Club rows link through to `/players?club=<id>`, which the explorer now honours
+(and its search matches club codes, so "ars" finds Arsenal's players).
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.
