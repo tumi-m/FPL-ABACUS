@@ -9,7 +9,7 @@ import { Est } from "@/components/gaffer/Est";
 import { X } from "@/components/primitives/icons";
 import { clubOf } from "@/config/clubs";
 import { POSITION_SHORT, formatSignedRank } from "@/lib/ui/format";
-import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
+import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 type SwingRow = MatchdayModel["swings"][number];
@@ -32,6 +32,7 @@ export function PeekSheet({
   leverageByElement: Map<number, LevRow>;
   onOpenChange: (open: boolean) => void;
 }) {
+  const [avatar] = useAvatarMode();
   const row = element != null ? model.squad.find((s) => s.element === element) ?? null : null;
   const eoEstimated = model.leverage.eoSource === "estimated";
   const swing = row ? swingByElement.get(row.element) : undefined;
@@ -46,10 +47,11 @@ export function PeekSheet({
               {/* player face with club crest badge — profile-style identity block */}
               <span className="relative inline-block shrink-0">
                 <span className="block h-14 w-14 overflow-hidden rounded-md bg-surface-2 card-ring">
-                  {row.photo ? (
-                    <PlayerPhoto
+                  {row.photo || avatar === "kit" ? (
+                    <PlayerAvatar
                       photo={row.photo}
                       teamId={row.teamId}
+                      mode={avatar}
                       className="h-14 w-14 object-cover object-top"
                     />
                   ) : (

@@ -9,8 +9,8 @@ import { cn } from "@/lib/ui/cn";
  * state while live/provisional and the Week Machine moment the rest of the
  * week. Tapping it goes to Matchday.
  *
- * The thumb bar is now padded (pt-2 + 6px gaps), so the pill floats a full
- * 1.75rem above it on mobile.
+ * On mobile the pill floats above both the thumb bar and the stat-board strip
+ * that sits on top of it.
  */
 export function LiveBar({ data }: { data: LiveBarData }) {
   const isLive = data.phase === "live" || data.phase === "provisional";
@@ -21,7 +21,8 @@ export function LiveBar({ data }: { data: LiveBarData }) {
     <div
       className={cn(
         "pointer-events-none fixed inset-x-4 z-40 flex justify-center",
-        "bottom-[calc(3.5rem+env(safe-area-inset-bottom)+1.75rem)]",
+        // clears the thumb bar AND the stat-board strip sitting on top of it
+        "bottom-[calc(3.5rem+env(safe-area-inset-bottom)+2.9rem)]",
         "lg:inset-x-auto lg:right-6 lg:bottom-6 lg:justify-end",
       )}
     >

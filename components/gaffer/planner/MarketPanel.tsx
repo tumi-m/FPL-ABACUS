@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
-import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
+import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import {
   POS_LABEL,
   SORTS,
@@ -322,6 +322,7 @@ function MarketRow({
   onPick: (id: number) => void;
   fixtureFor: (teamId: number, gw: number) => TickerCell[];
 }) {
+  const [avatar] = useAvatarMode();
   const blocked = reason != null;
   const total = windowPoints(p.horizon, weeks);
   return (
@@ -340,7 +341,7 @@ function MarketRow({
           className="flex w-full items-center gap-2 text-left disabled:cursor-not-allowed"
         >
           <span className="block h-8 w-8 shrink-0 overflow-hidden rounded-sm bg-surface-2">
-            <PlayerPhoto photo={p.photo} teamId={p.team} className="h-8 w-8 object-cover object-top" />
+            <PlayerAvatar photo={p.photo} teamId={p.team} mode={avatar} className="h-8 w-8 object-cover object-top" />
           </span>
           <span className="min-w-0">
             <span className="flex items-center gap-1">

@@ -4,7 +4,7 @@ import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getElementSummary } from "@/lib/fpl/endpoints";
 import { Badge } from "@/components/primitives/Badge";
 import { Meter } from "@/components/charts/Meter";
-import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
+import { SelfAvatar } from "@/components/gaffer/PlayerAvatarClient";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
 import { COPY } from "@/lib/copy/deck";
 import { PageHeader } from "@/components/gaffer/PageHeader";
@@ -39,7 +39,7 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
         meta={`${team?.name ?? ""} · ${POSITION_SHORT[el.element_type]} · ${formatPrice(el.now_cost)}`}
         media={
           <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-md bg-surface-3">
-            <PlayerPhoto photo={el.photo} teamId={el.team} className="h-14 w-14 object-cover object-top" eager />
+            <SelfAvatar photo={el.photo} teamId={el.team} className="h-14 w-14 object-cover object-top" eager />
           </span>
         }
         action={

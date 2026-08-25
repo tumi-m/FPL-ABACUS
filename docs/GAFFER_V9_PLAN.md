@@ -161,6 +161,25 @@ scale to how much football has been played, never below half a match.
   CBI / recoveries mix, measured threshold crossings from the weeks
   themselves, and bookings.
 
+### V9-J — the preference actually applies ✅
+Follow-up on V9-H: the faces/kits switch was wired into the Field and nowhere
+else, so flipping to kits still showed photographs on the Planner, in the peek
+sheet and on a player profile. That is not a preference, it is a Field
+setting.
+
+- Every mark in the app now goes through `PlayerAvatar`: the planner pitch,
+  the market table, the price watch, the peek sheet and the player profile
+  (via `SelfAvatar`, a client wrapper so a server component can read the
+  device preference too). `grep PlayerPhoto` outside those two files returns
+  nothing.
+- The switch itself appears on the Planner as well, so it can be changed
+  where it is being read rather than only back on the Field.
+- **Mobile reachability**: `/bonus` and `/defcon` were desktop-nav only,
+  leaving them reachable on a phone only through the Field's Top mode. They
+  get a subordinate strip above the thumb bar — eight items in the bar itself
+  would have put every destination under a 44px target. The live status pill
+  moved up to clear it; e2e now pins the stacking order and the tap sizes.
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.

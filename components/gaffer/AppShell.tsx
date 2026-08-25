@@ -80,6 +80,29 @@ export function AppShell({
 
         <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 md:px-6 py-8 pb-28 lg:pb-12">{children}</main>
 
+        {/* Stat boards on small screens. Eight items in the thumb bar would put
+            every tap target under the 44px minimum, so the boards get their own
+            subordinate strip above it rather than crowding the destinations. */}
+        <nav
+          aria-label="Stat boards"
+          className="lg:hidden fixed inset-x-0 z-40 flex justify-center gap-1.5 px-2 bottom-[calc(4rem+env(safe-area-inset-bottom))]"
+        >
+          {BOARDS.map((b) => (
+            <Link
+              key={b.href}
+              href={b.href}
+              className={cn(
+                "skewed inline-flex h-8 items-center rounded-md px-3 text-2xs uppercase-label transition-colors dur-instant",
+                isActive(b.href)
+                  ? "bg-volt font-semibold text-on-accent"
+                  : "bg-raised/90 text-ink-lo card-ring backdrop-blur hover:text-ink-hi",
+              )}
+            >
+              <span>{b.label}</span>
+            </Link>
+          ))}
+        </nav>
+
         <nav
           aria-label="Primary mobile"
           className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface-0/90 px-2 pt-2 backdrop-blur pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 import { Est } from "@/components/gaffer/Est";
-import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
+import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { POS_LABEL, priceOutlook, type PlannerPlayer } from "@/lib/engines/planner";
 import type { PlannerClub } from "@/lib/engines/planner";
 
@@ -35,6 +35,7 @@ export function PriceWatch({
   const [pos, setPos] = React.useState<number | null>(null);
   const [team, setTeam] = React.useState<number | null>(null);
   const [shown, setShown] = React.useState(PAGE);
+  const [avatar] = useAvatarMode();
 
   React.useEffect(() => setShown(PAGE), [lens, search, pos, team]);
 
@@ -188,7 +189,7 @@ export function PriceWatch({
                     <td className="py-1.5 pr-2">
                       <span className="flex items-center gap-2">
                         <span className="block h-8 w-8 shrink-0 overflow-hidden rounded-sm bg-surface-2">
-                          <PlayerPhoto photo={p.photo} teamId={p.team} className="h-8 w-8 object-cover object-top" />
+                          <PlayerAvatar photo={p.photo} teamId={p.team} mode={avatar} className="h-8 w-8 object-cover object-top" />
                         </span>
                         <span className="min-w-0">
                           <span className="block truncate text-xs font-semibold text-ink-hi">{p.name}</span>

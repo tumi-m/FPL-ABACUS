@@ -304,6 +304,57 @@ test.describe("authenticated routes", () => {
     await expect(page.getByRole("group", { name: "Position" })).toBeVisible();
   });
 
+  test("the artwork preference follows you off the Field", async ({ page }) => {
+    await asTeam(page);
+    // Set it on the Field, then check the boards that never showed the switch.
+    await page.goto("/field");
+    await page
+      .getByRole("group", { name: "Player artwork" })
+      .first()
+      .getByRole("button", { name: "Kits" })
+      .click();
+    await expect(page.locator('svg[aria-label$="kit"]').first()).toBeVisible();
+
+    for (const route of ["/planner", "/bonus", "/defcon"]) {
+      await page.goto(route);
+      await expect(page.locator('svg[aria-label$="kit"]').first()).toBeVisible();
+    }
+
+    // and back off again, from the planner's own switch
+    await page.goto("/planner");
+    await page
+      .getByRole("group", { name: "Player artwork" })
+      .first()
+      .getByRole("button", { name: "Faces" })
+      .click();
+    await expect(page.locator('svg[aria-label$="kit"]')).toHaveCount(0);
+  });
+
+  test("stat boards are reachable on a phone without crowding the thumb bar", async ({ page }) => {
+    await asTeam(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/live");
+
+    const boards = page.getByRole("navigation", { name: "Stat boards" });
+    const thumb = page.getByRole("navigation", { name: "Primary mobile" });
+    await expect(boards).toBeVisible();
+
+    // the strip must sit above the thumb bar, not on top of it
+    const strip = await boards.boundingBox();
+    const bar = await thumb.boundingBox();
+    expect(strip).not.toBeNull();
+    expect(bar).not.toBeNull();
+    expect(strip!.y + strip!.height).toBeLessThanOrEqual(bar!.y + 1);
+
+    // and every destination keeps a 44px target
+    for (const h of await thumb.locator("a").evaluateAll((ns) => ns.map((n) => n.getBoundingClientRect().height))) {
+      expect(h).toBeGreaterThanOrEqual(44);
+    }
+
+    await boards.getByRole("link", { name: "DEFCON" }).click();
+    await expect(page).toHaveURL(/\/defcon/);
+  });
+
   test("thumb bar carries all six destinations", async ({ page }) => {
     await asTeam(page);
     // The thumb bar is the small-screen navigation — it is hidden from lg up.
