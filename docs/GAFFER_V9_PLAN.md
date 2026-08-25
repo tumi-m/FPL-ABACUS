@@ -266,6 +266,27 @@ mirror, JavaScript actually downloaded per page:
 **Six dependencies removed** — `motion`, `geist`, three unused Radix packages
 and `d3-interpolate` were in `package.json` and imported nowhere.
 
+### V9-M — the week's last moment, and where the Arcade lives ✅
+
+**"Autopsy" is now "Digest".** The moment after a gameweek settles was named
+for a post-mortem; the app is not there to tell you your week died. Same
+phase, same trigger, a word that reads as reviewing rather than mourning.
+
+**The Arcade came off the thumb bar and hangs off the badge.** Six
+destinations crowded the bar; five give every tap target room. The Arcade —
+where you pick which gaffer talks to you — is now reached from the brand in
+the header, which is a picture of the four gaffers. That left `/` unreachable
+from inside the app, so the gate stays available two ways: the team pill in
+the desktop header (it names your team, which is the obvious thing to tap to
+change it) and a "Change team" action on the Arcade itself, which is the
+route on a phone where that pill is hidden.
+
+**The header stopped overflowing at 390px.** Measured, not guessed: the right
+cluster ended at x=409 in a 390-wide viewport, clipping the theme control. The
+three-way theme radio group is one cycling button below `sm` — same three
+modes, ninety pixels back — and the cluster now ends at 374 with the gutter
+intact.
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.
