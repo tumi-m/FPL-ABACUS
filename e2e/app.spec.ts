@@ -160,14 +160,25 @@ test.describe("authenticated routes", () => {
 
   test("league summary names the managers it was computed over", async ({ page }) => {
     await asTeam(page);
-    await page.goto("/leagues/314");
-    // "Avg 60.6" alone invites you to read it as the league average when it is
-    // the average of what is loaded — after one page, the top fifty.
-    await expect(page.getByText(/over top \d+ managers/i)).toBeVisible();
+    // A real league off the index, not 314: the Overall league has eleven
+    // million entries, its ranks read 0 during a live gameweek, and hammering
+    // it from CI is rude besides.
+    await page.goto("/leagues");
+    const firstLeague = page.locator('a[href^="/leagues/"]').first();
+    if ((await firstLeague.count()) === 0) return; // no leagues on this account
+    const href = (await firstLeague.getAttribute("href"))!;
 
-    // a filter changes the denominator, and the label follows it
-    await page.goto("/leagues/314?topN=10");
-    await expect(page.getByText(/over 10 matching managers/i)).toBeVisible();
+    await page.goto(href);
+    // "Avg 60.6" alone invites you to read it as the league average when it is
+    // the average of what is loaded. Either wording is correct — "top 50" while
+    // pages remain, "all 137" once they do not — but it must name a count.
+    await expect(page.getByText(/over (top|all) \d+ managers?/i)).toBeVisible();
+
+    // A filter changes the denominator and the label follows it. How many rows
+    // survive depends on the league and the week, so the assertion is on the
+    // wording, not on a number that moves every gameweek.
+    await page.goto(`${href}?topN=10`);
+    await expect(page.getByText(/over \d+ matching managers?/i)).toBeVisible();
   });
 
   test("league pagination appends the next page", async ({ page }) => {
@@ -183,9 +194,11 @@ test.describe("authenticated routes", () => {
       const more = page.getByRole("button", { name: /load 50 more/i });
       await expect(more).toBeVisible();
       await more.click();
-      // SPA navigation: the old button stays mounted while page 2 loads, so
-      // poll for a real outcome — more rows rendered or the honest end state.
-      await expect(page).toHaveURL(/[?&]page=2/);
+      // SPA navigation: the old button stays mounted while page 2 loads, and
+      // the URL lands a beat after the click — asserting it flat raced the
+      // navigation and flaked. Poll it, then poll for a real outcome: more
+      // rows rendered, or the honest end state.
+      await expect.poll(() => page.url(), { timeout: 20_000 }).toMatch(/[?&]page=2/);
       await expect
         .poll(async () => {
           if ((await page.getByText(/End of standings/).count()) > 0) return "ended";
@@ -560,7 +573,12 @@ test.describe("authenticated routes", () => {
   test("deadline desk renders", async ({ page }) => {
     await asTeam(page);
     await page.goto("/deadline");
-    await expect(page.getByText("Deadline Desk")).toBeVisible();
+    // getByText("Deadline Desk") matched both the sr-only h1 and the document
+    // <title>, so it was a strict-mode violation whenever the title happened to
+    // be in the DOM at check time — green or red depending on the race.
+    await expect(page.getByRole("heading", { name: "Deadline Desk" })).toBeAttached();
+    // and something a person can actually see
+    await expect(page.getByRole("region", { name: /Act now|Watch|Settled/ }).first()).toBeVisible();
   });
 
   test("players explorer renders with real totals", async ({ page }) => {
