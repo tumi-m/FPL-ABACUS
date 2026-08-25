@@ -7,6 +7,7 @@ import type { RawEvent } from "@/lib/engines/swing";
 import { leverageRow, type LeverageRow } from "@/lib/engines/leverage";
 import { runMultiverse, regretRelief, type Branch, type BranchResult } from "@/lib/engines/multiverse";
 import { eventPoints } from "@/lib/engines/swing";
+import { readAvailability } from "@/lib/engines/availability";
 import { parseScoring } from "@/lib/engines/scoring";
 import type { BootstrapLite } from "@/lib/fpl/bootstrapLite";
 import type { Entry, EventStatus, Fixture, GwPhase, Live, PicksResponse, Transfer } from "@/lib/fpl/schemas";
@@ -48,6 +49,8 @@ export interface SquadRow {
   xgc90: number | null;
   /** Per-GW live stat line from the event feed — null before a player is involved. */
   liveStats: import("@/lib/engines/types").LiveStatsLite | null;
+  /** FPL's availability flag, read into something sayable. */
+  availability: import("@/lib/engines/availability").Availability;
 }
 
 export interface SwingRow {
@@ -233,6 +236,11 @@ export function composeMatchdayModel(deps: {
           ? Math.round(projectFixture(fxModel, meta.team, oppId, isHome).xgAgainst * 100) / 100
           : null,
       liveStats: player?.stats ?? null,
+      availability: readAvailability({
+        status: meta?.status ?? "a",
+        news: meta?.news ?? "",
+        chanceOfPlaying: meta?.chance_of_playing_this_round ?? null,
+      }),
     };
   });
 

@@ -21,7 +21,9 @@ import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
 import { Est } from "@/components/gaffer/Est";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
 import { PlayerAvatar, AvatarToggle, useAvatarMode, type AvatarMode } from "@/components/gaffer/PlayerAvatar";
-import { MatchEventStrip, matchEvents } from "@/components/gaffer/field/MatchEvents";
+import { MatchEventLegend, MatchEventStrip, matchEvents } from "@/components/gaffer/field/MatchEvents";
+import { InjuryReport } from "@/components/gaffer/field/InjuryReport";
+import { availabilityLabel } from "@/lib/engines/availability";
 import { GameweekPicker } from "@/components/gaffer/GameweekPicker";
 import type { TopPerformersData } from "@/components/gaffer/field/TopPerformers";
 import type { BonusBoardData } from "@/components/gaffer/boards/BonusBoard";
@@ -85,7 +87,7 @@ const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "swing", label: "Swing", hint: "Ranks gained or lost so far, per player" },
   { id: "leverage", label: "Leverage", hint: "Expected rank swing still available" },
   { id: "correlation", label: "Correlation", hint: "Arcs join players whose GW outcomes move together — stacking shrinks your effective bets" },
-  { id: "risk", label: "Risk", hint: "Token size is each player's share of your XI's variance" },
+  { id: "risk", label: "Risk", hint: "Token size is each player's share of your XI's variance — with the treatment table below it" },
   { id: "top", label: "Top", hint: "Top performers — highest xG, xA and fewest expected concessions, this GW or the season" },
   { id: "bonus", label: "Bonus", hint: "The 1·2·3 — who takes bonus, how, and what it cost them in BPS" },
   { id: "defcon", label: "DEFCON", hint: "Defensive contributions, per-90 rates, threshold hits and bookings" },
@@ -720,8 +722,15 @@ export function FieldClient({
             </li>
           ))}
         </ul>
+
+        {/* the key. Collapsed, because it is reference rather than furniture. */}
+        <MatchEventLegend className="mt-4" />
       </section>
       )}
+
+      {/* Risk is where an injury belongs: the variance above prices what your
+          XI might do, this prices whether they will be there to do it. */}
+      {mode === "risk" && <InjuryReport rows={model.squad} />}
 
       {/* Everything below reads your squad, so a market board replaces it
           rather than burying it — and a board view stops paying for charts
@@ -925,17 +934,6 @@ export function ShirtToken({
           </span>
         </span>
       )}
-      {/* Bonus pips — the actual 1·2·3, official or projected. Pink, not
-          amber: amber is the yellow card, and a brace of bonus next to a
-          booking used to be two gold marks the eye had to read twice. */}
-      {row.bonus > 0 && (
-        <span className="absolute right-0 top-0 flex gap-0.5" aria-label={`${row.bonus} bonus`}>
-          {Array.from({ length: Math.min(3, row.bonus) }).map((_, i) => (
-            <span key={i} className="h-1.5 w-1.5 rounded-full bg-bonus" />
-          ))}
-        </span>
-      )}
-
       {/* face — club rail frame, scaled by variance share in risk mode. The
           frame clips its own contents, so the armband lives in this wrapper
           instead and is free to overhang the corner. */}
@@ -1005,8 +1003,33 @@ export function ShirtToken({
         <span aria-label="Projected auto-substitute" title="Projected auto-sub in" className="absolute right-0 top-7 text-xs font-bold text-ultra">⇅</span>
       )}
 
+      {/* Availability. Top-left, where the armband and the vice mark are not,
+          and only when there is something to say — a cross for out or banned,
+          an exclamation for a doubt. The detail is in Risk. */}
+      {row.availability.flagged && (
+        <span
+          aria-label={`${row.webName}: ${availabilityLabel(row.availability)}`}
+          title={availabilityLabel(row.availability)}
+          className="absolute -left-1 -top-1 z-20 grid h-[17px] w-[17px] place-items-center rounded-full text-[11px] font-bold leading-none"
+          style={{
+            background: row.availability.kind === "doubt" ? "var(--amber)" : "var(--flare)",
+            color: "var(--ink-fixed-dark)",
+            boxShadow: "0 0 0 2px var(--bg-raised)",
+          }}
+        >
+          {row.availability.kind === "doubt" ? "!" : "\u00d7"}
+        </span>
+      )}
+
       {/* what he has actually done — goals, assists, the shutout, cards */}
-      <MatchEventStrip events={matchEvents(row.liveStats, { pos: row.pos, fixtureDone: done })} />
+      <MatchEventStrip
+        events={matchEvents(row.liveStats, {
+          pos: row.pos,
+          fixtureDone: done,
+          bonus: row.bonus,
+          bonusOfficial: row.bonusOfficial,
+        })}
+      />
 
       <span className="mt-0.5 block truncate text-2xs font-semibold text-ink-hi">{row.webName}</span>
 
