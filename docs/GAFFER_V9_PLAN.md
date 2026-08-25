@@ -223,6 +223,49 @@ client-side through `/api/gaffer/status` so the team-ID gate never waits on the
 FPL API). e2e pins that nothing but the header and the thumb bar is fixed
 furniture.
 
+### V9-L — the header does less, the bundle carries less ✅
+
+**The Field stopped saying "The Field".** The lower third announced the page
+you were already looking at. The heading stays in the document for screen
+readers and the outline; on screen the bar keeps only its job — pick a
+gameweek, read the phase.
+
+**The gameweek is a picker, not a pair of arrows.** Reaching GW12 from the
+current week took eleven taps through a stepper. It is one control listing
+every gameweek to date, and on a phone it opens the platform's own wheel.
+Choosing the current gameweek drops `?gw=` rather than pinning a historical
+view of the present. `MatchdayModel.event` gained `latest` so a historical
+view knows what it can navigate back to.
+
+**Ask wears the badge.** The button read "Ask ?", which looked like help
+rather than like the gaffer. `GafferBadge` puts the same mark the wordmark
+carries where the question mark was, sized as a glyph so nothing re-lays out
+around it.
+
+**Three splits, one revert.** Measured on a mobile viewport against a local
+mirror, JavaScript actually downloaded per page:
+
+| | before | after |
+|---|---|---|
+| `/field` | 229 kB | 205 kB |
+| `/live` | 204 kB | 184 kB |
+| `/planner` | 210 kB | 190 kB |
+
+- The Ask bar lives in the shell, so its ten chart components and all of d3
+  were on the critical path of *every* screen before anybody had asked
+  anything. `AskCards.tsx` holds the renderer now and loads when an answer
+  actually carries a card — that is most of the saving, and it applies
+  app-wide.
+- The three market boards and the peek sheet load with the thing that needs
+  them: a board's chunk arrives with its data, the sheet's on the first token
+  tap (it brings the dialog primitive with it).
+- Splitting the below-fold charts the same way was tried and **reverted**: it
+  duplicated shared chart code across nine chunks and cost `/field` about
+  30 kB rather than saving any.
+
+**Six dependencies removed** — `motion`, `geist`, three unused Radix packages
+and `d3-interpolate` were in `package.json` and imported nowhere.
+
 ## Outstanding
 
 - Manifold (17) Python escape hatch — deferred until scale.
