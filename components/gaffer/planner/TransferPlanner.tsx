@@ -8,6 +8,7 @@ import { MarketPanel } from "@/components/gaffer/planner/MarketPanel";
 import { FixtureTicker } from "@/components/gaffer/planner/FixtureTicker";
 import { PriceWatch } from "@/components/gaffer/planner/PriceWatch";
 import { ChipLane } from "@/components/gaffer/planner/ChipLane";
+import { AvatarToggle, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import {
   MAX_PLANS,
   activePlan,
@@ -57,6 +58,8 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
   const [mode, setMode] = React.useState<PitchMode>("run");
   const [selected, setSelected] = React.useState<number | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
+  // Shared with the Field and the stat boards — one preference per device.
+  const [avatar, setAvatar] = useAvatarMode();
   // Up to four device-local slots so a patient plan and an aggressive one can
   // sit side by side. Desks saved by the old Board migrate in untouched.
   const [plans, setPlans] = React.useState<PlansState>(() => emptyPlans());
@@ -284,6 +287,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
       <div role="group" aria-label="Planner sections" className="flex flex-wrap gap-1 rounded-md card-ring p-1">
         {(
           [
@@ -305,6 +309,8 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
             <span>{t.label}</span>
           </button>
         ))}
+      </div>
+        <AvatarToggle mode={avatar} onChange={setAvatar} className="ml-auto" />
       </div>
 
       {tab === "squad" && (

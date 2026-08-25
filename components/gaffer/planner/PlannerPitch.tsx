@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
-import { PlayerPhoto } from "@/components/gaffer/PlayerPhoto";
+import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { ClubFlag } from "@/components/gaffer/ClubCrest";
 import { POS_LABEL, POS_NAME, priceOutlook, windowPoints, type PlannerPlayer } from "@/lib/engines/planner";
 import type { TickerCell } from "@/lib/engines/planner";
@@ -164,6 +164,7 @@ function PitchTile({
   fixtureFor: (teamId: number, gw: number) => TickerCell[];
   currentGw: number;
 }) {
+  const [avatar] = useAvatarMode();
   const p = slot.player;
   const staged = slot.replacing != null;
   const projected = windowPoints(p.horizon, weeks);
@@ -236,7 +237,7 @@ function PitchTile({
       )}
 
       <span className="relative block h-10 w-10 overflow-hidden rounded-sm bg-surface-2">
-        <PlayerPhoto photo={p.photo} teamId={p.team} className="h-10 w-10 object-cover object-top" />
+        <PlayerAvatar photo={p.photo} teamId={p.team} mode={avatar} className="h-10 w-10 object-cover object-top" />
         {doubt && (
           <span
             title={p.news || "Doubtful"}
