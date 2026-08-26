@@ -129,6 +129,13 @@ export const zElement = z.object({
   ep_this: numOrNull,
   ep_next: numOrNull,
   photo: z.string(),
+  /* Set-piece duty. FPL publishes who takes them but never splits a player's
+     expected assists by how the chance began, so this is the only dead-ball
+     signal available. Optional throughout: the fields are absent from some
+     recordings and were absent from the API entirely before 2022. */
+  corners_and_indirect_freekicks_order: z.number().nullable().optional(),
+  direct_freekicks_order: z.number().nullable().optional(),
+  penalties_order: z.number().nullable().optional(),
   can_transact: z.boolean().optional(),
   can_select: z.boolean().optional(),
   price_change_percent: num.optional(),

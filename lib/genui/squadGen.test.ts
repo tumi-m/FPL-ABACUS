@@ -18,6 +18,7 @@ function el(id: number, pos: number, cost: number, ep: number, team: number, own
     form: 0,
     ep_next: ep,
     photo: "",
+    deadBall: null,
     code: id,
     minutes: 500,
     xg90: null,

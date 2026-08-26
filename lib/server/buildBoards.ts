@@ -60,6 +60,7 @@ export async function buildSeason(): Promise<BoardSeason> {
       xgi: el.xgiTotal,
       xgc: el.xgcTotal,
       owned: el.selected_by_percent,
+      deadBall: el.deadBall,
     }));
 
   return { currentGw, players };

@@ -51,6 +51,8 @@ export interface PerfPlayer {
   xgi: number;
   xgc: number;
   owned: number;
+  /** Dead-ball seniority: 1 is his club's first-choice taker, null is neither. */
+  deadBall?: number | null;
 }
 
 /** Ninety-minute rate. Zero minutes rate as zero, never as infinity. */
