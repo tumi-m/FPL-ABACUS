@@ -326,8 +326,35 @@ test.describe("authenticated routes", () => {
 
     // either the scatter draws or it says honestly why it cannot
     await expect(
-      figure.locator("svg circle").first().or(figure.getByText(/Nobody clears|did not answer/)),
+      figure.locator("svg circle").first().or(figure.getByText(/Nobody has|did not answer/)),
     ).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("the league scatter names its leaders and opens their pages", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field");
+    const figure = page.locator('figure:has-text("Creating, against everything he does")');
+    await figure.scrollIntoViewIfNeeded();
+
+    // it opens on the top fifteen, and every one of them is named and tappable
+    const links = figure.locator("svg a[href^='/players/']");
+    await expect(links.first()).toBeVisible({ timeout: 15_000 });
+    const named = await links.count();
+    expect(named).toBeGreaterThan(0);
+    expect(named).toBeLessThanOrEqual(15);
+    await expect(figure.locator("svg a text").first()).toBeVisible();
+
+    // the whole market is one tap away and is a bigger crowd than the leaders
+    const leaders = await figure.locator("svg circle").count();
+    await figure.getByRole("button", { name: "All", exact: true }).nth(1).click();
+    await expect
+      .poll(async () => figure.locator("svg circle").count(), { timeout: 10_000 })
+      .toBeGreaterThan(leaders);
+
+    // and a named dot is a real link out
+    await figure.getByRole("button", { name: "Top 15" }).click();
+    await figure.locator("svg a[href^='/players/'] circle").first().click({ force: true });
+    await expect(page).toHaveURL(/\/players\/\d+/, { timeout: 15_000 });
   });
 
   test("club numbers renders six sortable boards for all twenty clubs", async ({ page }) => {

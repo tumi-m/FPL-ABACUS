@@ -55,6 +55,11 @@ export interface ElementLite {
   yellowCards: number;
   redCards: number;
   starts: number;
+  /**
+   * Where he stands in the dead-ball queue — the lower of his corner and
+   * direct free-kick order, or null when FPL says nothing. 1 is first choice.
+   */
+  deadBall: number | null;
   /** Defensive contributions — the DEFCON stat FPL scores from 2025/26. */
   defcon: number;
   tackles: number;
@@ -71,6 +76,12 @@ export interface BootstrapLite {
   scoring: Record<string, unknown> | null;
   chips: Bootstrap["chips"];
   totalPlayers: number;
+}
+
+/** The more senior of two set-piece duties; null when he takes neither. */
+function bestOrder(a: number | null | undefined, b: number | null | undefined): number | null {
+  const orders = [a, b].filter((n): n is number => typeof n === "number" && n > 0);
+  return orders.length ? Math.min(...orders) : null;
 }
 
 function shrink(x: number | null, nMinutes: number, prior: number, k = 180): number | null {
@@ -131,6 +142,10 @@ export const getBootstrapLite = () =>
         yellowCards: el.yellow_cards,
         redCards: el.red_cards,
         starts: el.starts,
+        deadBall: bestOrder(
+          el.corners_and_indirect_freekicks_order,
+          el.direct_freekicks_order,
+        ),
         defcon: el.defensive_contribution,
         tackles: el.tackles,
         recoveries: el.recoveries,
