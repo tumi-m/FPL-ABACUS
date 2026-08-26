@@ -279,6 +279,32 @@ test.describe("authenticated routes", () => {
     );
   });
 
+  test("the pitch draws FPL's own formation, one line per position", async ({ page }) => {
+    // A row of five used to wrap at phone widths, so a 3-5-2 drew itself as a
+    // 3-4-1-2 — a shape the game does not have.
+    await asTeam(page);
+    for (const width of [1280, 393, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/field");
+      const rows = await page.evaluate(() => {
+        const turf = document.querySelector(".on-turf");
+        if (!turf) return null;
+        // the four position lines, before the bench list
+        return [...turf.querySelectorAll("ul")].slice(0, 4).map((u) => ({
+          n: u.querySelectorAll(":scope > li").length,
+          overflow: u.scrollWidth - u.clientWidth,
+        }));
+      });
+      expect(rows, `pitch at ${width}px`).toHaveLength(4);
+      expect(rows!.reduce((s, r) => s + r.n, 0), `starters at ${width}px`).toBe(11);
+      // one keeper, and nobody spilling onto a line of their own
+      expect(rows![0].n, `keepers at ${width}px`).toBe(1);
+      for (const r of rows!) {
+        expect(r.overflow, `row overflow at ${width}px`).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
   test("the league scatter costs nothing until it is scrolled to", async ({ page }) => {
     await asTeam(page);
     const boardCalls: string[] = [];

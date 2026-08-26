@@ -777,10 +777,11 @@ export function FieldClient({
           ) : (
             <div className="relative space-y-2.5">
               {rows.map((row, i) => (
-                <ul key={i} className="flex flex-wrap items-start justify-center gap-2">
+                <ul key={i} className={ROW}>
                   {row.map((p) => (
                     <li
                       key={p.element}
+                      className={SLOT}
                       ref={(el) => {
                         if (el) tokenRefs.current.set(p.element, el);
                         else tokenRefs.current.delete(p.element);
@@ -790,7 +791,7 @@ export function FieldClient({
                         type="button"
                         onClick={() => setPeekElement(p.element)}
                         aria-label={`${p.webName}, open details`}
-                        className="block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
+                        className="block w-full rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
                       >
                         <ShirtToken
                           row={p}
@@ -814,14 +815,14 @@ export function FieldClient({
         {/* The heading above already says these are substitutes. 70% made them
             look half-rendered rather than secondary, which is the same
             complaint as the compare fade — 88% steps back without that. */}
-        <ul className="flex flex-wrap gap-2 opacity-[0.88]">
+        <ul className={cn(ROW, "opacity-[0.88]")}>
           {bench.map((p) => (
-            <li key={p.element}>
+            <li key={p.element} className={SLOT}>
               <button
                 type="button"
                 onClick={() => setPeekElement(p.element)}
                 aria-label={`${p.webName}, open details`}
-                className="block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
+                className="block w-full rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
               >
                 <ShirtToken
                   row={p}
@@ -1005,6 +1006,21 @@ function BoardSkeleton() {
   );
 }
 
+/**
+ * A line of the pitch, and one slot on it.
+ *
+ * The rows used to wrap. Five midfielders at a fixed seventy-six pixels need
+ * 412px of row and a phone gives about 374, so the fifth dropped onto a line
+ * of his own and a 3-5-2 drew itself as a 3-4-1-2 — a formation FPL does not
+ * have. The row cannot wrap now; the tokens share what there is instead, each
+ * capped at the size it used to be, so a wide screen looks exactly as before
+ * and a narrow one shrinks the whole line rather than breaking it.
+ */
+/* px-1 is the state ring's overhang: it sits at -inset-1, so the outermost
+   token in a full row had its ring shaved off by the pitch's own clip. */
+const ROW = "flex flex-nowrap items-start justify-center gap-1.5 px-1 sm:gap-2";
+const SLOT = "min-w-0 max-w-[76px] flex-1";
+
 /** Compact per-90 figure — ".31" under 1, one decimal above. */
 function fmt90(v: number | null | undefined): string {
   if (v == null || !Number.isFinite(v)) return "—";
@@ -1030,8 +1046,26 @@ export function ShirtToken({
   return (
     <div
       className={cn(
-        "relative w-[76px] text-center transition-transform duration-[600ms] focus-visible:outline-none",
+        "@container relative w-full text-center transition-transform duration-[600ms] focus-visible:outline-none",
       )}
+      /**
+       * One scaled pixel, and everything inside is a multiple of it.
+       *
+       * The token used to be 76px with every part of it a fixed size. Now the
+       * row hands it whatever width is going, so the parts have to follow —
+       * and following them one arbitrary value at a time is how a face ends up
+       * scaled and the name it sits above does not. `--s` is a pixel that
+       * shrinks with the token and never grows past one, so a full-width token
+       * is byte-for-byte what it was and a squeezed one is the same drawing,
+       * smaller. 1.316cqw is 1px at the old 76.
+       */
+      style={
+        {
+          ["--s" as string]: "min(1px, 1.316cqw)",
+          ["--evt" as string]: "calc(15*min(1px, 1.316cqw))",
+          ["--evt-row" as string]: "calc(21*min(1px, 1.316cqw))",
+        } as React.CSSProperties
+      }
       title={`${row.webName} · ${club.name}`}
     >
       {/* state ring — live pulses volt, yet-to-play is a hollow volt ring, done is a settled surge band */}
@@ -1055,7 +1089,7 @@ export function ShirtToken({
           still being done, gold the moment the two points are banked. */}
       {defconPct > 0 && (
         <span
-          className="absolute -left-1.5 -top-1.5 h-6 w-6"
+          className="absolute -left-1.5 -top-1.5 h-[calc(24*var(--s))] w-[calc(24*var(--s))]"
           title={`${row.webName}: ${row.defconCount} of ${row.defconThreshold} defensive contributions${
             defconHit ? " — 2 points banked" : ""
           }`}
@@ -1079,7 +1113,7 @@ export function ShirtToken({
           frame clips its own contents, so the armband lives in this wrapper
           instead and is free to overhang the corner. */}
       <span
-        className="relative mx-auto block h-12 w-12 transition-transform dur-base"
+        className="relative mx-auto block aspect-square w-[calc(48*var(--s))] transition-transform dur-base"
         style={{ transform: `scale(${riskScale.toFixed(2)})`, transformOrigin: "center bottom" }}
       >
       <span className="relative block h-full w-full overflow-hidden rounded-md">
@@ -1118,7 +1152,9 @@ export function ShirtToken({
             className={cn(
               "absolute -right-1.5 -top-1.5 z-20 grid place-items-center rounded-full",
               "bg-volt font-extrabold leading-none text-on-accent",
-              row.multiplier >= 3 ? "h-[19px] w-[19px] text-[10px]" : "h-[18px] w-[18px] text-[11px]",
+              row.multiplier >= 3
+                ? "h-[calc(19*var(--s))] w-[calc(19*var(--s))] text-[calc(10*var(--s))]"
+                : "h-[calc(18*var(--s))] w-[calc(18*var(--s))] text-[calc(11*var(--s))]",
             )}
             style={{
               boxShadow:
@@ -1176,7 +1212,7 @@ export function ShirtToken({
         })}
       />
 
-      <span className="mt-0.5 block truncate text-2xs font-semibold text-ink-hi">{row.webName}</span>
+      <span className="mt-0.5 block truncate text-[calc(11*var(--s))] font-semibold text-ink-hi">{row.webName}</span>
 
       {/* expectation line — the real gameweek xG/xGC once the player is on the
           pitch (live feed, same Opta numbers the scoresites carry); the
@@ -1185,7 +1221,7 @@ export function ShirtToken({
           token in the row even when a player has no expectation to show. */}
       {(
         <span
-          className="mt-0.5 block h-[9px] whitespace-nowrap text-[9px] leading-none text-ink-lo num-tabular"
+          className="mt-0.5 block h-[calc(9*var(--s))] whitespace-nowrap text-[calc(9*var(--s))] leading-none text-ink-lo num-tabular"
           title={
             row.liveStats
               ? "This gameweek's live xG and expected goals conceded (xGC) from the FPL/Opta feed"
@@ -1201,7 +1237,7 @@ export function ShirtToken({
       {/* value pill on the shoulder — points count up + wash on poll diffs; done fills, live pulses, pre outlines */}
       <span
         className={cn(
-          "mt-0.5 inline-block min-w-9 skewed rounded-sm px-1.5 py-px text-center text-xs font-extrabold num-tabular",
+          "mt-0.5 inline-block min-w-[calc(36*var(--s))] skewed rounded-sm px-1.5 py-px text-center text-[calc(12*var(--s))] font-extrabold num-tabular",
           done && "bg-surge text-on-accent",
           live && val.tone === "volt" && "bg-volt text-on-accent",
           /* Yet to kick off. The fill has to be a fixed dark chip, not
@@ -1272,7 +1308,7 @@ function ComparePitch({
               : "only they own him"
             : "you both own him")
         }
-        className="block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
+        className="block w-full rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
       >
         <ShirtToken row={row} mode={tokenMode} swing={swing} lev={lev} avatar={avatar} />
         <span
@@ -1294,9 +1330,9 @@ function ComparePitch({
       <p className="text-center text-2xs uppercase-label text-ultra">{rival.teamName ?? `Entry ${rival.entry}`}</p>
       {/* far half — the rival's XI with real live data, GK at the top edge */}
       {rivalBands.map((band, i) => (
-        <ul key={`rv${i}`} className="flex flex-wrap items-start justify-center gap-2">
+        <ul key={`rv${i}`} className={ROW}>
           {band.map((r) => (
-            <li key={r.element}>
+            <li key={r.element} className={SLOT}>
               <Token row={r} tokenMode="points" side="them" />
             </li>
           ))}
@@ -1306,9 +1342,9 @@ function ComparePitch({
       <div className="relative my-1 h-px bg-line-hi/60" />
       {/* near half — you, GK at the bottom edge, forwards facing theirs */}
       {[...rows].reverse().map((row, i) => (
-        <ul key={`me${i}`} className="flex flex-wrap items-start justify-center gap-2">
+        <ul key={`me${i}`} className={ROW}>
           {row.map((p) => (
-            <li key={p.element}>
+            <li key={p.element} className={SLOT}>
               <Token
                 row={p}
                 tokenMode={mode}
