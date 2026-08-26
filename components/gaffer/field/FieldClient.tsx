@@ -15,6 +15,7 @@ import {
   OverUnder,
   ValueForMoney,
 } from "@/components/gaffer/field/SquadCharts";
+import { CreationScatter } from "@/components/gaffer/field/CreationScatter";
 import {
   Crossover,
   DecisionLedger,
@@ -908,6 +909,19 @@ export function FieldClient({
           <MinutesSecurity rows={model.squad} currentGw={model.event.id} />
           <ValueForMoney rows={model.squad} />
         </div>
+      </section>
+
+      {/* Everything above this line is your fifteen. This one is the league
+          they came out of, on the same axes — which is the only way to see
+          that the creator you are missing is a row you never scrolled to. */}
+      <section aria-label="The league this season" className="space-y-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="upper-label text-2xs text-ink-lo">Everyone else, too</h2>
+          <p className="text-2xs text-ink-lo">
+            The whole market on one pair of axes — yours marked.
+          </p>
+        </div>
+        <CreationScatter mine={model.squad.map((p) => p.element)} />
       </section>
         </>
       )}
