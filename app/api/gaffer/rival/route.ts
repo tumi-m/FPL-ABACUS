@@ -9,12 +9,18 @@ export async function GET(req: NextRequest) {
   const gwParam = req.nextUrl.searchParams.get("gw");
   const gw = gwParam != null && /^\d+$/.test(gwParam) ? Number(gwParam) : undefined;
   if (!Number.isFinite(entry) || entry <= 0) {
-    return NextResponse.json({ error: "bad-entry" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, reason: "no-such-entry", entry, gw },
+      { status: 200 },
+    );
   }
   try {
     const result = await buildRivalSquad(entry, gw);
     return NextResponse.json(result, { headers: { "Cache-Control": "private, max-age=30" } });
   } catch {
-    return NextResponse.json({ error: "upstream" }, { status: 502 });
+    // A failure the builder could not attribute is still ours, not the rival's.
+    // It comes back 200 with a reason so the Field can say which of the four
+    // things went wrong instead of falling through to one generic sentence.
+    return NextResponse.json({ ok: false, reason: "upstream", entry, gw: gw ?? null });
   }
 }

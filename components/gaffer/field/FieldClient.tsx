@@ -142,15 +142,51 @@ interface WebPayload {
 
 
 type RivalRow = SquadRow;
+/**
+ * What to say when a compare comes back empty.
+ *
+ * It used to say "No picks visible for that entry this gameweek yet" for every
+ * failure — a typo'd id, a manager who joined late, and FPL being down all got
+ * the same sentence, and only one of them was true. Each of these names the
+ * actual problem and the actual fix.
+ */
+const RIVAL_TROUBLE_FALLBACK = () =>
+  "FPL didn't answer just then. Give it a moment and press Compare again.";
+
+const RIVAL_TROUBLE: Record<string, (entry: number, gw: number | null) => string> = {
+  "no-such-entry": (entry) =>
+    `No FPL team with id ${entry}. The id is the number in the URL of their points page.`,
+  "picks-not-set": (entry, gw) =>
+    `Team ${entry} has no side for GW${gw ?? "?"} — they joined the game after it, or never picked one.`,
+  "no-gameweek": (_e, gw) => `GW${gw ?? "?"} hasn't been played yet.`,
+  upstream: RIVAL_TROUBLE_FALLBACK,
+};
+
+const rivalTrouble = (reason: string, entry: number, gw: number | null) =>
+  (RIVAL_TROUBLE[reason] ?? RIVAL_TROUBLE_FALLBACK)(entry, gw);
+
+/**
+ * A loaded rival. `ok` is the literal `true`, not `boolean`, so the failure
+ * branch below actually discriminates — with a loose `boolean` and an optional
+ * `reason`, every read of the failure went unchecked and a missing reason would
+ * have reached the copy table as undefined.
+ */
 interface RivalPayload {
-  ok: boolean;
-  reason?: string;
+  ok: true;
   entry: number;
   gw: number;
   teamName: string | null;
   rows: RivalRow[];
   totals: { gw: number; bench: number };
   subs: { out: number; in: number }[];
+}
+
+/** What the endpoint says when it could not build one. */
+interface RivalTrouble {
+  ok: false;
+  reason: string;
+  entry: number;
+  gw: number | null;
 }
 
 export function FieldClient({
@@ -383,10 +419,10 @@ export function FieldClient({
     try {
       const res = await fetch(`/api/gaffer/rival?entry=${id}&gw=${gw}`);
       if (!res.ok) throw new Error(String(res.status));
-      const json = (await res.json()) as RivalPayload;
+      const json = (await res.json()) as RivalPayload | RivalTrouble;
       if (!json.ok) {
         setRival(null);
-        setRivalError("No picks visible for that entry this gameweek yet.");
+        setRivalError(rivalTrouble(json.reason, json.entry, json.gw));
         return;
       }
       setRival(json);
@@ -421,7 +457,20 @@ export function FieldClient({
   );
   const bench = model.squad.filter((s) => s.onBench);
 
-  const rivalSet = React.useMemo(() => new Set(rival?.rows.map((p) => p.element) ?? []), [rival]);
+  /**
+   * The players you BOTH own.
+   *
+   * This used to be every player the rival owns, which made it useless on the
+   * rival's own half — every one of their fifteen was trivially in it, so the
+   * whole away XI faded out and the footer read "Shared: 15 of 15" whoever you
+   * compared against. The overlap is the intersection, and it is the number
+   * that matters: what you share cancels, what you don't decides the week.
+   */
+  const sharedSet = React.useMemo(() => {
+    if (!rival) return new Set<number>();
+    const mine = new Set(model.squad.map((p) => p.element));
+    return new Set(rival.rows.filter((r) => mine.has(r.element)).map((r) => r.element));
+  }, [rival, model.squad]);
   const yourTotal = model.squad.filter((s) => !s.onBench).reduce((sum, s) => sum + s.livePoints, 0);
 
   return (
@@ -529,38 +578,79 @@ export function FieldClient({
       {rivalError && <p role="alert" className="text-sm text-flare">{rivalError}</p>}
 
       {/* head-to-head header — two totals, one gap, both engine-sourced */}
+      {/* A scoreline, not a row of odds and ends. `flex-wrap justify-between`
+           put four unrelated things on one line and spilled the view toggle
+           onto a second, so the gap — the one figure the whole screen exists
+           to show — ended up small and adrift between two scores that were not
+           even aligned with each other. Three columns mirror around the middle
+           now: your side, the gap, theirs. The gap is the headline and is
+           sized like one. */}
       {rival && (
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-lg bg-surface-1 card-ring px-4 py-3">
-          <div className="flex items-baseline gap-2">
-            <span className="upper-label text-2xs text-ink-lo">You</span>
-            <span className="fig-num text-2xl leading-none">{Math.round(yourTotal)}</span>
+        <div className="rounded-lg bg-surface-1 card-ring px-4 py-3.5">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-5">
+            <div className="min-w-0 text-right">
+              <p className="upper-label truncate text-2xs text-ink-lo">You</p>
+              <p className="fig-num mt-0.5 text-[clamp(30px,7vw,44px)] leading-none">
+                {Math.round(yourTotal)}
+              </p>
+            </div>
+
+            {(() => {
+              const gap = Math.round(yourTotal - rival.totals.gw);
+              const level = gap === 0;
+              return (
+                <div className="shrink-0 text-center">
+                  <span
+                    className={cn(
+                      "skewed inline-flex h-9 min-w-[64px] items-center justify-center rounded-md px-3",
+                      level ? "bg-surface-3 text-ink-mid" : gap > 0 ? "bg-surge" : "bg-flare",
+                      !level && "text-on-accent",
+                    )}
+                    aria-label={
+                      level
+                        ? "Level with them"
+                        : `You are ${Math.abs(gap)} points ${gap > 0 ? "ahead" : "behind"}`
+                    }
+                  >
+                    <span className="fig-num text-xl leading-none">
+                      {level ? "level" : `${gap > 0 ? "+" : "\u2212"}${Math.abs(gap)}`}
+                    </span>
+                  </span>
+                  {!level && (
+                    <p aria-hidden className="upper-label mt-1 text-[9px] text-ink-lo">
+                      {gap > 0 ? "ahead" : "behind"}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            <div className="min-w-0 text-left">
+              <p className="upper-label truncate text-2xs text-ink-lo">
+                {rival.teamName ?? `Entry ${rival.entry}`}
+              </p>
+              <p className="fig-num mt-0.5 text-[clamp(30px,7vw,44px)] leading-none">
+                {rival.totals.gw}
+              </p>
+            </div>
           </div>
-          <div
-            className={`fig-num text-sm ${yourTotal >= rival.totals.gw ? "text-surge" : "text-flare"}`}
-            aria-label={`You are ${Math.abs(Math.round(yourTotal - rival.totals.gw))} points ${
-              yourTotal >= rival.totals.gw ? "ahead" : "behind"
-            }`}
-          >
-            {yourTotal === rival.totals.gw ? "level" : `${yourTotal > rival.totals.gw ? "+" : "−"}${Math.abs(Math.round(yourTotal - rival.totals.gw))}`}
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="fig-num text-2xl leading-none">{rival.totals.gw}</span>
-            <span className="upper-label text-2xs text-ink-lo">{rival.teamName ?? `Entry ${rival.entry}`}</span>
-          </div>
-          <div role="group" aria-label="Compare view" className="flex gap-1 rounded-md glass-edge p-1">
-            {(["field", "table"] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setRivalView(v)}
-                aria-pressed={rivalView === v}
-                className={cn(
-                  "skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
-                  rivalView === v ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
-                )}
-              >
-                <span>{v}</span>
-              </button>
-            ))}
+
+          <div className="mt-3 flex justify-center">
+            <div role="group" aria-label="Compare view" className="flex gap-1 rounded-md glass-edge p-1">
+              {(["field", "table"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setRivalView(v)}
+                  aria-pressed={rivalView === v}
+                  className={cn(
+                    "skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
+                    rivalView === v ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
+                  )}
+                >
+                  <span>{v}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -666,7 +756,8 @@ export function FieldClient({
           {rival && rivalView === "field" ? (
             <ComparePitch
               rows={rows} mode={mode} rival={rival}
-              swingByElement={swingByElement} leverageByElement={leverageByElement} rivalSet={rivalSet}
+              swingByElement={swingByElement} leverageByElement={leverageByElement} sharedSet={sharedSet}
+              onPeek={setPeekElement}
               avatar={avatar}
             />
           ) : rival && rivalView === "table" ? (
@@ -708,7 +799,10 @@ export function FieldClient({
         </div>
 
         <h3 className="mb-2 mt-4 upper-label text-ink-lo">Bench</h3>
-        <ul className="flex flex-wrap gap-2 opacity-70">
+        {/* The heading above already says these are substitutes. 70% made them
+            look half-rendered rather than secondary, which is the same
+            complaint as the compare fade — 88% steps back without that. */}
+        <ul className="flex flex-wrap gap-2 opacity-[0.88]">
           {bench.map((p) => (
             <li key={p.element}>
               <button
@@ -1085,7 +1179,11 @@ export function ShirtToken({
           "mt-0.5 inline-block min-w-9 skewed rounded-sm px-1.5 py-px text-center text-xs font-extrabold num-tabular",
           done && "bg-surge text-on-accent",
           live && val.tone === "volt" && "bg-volt text-on-accent",
-          !done && !live && "bg-overlay text-ink-mid card-ring",
+          /* Yet to kick off. The fill has to be a fixed dark chip, not
+             `bg-overlay`: overlay is white in the light theme and the turf
+             ink is near-white, so this pill was a white number on a white
+             pill for every player before his fixture started. */
+          !done && !live && "bg-on-turf text-ink-mid card-ring",
           val.tone === "surge" && !done && "bg-transparent text-surge",
           val.tone === "flare" && !done && "bg-transparent text-flare",
           val.tone === "ultra" && !done && "bg-transparent text-ultra",
@@ -1101,26 +1199,80 @@ export function ShirtToken({
   );
 }
 
-/** Two XIs on one pitch — yours near half, theirs far, shared dimmed on halfway. */
+/**
+ * Two XIs on one pitch — yours near half, theirs far.
+ *
+ * A shared player cannot move the gap between you — he scores the same for
+ * each of you — so the pitch marks the ones only one of you owns, in that
+ * half's colour. Those are the contest. Nothing is dimmed to say so.
+ *
+ * Every token opens the same peek sheet the ordinary pitch opens. It did not
+ * before — compare rendered bare tokens instead of buttons, so the moment you
+ * loaded a rival the whole pitch went dead to the touch.
+ */
 function ComparePitch({
-  rows, mode, rival, swingByElement, leverageByElement, rivalSet, avatar = "face",
+  rows, mode, rival, swingByElement, leverageByElement, sharedSet, avatar = "face", onPeek,
 }: {
   rows: SquadRow[][]; mode: Mode; rival: RivalPayload;
-  swingByElement: Map<number, SwingRow>; leverageByElement: Map<number, LevRow>; rivalSet: Set<number>;
-  avatar?: AvatarMode;
+  swingByElement: Map<number, SwingRow>; leverageByElement: Map<number, LevRow>; sharedSet: Set<number>;
+  avatar?: AvatarMode; onPeek: (element: number) => void;
 }) {
   const rivalStarters = rival.rows.filter((r) => !r.onBench);
   const rivalBands = [1, 2, 3, 4].map((pos) => rivalStarters.filter((r) => r.pos === pos));
+
+  /**
+   * Mark the difference, do not hide the sameness.
+   *
+   * This used to fade shared players to 40% and blur them, which made a third
+   * of the pitch look broken — half-there photos, names you could not read,
+   * points you could not check — and dimming is a poor way to say "ignore
+   * this" about something you can still tap. Nothing is transparent now.
+   * Instead the players only ONE of you owns get a bar in their half's colour,
+   * because those are the eight or ten that actually decide the gap; the
+   * shared ones simply carry no bar.
+   */
+  const Token = ({ row, tokenMode, swing, lev, side }: {
+    row: SquadRow; tokenMode: Mode; swing?: SwingRow; lev?: LevRow; side: "you" | "them";
+  }) => {
+    const differs = !sharedSet.has(row.element);
+    return (
+      <button
+        type="button"
+        onClick={() => onPeek(row.element)}
+        aria-label={
+          `${row.webName}, open details — ` +
+          (differs
+            ? side === "you"
+              ? "only you own him"
+              : "only they own him"
+            : "you both own him")
+        }
+        className="block rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
+      >
+        <ShirtToken row={row} mode={tokenMode} swing={swing} lev={lev} avatar={avatar} />
+        <span
+          aria-hidden
+          className="mx-auto mt-1 block h-[3px] w-9 rounded-full"
+          style={{
+            /* the slot is always there so every token in a row is the same
+               height; only a differential paints it */
+            background: differs ? (side === "you" ? "var(--volt)" : "var(--ultra)") : "transparent",
+          }}
+        />
+      </button>
+    );
+  };
+
   return (
     <div className="relative space-y-2.5">
       {/* far end — the rival's name over their goal */}
       <p className="text-center text-2xs uppercase-label text-ultra">{rival.teamName ?? `Entry ${rival.entry}`}</p>
       {/* far half — the rival's XI with real live data, GK at the top edge */}
       {rivalBands.map((band, i) => (
-        <ul key={`rv${i}`} className="flex flex-wrap items-start justify-center gap-2 opacity-90">
+        <ul key={`rv${i}`} className="flex flex-wrap items-start justify-center gap-2">
           {band.map((r) => (
-            <li key={r.element} className={cn(rivalSet.has(r.element) && "opacity-40 blur-[0.4px]")}>
-              <ShirtToken row={r} mode="points" avatar={avatar} />
+            <li key={r.element}>
+              <Token row={r} tokenMode="points" side="them" />
             </li>
           ))}
         </ul>
@@ -1131,16 +1283,33 @@ function ComparePitch({
       {[...rows].reverse().map((row, i) => (
         <ul key={`me${i}`} className="flex flex-wrap items-start justify-center gap-2">
           {row.map((p) => (
-            <li key={p.element} className={rivalSet.has(p.element) ? "opacity-40" : ""}>
-              <ShirtToken row={p} mode={mode} swing={swingByElement.get(p.element)} lev={leverageByElement.get(p.element)} avatar={avatar} />
+            <li key={p.element}>
+              <Token
+                row={p}
+                tokenMode={mode}
+                side="you"
+                swing={swingByElement.get(p.element)}
+                lev={leverageByElement.get(p.element)}
+              />
             </li>
           ))}
         </ul>
       ))}
       <p className="text-center text-2xs uppercase-label text-volt">You</p>
-      <p className="pt-1 text-center text-2xs text-ink-lo num-tabular">
-        Shared: {[...rivalSet].length} of 15 overlap · auto-subs and provisional bonus included
+      <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-1 text-center text-2xs text-ink-lo">
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden className="inline-block h-[3px] w-5 rounded-full bg-volt" />
+          only you
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden className="inline-block h-[3px] w-5 rounded-full bg-ultra" />
+          only them
+        </span>
+        <span className="num-tabular">
+          {sharedSet.size} shared — those cancel out
+        </span>
       </p>
+      <p className="text-center text-2xs text-ink-lo">Auto-subs and provisional bonus included.</p>
     </div>
   );
 }

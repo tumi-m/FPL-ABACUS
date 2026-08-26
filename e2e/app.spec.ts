@@ -238,8 +238,41 @@ test.describe("authenticated routes", () => {
     const href = (await rival.getAttribute("href"))!;
     await page.goto(href); // deep-link directly — click hit-testing is flaky under the sticky header
     await expect(page).toHaveURL(/field\?mode=points&compare=\d+/);
-    // either the head-to-head header loads or the honest no-picks note shows
-    await expect(page.getByText(/No picks visible|Entry \d+|You/).first()).toBeVisible({ timeout: 15_000 });
+    // either the head-to-head header loads or an honest reason shows
+    await expect(
+      page.getByText(/no side for GW|No FPL team with id|FPL didn't answer|Entry \d+|You/).first(),
+    ).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("a loaded rival leaves every token on the pitch tappable", async ({ page }) => {
+    // Compare used to render bare tokens instead of buttons, so loading a
+    // rival killed the peek sheet for all twenty-two players on the pitch.
+    await asTeam(page);
+    await page.goto("/field");
+    await page.getByPlaceholder(/Compare id or name/i).fill("1851681");
+    await page.getByRole("button", { name: /^Compare$/ }).click();
+
+    const tokens = page.locator('ul li button[aria-label*="open details"]');
+    await expect(tokens.first()).toBeVisible({ timeout: 15_000 });
+    // both halves plus your bench, not just the bench
+    expect(await tokens.count()).toBeGreaterThan(15);
+
+    await tokens.first().click();
+    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("a compare that cannot load says which of the four things went wrong", async ({ page }) => {
+    // One sentence used to cover a typo'd id, a manager who joined late and
+    // FPL being down. Only one of the three was ever true.
+    await asTeam(page);
+    await page.goto("/field");
+    await page.getByPlaceholder(/Compare id or name/i).fill("999999999");
+    await page.getByRole("button", { name: /^Compare$/ }).click();
+    // Next's own route announcer is also role=alert, so target the Field's note
+    await expect(page.locator('p[role="alert"]')).toContainText(
+      /No FPL team with id|no side for GW|FPL didn't answer/,
+      { timeout: 15_000 },
+    );
   });
 
   test("field renders the pitch with the seven mode controls", async ({ page }) => {

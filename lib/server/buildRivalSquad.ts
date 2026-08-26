@@ -7,6 +7,7 @@ import { buildFixtureModel, projectFixture } from "@/lib/engines/fixtureModel";
 import type { SquadRow } from "@/lib/engines/matchdayModel";
 import type { Fixture } from "@/lib/fpl/schemas";
 import { readAvailability } from "@/lib/engines/availability";
+import { FplHttpError } from "@/lib/fpl/client";
 
 /**
  * v4-E rival compare — the rival's gameweek run through the same live-squad
@@ -23,9 +24,16 @@ export interface RivalSquadPayload {
   subs: { out: number; in: number }[];
 }
 
+/**
+ * Why a compare came back empty. The three are different problems with
+ * different fixes, and telling a user "no picks visible" when FPL timed out
+ * sends them hunting for a fault in their rival's team that is not there.
+ */
+export type RivalFailure = "picks-not-set" | "no-such-entry" | "no-gameweek" | "upstream";
+
 export type RivalSquadResult =
   | RivalSquadPayload
-  | { ok: false; reason: "picks-not-set" | "not-found" };
+  | { ok: false; reason: RivalFailure; entry: number; gw: number | null };
 
 export async function buildRivalSquad(entryId: number, gw?: number): Promise<RivalSquadResult> {
   const boot = await getBootstrapLite();
@@ -33,14 +41,14 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
     (gw != null ? boot.events.find((e) => e.id === gw) : undefined) ??
     boot.events.find((e) => e.is_current) ??
     boot.events.find((e) => e.is_next);
-  if (!event) return { ok: false, reason: "not-found" };
+  if (!event) return { ok: false, reason: "no-gameweek", entry: entryId, gw: gw ?? null };
   const eventId = event.id;
 
   let picks: Awaited<ReturnType<typeof getPicks>>;
   try {
     picks = await getPicks(entryId, eventId, true);
-  } catch {
-    return { ok: false, reason: "picks-not-set" };
+  } catch (err) {
+    return { ...(await diagnose(err, entryId)), entry: entryId, gw: eventId };
   }
 
   const [fixtures, allFixtures, live, status, entry] = await Promise.all([
@@ -133,4 +141,21 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
     },
     subs: squadState.subs,
   };
+}
+
+/**
+ * Read a failed picks fetch.
+ *
+ * FPL answers 404 for two different things — an entry id that does not exist,
+ * and an entry that exists but set no side for this week — and the fix a user
+ * needs is different for each: retype the number, or pick another gameweek.
+ * One extra request on the failure path tells them apart. Anything that is not
+ * a 404 (a 5xx, a timeout, a tripped breaker, a schema drift) is our side
+ * failing, and it says so rather than blaming the rival's team.
+ */
+async function diagnose(err: unknown, entryId: number): Promise<{ ok: false; reason: RivalFailure }> {
+  const status = err instanceof FplHttpError ? err.status : null;
+  if (status !== 404) return { ok: false, reason: "upstream" };
+  const entry = await getEntry(entryId).catch(() => null);
+  return { ok: false, reason: entry ? "picks-not-set" : "no-such-entry" };
 }
