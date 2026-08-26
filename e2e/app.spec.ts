@@ -252,9 +252,13 @@ test.describe("authenticated routes", () => {
     await page.getByPlaceholder(/Compare id or name/i).fill("1851681");
     await page.getByRole("button", { name: /^Compare$/ }).click();
 
+    // The ordinary pitch uses the same locator, so wait for a mark only the
+    // compare view draws — otherwise the count races the rival's render and
+    // passes on your own eleven plus the bench.
+    await expect(page.getByText(/shared — those cancel out/)).toBeVisible({ timeout: 15_000 });
+
     const tokens = page.locator('ul li button[aria-label*="open details"]');
-    await expect(tokens.first()).toBeVisible({ timeout: 15_000 });
-    // both halves plus your bench, not just the bench
+    // both halves plus your bench, not just your own side
     expect(await tokens.count()).toBeGreaterThan(15);
 
     await tokens.first().click();
@@ -273,6 +277,42 @@ test.describe("authenticated routes", () => {
       /No FPL team with id|no side for GW|FPL didn't answer/,
       { timeout: 15_000 },
     );
+  });
+
+  test("club numbers renders six sortable boards for all twenty clubs", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field/clubs");
+    await expect(page.getByRole("heading", { name: "Club numbers" })).toBeVisible();
+
+    const tables = page.locator("table");
+    await expect(tables).toHaveCount(6);
+    // every club gets a row on every board, whether or not it has played
+    await expect(tables.first().locator("tbody tr")).toHaveCount(20);
+
+    // Sorting is the whole interface, so assert the column actually ends up
+    // ordered rather than just that something moved.
+    const board = tables.first();
+    await board.getByRole("button", { name: "Sort by Goals scored" }).click();
+    const column = async () => {
+      // nth-child counts the club <th> as child 1, so: 2 = Pl, 3 = xG, 4 = G
+      const cells = await board.locator("tbody tr td:nth-child(4)").allInnerTexts();
+      return cells.map((t) => Number(t.replace(/[^\d.-]/g, "")));
+    };
+    const desc = await column();
+    expect(desc).toHaveLength(20);
+    expect([...desc].sort((a, b) => b - a)).toEqual(desc);
+
+    // and clicking the same header again flips it
+    await board.getByRole("button", { name: "Sort by Goals scored" }).click();
+    const asc = await column();
+    expect([...asc].sort((a, b) => a - b)).toEqual(asc);
+  });
+
+  test("the Field links out to the club boards", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field");
+    await page.getByRole("button", { name: "Club numbers" }).click();
+    await expect(page).toHaveURL(/\/field\/clubs/);
   });
 
   test("field renders the pitch with the seven mode controls", async ({ page }) => {
