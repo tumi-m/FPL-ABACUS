@@ -279,6 +279,31 @@ test.describe("authenticated routes", () => {
     );
   });
 
+  test("the league scatter costs nothing until it is scrolled to", async ({ page }) => {
+    await asTeam(page);
+    const boardCalls: string[] = [];
+    page.on("request", (r) => {
+      if (r.url().includes("/api/gaffer/boards")) boardCalls.push(r.url());
+    });
+
+    await page.goto("/field");
+    await expect(page.getByText("Creating, against everything he does")).toBeAttached({
+      timeout: 15_000,
+    });
+    // the pitch is the page; the league behind it is not worth a request until
+    // somebody actually scrolls to it
+    expect(boardCalls).toHaveLength(0);
+
+    const figure = page.locator('figure:has-text("Creating, against everything he does")');
+    await figure.scrollIntoViewIfNeeded();
+    await expect.poll(() => boardCalls.length, { timeout: 15_000 }).toBeGreaterThan(0);
+
+    // either the scatter draws or it says honestly why it cannot
+    await expect(
+      figure.locator("svg circle").first().or(figure.getByText(/Nobody clears|did not answer/)),
+    ).toBeVisible({ timeout: 15_000 });
+  });
+
   test("club numbers renders six sortable boards for all twenty clubs", async ({ page }) => {
     await asTeam(page);
     await page.goto("/field/clubs");
