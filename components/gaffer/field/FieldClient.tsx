@@ -517,13 +517,24 @@ export function FieldClient({
                 {Math.round(gwTotal).toLocaleString("en-GB")}
               </p>
             </div>
-            <Link
-              href="/field/points"
-              role="button"
-              className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-volt px-4 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.97]"
-            >
-              <span>Points contribution</span>
-            </Link>
+            {/* The two ways out of the pitch: down into your own score, or out
+                to the league your fifteen were picked from. */}
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <Link
+                href="/field/clubs"
+                role="button"
+                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+              >
+                <span>Club numbers</span>
+              </Link>
+              <Link
+                href="/field/points"
+                role="button"
+                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-volt px-4 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.97]"
+              >
+                <span>Points contribution</span>
+              </Link>
+            </div>
           </div>
         );
       })()}
