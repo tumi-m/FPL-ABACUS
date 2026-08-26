@@ -223,7 +223,12 @@ export function MatchEventStrip({
   // tokens and not others, so a row of eleven never lines up — which is what
   // made the pitch look ragged rather than laid out.
   return (
-    <span className={cn("mt-1 flex h-[21px] items-center justify-center gap-0.5", className)}>
+    /* The badge size comes from a variable so the strip can ride the token's
+       scale on a squeezed pitch row and still be its old fifteen pixels
+       everywhere else it is used — the points table has no token around it. */
+    <span
+      className={cn("mt-1 flex h-[var(--evt-row,21px)] items-center justify-center gap-0.5", className)}
+    >
       {events.map((e) => (
         <span
           key={e.key}
@@ -240,7 +245,7 @@ export function MatchEventStrip({
               length; fifteen is the most that still fits four badges under a
               token. The strip sizes as one: a goal drawn larger than the
               shield beside it would read as a broken row, not a louder mark. */}
-          <span className="block h-[15px] w-[15px]">{e.icon}</span>
+          <span className="block h-[var(--evt,15px)] w-[var(--evt,15px)]">{e.icon}</span>
           {e.count > 1 && (
             <span className="text-[10px] font-bold num-tabular" style={{ color: e.tone }}>
               {e.count}
