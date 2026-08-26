@@ -61,6 +61,7 @@
   --color-magenta: var(--magenta);
   --color-bonus: var(--bonus);
   --color-on-accent: var(--on-accent);
+  --color-on-turf: var(--surface-on-turf);
   --color-persona-oleg: var(--persona-oleg);
   --color-persona-kofi: var(--persona-kofi);
   --color-persona-mei: var(--persona-mei);
@@ -169,19 +170,19 @@
   --ink-lo:#87A2BB;       /*  7.37:1 */
 
   /* accents — one meaning each */
-  --volt:#0AD0FF;         /* you · live · primary action */
-  --ice:#9DF0FF;          /* chrome highlight · bevels   */
-  --surge:#2CF2B6;        /* gain · rank improved        */
-  --flare:#FF525B;        /* loss · threat · risk        */
-  --ultra:#A97AFF;        /* the field · rivals · model  */
-  --amber:#FFC035;        /* bonus · price movement      */
-  --magenta:#F86CCA;      /* differential · ownership    */
-  --on-accent:#04121F;
+  --volt:var(--volt-on-dark);         /* you · live · primary action */
+  --ice:var(--ice-on-dark);          /* chrome highlight · bevels   */
+  --surge:var(--surge-on-dark);        /* gain · rank improved        */
+  --flare:var(--flare-on-dark);        /* loss · threat · risk        */
+  --ultra:var(--ultra-on-dark);        /* the field · rivals · model  */
+  --amber:var(--amber-on-dark);        /* bonus · price movement      */
+  --magenta:var(--magenta-on-dark);      /* differential · ownership    */
+  --on-accent:var(--on-accent-on-dark);
 
   /* defensive contributions — read on turf, never confused with the grass.
      Steel while the meter fills, hot white-gold the moment it is banked. */
-  --defcon:#8FB8FF;
-  --defcon-hit:#FFE27A;
+  --defcon:var(--defcon-on-dark);
+  --defcon-hit:var(--defcon-hit-on-dark);
 
   /* persona identity accents (v6) — chrome only, always paired with the
      gaffer's name; never meaning-coded like the accents above */
@@ -210,6 +211,29 @@
   /* theme-invariant inks for coloured surfaces */
   --ink-fixed-dark:#04121F;
   --ink-on-dark:#FFFFFF;
+
+  /* ── the on-dark palette ──────────────────────────────────────────────────
+     The accents as they read on a dark ground. The dark theme's accents ARE
+     these values, so it aliases them below rather than repeating them; the
+     light theme darkens its own copies so they can sit on a near-white page.
+
+     Anything drawn on the pitch points here instead of at the theme, because
+     the pitch is dark in BOTH themes. Reading a light-theme accent on grass
+     is how `text-ultra` came out as #6A35D9 on dark green, and how a player
+     yet to kick off ended up with a white number on a white pill. */
+  --volt-on-dark:#0AD0FF;
+  --ice-on-dark:#9DF0FF;
+  --surge-on-dark:#2CF2B6;
+  --flare-on-dark:#FF525B;
+  --ultra-on-dark:#A97AFF;
+  --amber-on-dark:#FFC035;
+  --magenta-on-dark:#F86CCA;
+  --defcon-on-dark:#8FB8FF;
+  --defcon-hit-on-dark:#FFE27A;
+  /* the ink that sits ON one of those accent fills */
+  --on-accent-on-dark:#04121F;
+  /* and the surface for chrome drawn on the grass itself */
+  --surface-on-turf:rgba(4,18,31,.62);
 
   /* atmosphere */
   --flare-l:rgba(157,240,255,.16);
@@ -655,6 +679,21 @@
   --ink-1: var(--ink-on-dark);
   --ink-2: rgba(255,255,255,.80);
   --ink-3: rgba(255,255,255,.64);
+  /* The accents go with them. Same substitution rule, so every --color-*
+     alias has to be restated too — `bg-surge` reads --color-surge, and that
+     one was resolved back at :root against the light theme's dark green. */
+  --volt: var(--volt-on-dark);           --color-volt: var(--volt-on-dark);
+  --ice: var(--ice-on-dark);             --color-ice: var(--ice-on-dark);
+  --surge: var(--surge-on-dark);         --color-surge: var(--surge-on-dark);
+  --flare: var(--flare-on-dark);         --color-flare: var(--flare-on-dark);
+  --ultra: var(--ultra-on-dark);         --color-ultra: var(--ultra-on-dark);
+  --amber: var(--amber-on-dark);         --color-amber: var(--amber-on-dark);
+  --magenta: var(--magenta-on-dark);     --color-magenta: var(--magenta-on-dark);
+  --bonus: var(--magenta-on-dark);       --color-bonus: var(--magenta-on-dark);
+  --defcon: var(--defcon-on-dark);       --color-defcon: var(--defcon-on-dark);
+  --defcon-hit: var(--defcon-hit-on-dark); --color-defcon-hit: var(--defcon-hit-on-dark);
+  /* a fill made of the bright set needs the dark ink on top of it */
+  --on-accent: var(--on-accent-on-dark); --color-on-accent: var(--on-accent-on-dark);
   color: var(--ink-on-dark);
 }
 
