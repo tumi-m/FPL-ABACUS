@@ -44,9 +44,22 @@
   --color-ink-1: var(--ink-1);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
+  /* The three the app actually writes. `text-ink-hi` appears 547 times and,
+     without these, generated nothing at all — every one of them silently
+     inherited whatever colour happened to be in force, so `text-ink-lo` on a
+     caption came out at full strength and the .on-turf scope's careful ink
+     restatement only ever worked through plain inheritance. */
+  --color-ink-hi: var(--ink-hi);
+  --color-ink-mid: var(--ink-mid);
+  --color-ink-lo: var(--ink-lo);
 
   /* floodlight tokens */
-  --color-base: var(--bg-base);
+  /* No --color-base. Tailwind's font-size scale already owns `base`, so
+     declaring a colour by that name made `text-base` set BOTH a size and a
+     colour — and the colour was the page's own background, so every figure
+     written at the base size was painted white on white. Nothing used the
+     `bg-base` class; the one place that wants the value reads var(--bg-base)
+     directly. */
   --color-sunk: var(--bg-sunk);
   --color-raised: var(--bg-raised);
   --color-overlay: var(--bg-overlay);
@@ -679,6 +692,15 @@
   --ink-1: var(--ink-on-dark);
   --ink-2: rgba(255,255,255,.80);
   --ink-3: rgba(255,255,255,.64);
+  /* And the Tailwind aliases for all six, for the same reason: `text-ink-hi`
+     reads --color-ink-hi, which was substituted back at :root against the
+     light theme's near-black. Redefining --ink-hi here cannot reach it. */
+  --color-ink-hi: var(--ink-on-dark);
+  --color-ink-mid: rgba(255,255,255,.80);
+  --color-ink-lo: rgba(255,255,255,.64);
+  --color-ink-1: var(--ink-on-dark);
+  --color-ink-2: rgba(255,255,255,.80);
+  --color-ink-3: rgba(255,255,255,.64);
   /* The accents go with them. Same substitution rule, so every --color-*
      alias has to be restated too — `bg-surge` reads --color-surge, and that
      one was resolved back at :root against the light theme's dark green. */
