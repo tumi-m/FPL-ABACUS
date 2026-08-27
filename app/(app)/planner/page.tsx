@@ -32,13 +32,16 @@ export default async function PlannerPage() {
           </p>
         </div>
         {/* The planner stages one move at a time; the combination board is
-            where you work out whether the move is the right shape at all. */}
+            where you work out whether the move is the right shape at all.
+            This is the only way in on a phone — Combinations sits in the
+            desktop nav but has no thumb slot — so it is an accent fill and it
+            says its own name, rather than the muted riddle it used to be. */}
         <Link
           href="/combos"
           role="button"
-          className="skewed inline-flex h-9 shrink-0 items-center gap-2 rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+          className="skewed inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-volt px-4 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.98] sm:h-9 sm:w-auto"
         >
-          <span>Two players or one?</span>
+          <span>Combinations</span>
           <span aria-hidden>→</span>
         </Link>
       </header>

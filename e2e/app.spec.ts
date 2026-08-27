@@ -413,7 +413,16 @@ test.describe("authenticated routes", () => {
   test("the Planner points at the combination board", async ({ page }) => {
     await asTeam(page);
     await page.goto("/planner");
-    await page.getByRole("button", { name: /Two players or one/ }).click();
+    // Named, not riddled: on a phone the Planner is the only way into
+    // Combinations, which has no thumb slot, so the link says what it opens.
+    await page.getByRole("button", { name: "Combinations" }).click();
+    await expect(page).toHaveURL(/\/combos/);
+  });
+
+  test("Combinations is reachable from the chrome on a desktop", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field");
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Combinations" }).click();
     await expect(page).toHaveURL(/\/combos/);
   });
 

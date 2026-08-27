@@ -25,36 +25,79 @@ export function PlayerPhoto({
   const sources = React.useMemo(() => (photo ? playerImgSources(photo) : []), [photo]);
   const [idx, setIdx] = React.useState(0);
   const [loaded, setLoaded] = React.useState(false);
-  React.useEffect(() => {
+
+  /*
+   * Reset during render, not in an effect.
+   *
+   * Restarting the cascade in a `useEffect([photo])` looks equivalent and is
+   * not: effects also run on mount, and they run *after* refs. So the ref
+   * below would correctly notice an already-decoded image, set loaded, and
+   * then the mount pass of the effect would immediately set it back to false —
+   * leaving a fully-downloaded photo pinned at opacity-0 with the club crest
+   * showing through it for the life of the page. Comparing against the last
+   * photo during render only fires on an actual change.
+   */
+  const [prevPhoto, setPrevPhoto] = React.useState(photo);
+  if (photo !== prevPhoto) {
+    setPrevPhoto(photo);
     setIdx(0);
     setLoaded(false);
-  }, [photo]);
+  }
 
   const src = idx < sources.length ? sources[idx] : null;
 
   /*
-   * The crest is always underneath.
+   * Ask the element, don't wait to be told.
    *
-   * The cascade used to swap the <img>'s src in place and show nothing behind
-   * it, which left two holes: a source that 404s renders the browser's own
+   * A cached photo — or one served instantly off a warm CDN edge — can finish
+   * loading in the gap between the server's markup arriving and React
+   * hydrating it. The load event has already been and gone by the time onLoad
+   * exists, so it never fires, `loaded` stays false, and a photo that is sat
+   * right there in the browser renders at opacity-0 for the life of the page.
+   * A ref callback runs the instant the element is attached, so it can just
+   * read what the browser already knows. `key={src}` gives each source its own
+   * element, so this re-runs for every step of the cascade.
+   */
+  const measure = React.useCallback((node: HTMLImageElement | null) => {
+    if (!node || !node.complete) return;
+    if (node.naturalWidth > 0) setLoaded(true);
+    // complete with no pixels is a 404 that also beat hydration — the onError
+    // handler missed it for the same reason, so advance the cascade here.
+    else setIdx((i) => i + 1);
+  }, []);
+
+  /*
+   * The crest is underneath until the photo lands, and then it is gone.
+   *
+   * The cascade used to swap the <img>'s src in place with nothing behind it,
+   * which left two holes: a source that 404s renders the browser's own
    * broken-image glyph for the frame or two before onError lands, and Safari
    * does not always fire onError on a lazily-loaded image at all — so a table
-   * of fifteen players came out as a grid of question marks. Painting the club
-   * crest as the base layer means the worst case is a crest, never a glyph,
-   * and the photo simply arrives on top of it when it arrives.
+   * of fifteen players came out as a grid of question marks. A crest below the
+   * photo fixed that, but it fixed it for every player: the headshots are cut
+   * out with transparent shoulders, so a permanent crest showed through as a
+   * coloured plate with the club's three letters poking out behind every face
+   * on the pitch. The photo is meant to float on the grass.
+   *
+   * So the crest is a fallback rather than a backdrop — painted while nothing
+   * has decoded, and unmounted the moment something has. The worst case is
+   * still a crest and never a glyph, which was the whole point of it.
    *
    * Each source gets its own element via `key`, so a browser that has already
    * decided one URL is broken cannot carry that verdict onto the next.
    */
   return (
     <span className="relative grid h-full w-full place-items-center">
-      <span aria-hidden className="absolute inset-0 grid place-items-center">
-        <CrestTile teamId={teamId} />
-      </span>
+      {!loaded && (
+        <span aria-hidden className="absolute inset-0 grid place-items-center">
+          <CrestTile teamId={teamId} />
+        </span>
+      )}
       {src && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={src}
+          ref={measure}
           src={src}
           alt=""
           loading={eager ? "eager" : "lazy"}

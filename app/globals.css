@@ -75,6 +75,9 @@
   --color-bonus: var(--bonus);
   --color-on-accent: var(--on-accent);
   --color-on-turf: var(--surface-on-turf);
+  /* The scoreboard plate. Fixed, not themed: the pitch is dark green in
+     both themes, so this never needs a light-mode twin. */
+  --color-score-turf: var(--score-on-turf);
   --color-persona-oleg: var(--persona-oleg);
   --color-persona-kofi: var(--persona-kofi);
   --color-persona-mei: var(--persona-mei);
@@ -257,6 +260,11 @@
   --on-accent-on-dark:#04121F;
   /* and the surface for chrome drawn on the grass itself */
   --surface-on-turf:rgba(4,18,31,.62);
+  /* A finished score is not a "gain", and it should never have borrowed
+     surge: mint green on dark green grass is the one pairing the pitch
+     cannot afford, and it was carrying the single number people scan a
+     lineup for. A scoreboard is white with dark digits, so this is too. */
+  --score-on-turf:#EDF4FA;
 
   /* atmosphere */
   --flare-l:rgba(157,240,255,.16);
