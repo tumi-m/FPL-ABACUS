@@ -56,7 +56,11 @@ All env vars are optional locally; for production:
 1. Provision **Postgres** (Neon, or Supabase via its transaction pooler on :6543 — the client sets `prepare: false`) and run `pnpm db:migrate`.
 2. Provision **Upstash Redis** (free tier fine) — without it, swing/rank/price state resets on cold starts.
 3. On Vercel: set `DATABASE_URL`, `UPSTASH_REDIS_REST_URL/TOKEN`, `CRON_SECRET`, `NEXT_PUBLIC_APP_URL`. Only the once-daily finalise cron registers on Vercel (Hobby allows daily only).
-4. **High-frequency crons run from GitHub Actions** (`.github/workflows/prod-cron.yml`, every 5 min). Add two repository secrets: `PROD_URL` (your deployment URL) and `CRON_SECRET` — the workflow skips itself until they exist.
+4. **High-frequency crons run from GitHub Actions** (`.github/workflows/prod-cron.yml`). Add two repository secrets:
+   `PROD_URL` — the canonical origin, `https://`, **no trailing slash** — and `CRON_SECRET`; the workflow skips
+   itself until both exist. It asks for every 5 minutes and GitHub's free scheduler delivers a median of ~50,
+   which the idempotent endpoints tolerate. Run it manually with `verbose: true` to print what each endpoint
+   reports — `no-database-configured` in a response body means `DATABASE_URL` never reached the deployment.
 5. The cohort builder is resumable: each invocation does ≤20s of upstream work and continues across ticks, so it fits Hobby's function limits.
 6. Smoke: hit `/api/cron/warm`, enter a team ID, confirm `/live` composes.
 

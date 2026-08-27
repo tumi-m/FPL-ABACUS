@@ -1,9 +1,11 @@
 name: prod-cron
 
-# Hobby-plan workaround: Vercel only allows daily crons, so the frequent
-# schedule lives here instead. GitHub's scheduler has ±minutes of jitter;
-# every endpoint is idempotent and self-throttling (locks + fresh markers),
-# so drift is harmless.
+# Vercel's Hobby plan only registers daily crons, so the frequent schedule
+# lives here instead. GitHub's scheduler is best-effort and heavily throttled
+# on free runners — over a measured 42-hour window this workflow asked for
+# every 5 minutes and got a median of 52, with one 11-hour gap. Every endpoint
+# is idempotent and self-throttling (locks + fresh markers), so drift is
+# harmless; it just means "recent" is looser than the schedule claims.
 #
 # NOTE: GitHub disables scheduled workflows after 60 days without repo
 # activity — any push resets the timer.
@@ -11,7 +13,12 @@ name: prod-cron
 on:
   schedule:
     - cron: "*/5 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: "Print each endpoint's response body (use to check what production reports)"
+        type: boolean
+        default: false
 
 concurrency:
   group: prod-cron
@@ -25,15 +32,40 @@ jobs:
         env:
           URL: ${{ secrets.PROD_URL }}
           SECRET: ${{ secrets.CRON_SECRET }}
+          VERBOSE: ${{ inputs.verbose }}
         run: |
           if [ -z "$URL" ] || [ -z "$SECRET" ]; then
             echo "Set repository secrets PROD_URL and CRON_SECRET to enable the production scheduler."
             exit 0
           fi
+
+          # Two shapes of PROD_URL silently broke every call for months: a
+          # trailing slash (making //api/cron/warm) and a bare http:// origin.
+          # Both answered 308 and curl, without -L, printed "Redirecting..."
+          # and moved on — so the workflow went green while nothing ran.
+          URL="${URL%/}"
+          URL="${URL/#http:\/\//https://}"
+
           AUTH="Authorization: Bearer $SECRET"
+          FAILED=""
+
+          # -L so a redirect is followed rather than reported as success.
+          # Note curl drops the Authorization header across a cross-host
+          # redirect by design, so a wrong hostname surfaces as 401, not 200.
           call() {
-            echo "→ $1"
-            curl -fsS -m 120 -H "$AUTH" "$URL$1" && echo || echo "⚠ $1 failed"
+            local out code body
+            out=$(curl -sS -L -m 120 --retry 2 --retry-delay 3 \
+                       -w $'\n%{http_code}' -H "$AUTH" "$URL$1" 2>&1) || true
+            code=$(printf '%s' "$out" | tail -n 1)
+            body=$(printf '%s' "$out" | sed '$d')
+            echo "→ $1 [$code]"
+            if [ "$VERBOSE" = "true" ]; then
+              echo "   ${body:0:500}"
+            fi
+            case "$code" in
+              2*) ;;
+              *) FAILED="$FAILED $1($code)" ;;
+            esac
           }
 
           call /api/cron/warm
@@ -44,3 +76,10 @@ jobs:
           if [ "$MIN" -lt 5 ];                        then call /api/cron/price; fi
           if [ "$MIN" -ge 30 ] && [ "$MIN" -le 34 ];  then call /api/cron/news; fi
           if [ "$HOUR" -eq 9 ] && [ "$MIN" -ge 10 ] && [ "$MIN" -le 19 ]; then call /api/cron/finalise; fi
+
+          # A green tick that fired nothing is worse than a red one. Fail the
+          # run so a broken production scheduler is visible instead of silent.
+          if [ -n "$FAILED" ]; then
+            echo "::error::cron endpoints did not answer 2xx:$FAILED"
+            exit 1
+          fi
