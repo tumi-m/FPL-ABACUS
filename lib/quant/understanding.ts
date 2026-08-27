@@ -39,7 +39,6 @@ export function shapleyLedger(
   decisions: LedgerDecision[],
   opts: { orderings?: number; seed?: number } = {},
 ): ShapleyResult {
-  const K = decisions.length;
   const orderings = Math.max(1, Math.min(2000, opts.orderings ?? 200));
   const rng = mulberry32(opts.seed ?? 7);
 

@@ -103,7 +103,7 @@ export function GafferBubble({
             boxShadow: `inset 3px 0 0 ${persona.accentVar}, inset 0 0 0 1px var(--line), 0 4px 0 0 rgba(0,0,0,.35)`,
           }}
         >
-          <p className="upper-label text-2xs" style={{ color: persona.accentVar }}>
+          <p className="upper-label text-2xs" style={{ color: persona.accentInkVar }}>
             {persona.name} · {persona.role}
           </p>
           <p className="mt-1.5 min-h-[2.5rem] text-sm leading-relaxed text-ink-hi">

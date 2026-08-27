@@ -4,7 +4,7 @@ import path from "node:path";
 import { provisionalBonus, bonusForFixture } from "@/lib/engines/bonus";
 import { buildLiveSquad } from "@/lib/engines/liveSquad";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
-import type { Bootstrap, Entry, EventStatus, Fixture, Live, PicksResponse } from "@/lib/fpl/schemas";
+import type { Fixture, Live, PicksResponse } from "@/lib/fpl/schemas";
 
 /**
  * THE replay gate (docs/09 §1): computed bonus == official bonus,
@@ -24,12 +24,9 @@ function fx<T>(name: string): T {
 const hasReplayData = existsSync(path.join(FIX, "replay-ready"));
 
 describe.skipIf(!hasReplayData)("replay: finished gameweek", () => {
-  const bootRaw = fx<Bootstrap>("bootstrap.json");
   const picks = fx<PicksResponse>(`picks-${ENTRY_ID}-gw1.json`);
   const live = fx<Live>("live-gw1.json");
   const fixtures = fx<Fixture[]>("fixtures-gw1.json");
-  const status = fx<EventStatus>("event-status.json");
-  const entry = fx<Entry>(`entry-${ENTRY_ID}.json`);
 
   it("reproduces official bonus for every element", () => {
     // After finalisation all days have bonus added; force-compute as if none did.

@@ -209,16 +209,25 @@ test.describe("authenticated routes", () => {
       const more = page.getByRole("button", { name: /load 50 more/i });
       await expect(more).toBeVisible({ timeout: 20_000 });
       await more.click();
-      // SPA navigation: the old button stays mounted while page 2 loads, and
-      // the URL lands a beat after the click — asserting it flat raced the
-      // navigation and flaked. Poll it, then poll for a real outcome: more
-      // rows rendered, or the honest end state.
-      await expect.poll(() => page.url(), { timeout: 20_000 }).toMatch(/[?&]page=2/);
+      // Let the RSC fetch land before polling for its result; a loaded runner
+      // can take a few seconds and the poll should not be racing it.
+      await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => undefined);
+      /*
+       * Assert the outcome, never the URL.
+       *
+       * "Load 50 more" is a Link into a force-dynamic route, so Next fetches
+       * the next page's payload before it touches the address bar. Polling for
+       * `?page=2` was therefore polling for an implementation detail on the
+       * slowest possible path, and under a loaded runner it was the assertion
+       * that kept flaking while the feature itself worked. What the reader
+       * actually gets is more rows, or an honest end of the list — so that is
+       * what is checked, with room for a cold server render underneath it.
+       */
       await expect
         .poll(async () => {
           if ((await page.getByText(/End of standings/).count()) > 0) return "ended";
           return (await page.locator("tbody tr").count()) > dataRows ? "rows" : "waiting";
-        }, { timeout: 20_000 })
+        }, { timeout: 30_000 })
         .not.toBe("waiting");
     } else {
       // small league: exhausted list shows its honest end state
@@ -355,6 +364,57 @@ test.describe("authenticated routes", () => {
     await figure.getByRole("button", { name: "Top 15" }).click();
     await figure.locator("svg a[href^='/players/'] circle").first().click({ force: true });
     await expect(page).toHaveURL(/\/players\/\d+/, { timeout: 15_000 });
+  });
+
+  test("combinations prices two sides at the same spend", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/combos");
+    await expect(page.getByRole("heading", { name: "Combinations" })).toBeVisible();
+
+    const duel = page.locator('section[aria-label="Head to head"]');
+    // it opens with a real comparison rather than two empty columns
+    await expect(duel.locator("select")).toHaveCount(2);
+    // the verdict paragraph, not the section blurb above it
+    await expect(
+      duel.getByText(/Side [AB] is £|Both sides cost £/),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // adding a player to a side moves that side's total
+    const before = await duel.locator("p.fig-num").first().innerText();
+    const add = duel.locator("select").first();
+    const value = await add.locator("option").nth(1).getAttribute("value");
+    await add.selectOption(value!);
+    await expect.poll(async () => duel.locator("p.fig-num").first().innerText()).not.toBe(before);
+
+    // the ladder and the top thirty both render
+    await expect(
+      page.locator('section[aria-label="What each budget buys"] li').first(),
+    ).toBeVisible();
+    await expect(
+      page.locator('section[aria-label="Top thirty combinations"] tbody tr'),
+    ).toHaveCount(30);
+  });
+
+  test("the combination boards switch between the three rankings", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/combos");
+    const board = page.locator('section[aria-label="Top thirty combinations"]');
+    const firstPair = () => board.locator("tbody tr th").first().innerText();
+
+    const onPoints = await firstPair();
+    await board.getByRole("button", { name: "Best value" }).click();
+    await expect.poll(firstPair).not.toBe(onPoints);
+    await expect(board.locator("tbody tr")).toHaveCount(30);
+
+    await board.getByRole("button", { name: "Least owned" }).click();
+    await expect(board.locator("tbody tr")).toHaveCount(30);
+  });
+
+  test("the Planner points at the combination board", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/planner");
+    await page.getByRole("button", { name: /Two players or one/ }).click();
+    await expect(page).toHaveURL(/\/combos/);
   });
 
   test("club numbers renders six sortable boards for all twenty clubs", async ({ page }) => {

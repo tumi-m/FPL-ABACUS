@@ -420,7 +420,7 @@ function SelectedGafferHero({
       </span>
       <span
         className="upper-label relative z-10 mb-4 text-[9px] tracking-[0.16em]"
-        style={{ color: persona.accentVar }}
+        style={{ color: persona.accentInkVar }}
       >
         {persona.role}
       </span>
