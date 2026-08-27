@@ -1042,6 +1042,8 @@ export function ShirtToken({
   const defconHit = defconPct >= 1;
   // risk mode — token SIZE encodes the marginal variance share (neutral colour)
   const riskScale = mode === "risk" && riskShare != null ? 0.78 + Math.min(0.65, riskShare * 5.5) : 1;
+  /* A real headshot in Faces mode — cut out, transparent, meant to float. */
+  const bareFace = avatar === "face" && Boolean(row.photo);
 
   return (
     <div
@@ -1117,32 +1119,51 @@ export function ShirtToken({
         style={{ transform: `scale(${riskScale.toFixed(2)})`, transformOrigin: "center bottom" }}
       >
       <span className="relative block h-full w-full overflow-hidden rounded-md">
-        <span
-          aria-hidden
-          className="absolute inset-0"
-          style={{ background: `linear-gradient(180deg, color-mix(in oklab, ${club.rail} 22%, var(--surface-2)), var(--surface-2))` }}
-        />
+        {/* The plate, and when it earns its place.
+            A headshot is a cut-out with transparent shoulders, so a filled
+            tile behind one is not a backdrop for the photo — it is a coloured
+            card the player is stuck to, and eleven of them turn the pitch into
+            a sticker album. A kit, a crest or an empty slot does need
+            something to sit on. So the plate is drawn for those and skipped
+            for a real face, which then floats on the grass the way it should:
+            the shadow underneath does the lifting instead. */}
+        {!bareFace && (
+          <span
+            aria-hidden
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(180deg, color-mix(in oklab, ${club.rail} 22%, var(--surface-2)), var(--surface-2))` }}
+          />
+        )}
         {row.photo || avatar === "kit" ? (
           <PlayerAvatar
             photo={row.photo}
             teamId={row.teamId}
             mode={avatar}
-            className="relative h-full w-full object-cover object-top"
+            className={cn(
+              "relative h-full w-full object-cover object-top",
+              // Nothing behind it, so the face carries its own separation.
+              bareFace && "drop-shadow-[0_2px_6px_rgba(0,0,0,.55)]",
+            )}
           />
         ) : (
           <span aria-hidden className="grid h-full w-full place-items-center">
             <CrestTile teamId={row.teamId} />
           </span>
         )}
-        <span
-          aria-hidden
-          className="absolute inset-0 rounded-md"
-          style={{
-            boxShadow: row.isCaptain
-              ? "inset 0 0 0 2px var(--volt), inset 0 -10px 12px -8px rgba(0,0,0,.5)"
-              : "inset 0 0 0 1px color-mix(in oklab, " + club.rail + " 35%, transparent), inset 0 -10px 12px -8px rgba(0,0,0,.5)",
-          }}
-        />
+        {/* The captain's ring is an armband and always shows. The club
+            hairline and the bottom vignette were edges for the plate, so they
+            go with it. */}
+        {(row.isCaptain || !bareFace) && (
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-md"
+            style={{
+              boxShadow: row.isCaptain
+                ? "inset 0 0 0 2px var(--volt)" + (bareFace ? "" : ", inset 0 -10px 12px -8px rgba(0,0,0,.5)")
+                : "inset 0 0 0 1px color-mix(in oklab, " + club.rail + " 35%, transparent), inset 0 -10px 12px -8px rgba(0,0,0,.5)",
+            }}
+          />
+        )}
       </span>
 
         {row.isCaptain && (
@@ -1238,7 +1259,8 @@ export function ShirtToken({
       <span
         className={cn(
           "mt-0.5 inline-block min-w-[calc(36*var(--s))] skewed rounded-sm px-1.5 py-px text-center text-[calc(12*var(--s))] font-extrabold num-tabular",
-          done && "bg-surge text-on-accent",
+          /* Finished: a scoreboard plate, not an accent. See --score-on-turf. */
+          done && "bg-score-turf text-on-accent",
           live && val.tone === "volt" && "bg-volt text-on-accent",
           /* Yet to kick off. The fill has to be a fixed dark chip, not
              `bg-overlay`: overlay is white in the light theme and the turf

@@ -11,13 +11,22 @@ import { cn } from "@/lib/ui/cn";
 // that get used mid-gameweek, and nothing else: the stat boards are modes on
 // the Field, and the Arcade — where you pick your gaffer — hangs off the badge
 // in the header, which is a picture of the gaffers themselves.
+//
+// `thumb: false` is the release valve. Combinations is a before-the-deadline
+// tool, not a mid-gameweek one, so it has no claim on a thumb slot — but it
+// was reachable only from a link inside the Planner header, which is to say
+// not reachable at all. It takes the desktop nav, where there is room, and
+// the Planner carries it on a phone.
 const NAV = [
-  { href: "/live", label: "Home", short: "Home" },
-  { href: "/field", label: "Field", short: "Field" },
-  { href: "/planner", label: "Planner", short: "Plan" },
-  { href: "/board", label: "Board", short: "Board" },
-  { href: "/leagues", label: "Leagues", short: "Mini" },
+  { href: "/live", label: "Home", short: "Home", thumb: true },
+  { href: "/field", label: "Field", short: "Field", thumb: true },
+  { href: "/planner", label: "Planner", short: "Plan", thumb: true },
+  { href: "/combos", label: "Combinations", short: "Pairs", thumb: false },
+  { href: "/board", label: "Board", short: "Board", thumb: true },
+  { href: "/leagues", label: "Leagues", short: "Mini", thumb: true },
 ] as const;
+
+const THUMB = NAV.filter((item) => item.thumb);
 
 /**
  * The shell. `liveSlot` and `statusSlot` arrive as already-rendered server
@@ -99,9 +108,9 @@ export function AppShell({
              fired and the phone thumb bar sat under the desktop nav on wide
              screens. Only the column count — which follows NAV — stays inline. */
           className="lg:hidden grid gap-1.5 fixed inset-x-0 bottom-0 z-40 glass px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
-          style={{ gridTemplateColumns: `repeat(${NAV.length}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${THUMB.length}, minmax(0, 1fr))` }}
         >
-          {NAV.map((item) => (
+          {THUMB.map((item) => (
             <Link
               key={item.href}
               href={item.href}
