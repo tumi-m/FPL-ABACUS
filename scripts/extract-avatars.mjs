@@ -28,9 +28,8 @@ function isGreen(r, g, b) {
 
 async function main() {
   await mkdir(OUT, { recursive: true });
-  const meta = await sharp(SRC).metadata();
   const { data, info } = await sharp(SRC).raw().ensureAlpha().toBuffer({ resolveWithObject: true });
-  const W = info.width, H = info.height;
+  const W = info.width;
   const px = (x, y) => {
     const i = (y * W + x) * info.channels;
     return [data[i], data[i + 1], data[i + 2]];

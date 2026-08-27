@@ -11,7 +11,10 @@ export interface Persona {
   role: string;
   region: string;
   /** Identity accent token — always paired with the name, never meaning-coded. */
+  /** The plate colour: a bright fill that carries black type on any ground. */
   accentVar: string;
+  /** The same identity written as text, darkened where the page is light. */
+  accentInkVar: string;
   /** Still avatar art (owner-supplied mockup crops). */
   avatar: string;
   /** Idle sprite frame — the resting pose. */
@@ -33,6 +36,7 @@ export const PERSONAS: Persona[] = [
     role: "The Tactician",
     region: "Europe",
     accentVar: "var(--persona-oleg)",
+    accentInkVar: "var(--persona-oleg-ink)",
     avatar: "/avatars/oleg-idle.png",
     avatarIdle: "/avatars/oleg-idle.png",
     avatarTalk: ["/avatars/oleg-idle.png", "/avatars/oleg-talk1.png", "/avatars/oleg-talk2.png"],
@@ -47,6 +51,7 @@ export const PERSONAS: Persona[] = [
     role: "The Maverick",
     region: "Africa",
     accentVar: "var(--persona-kofi)",
+    accentInkVar: "var(--persona-kofi-ink)",
     avatar: "/avatars/kofi-idle.png",
     avatarIdle: "/avatars/kofi-idle.png",
     avatarTalk: ["/avatars/kofi-idle.png", "/avatars/kofi-talk1.png", "/avatars/kofi-talk2.png"],
@@ -61,6 +66,7 @@ export const PERSONAS: Persona[] = [
     role: "The Scout",
     region: "Asia",
     accentVar: "var(--persona-mei)",
+    accentInkVar: "var(--persona-mei-ink)",
     avatar: "/avatars/mei-idle.png",
     avatarIdle: "/avatars/mei-idle.png",
     avatarTalk: ["/avatars/mei-idle.png", "/avatars/mei-talk1.png", "/avatars/mei-talk2.png"],
@@ -75,6 +81,7 @@ export const PERSONAS: Persona[] = [
     role: "The Fixture Specialist",
     region: "South America",
     accentVar: "var(--persona-ana)",
+    accentInkVar: "var(--persona-ana-ink)",
     avatar: "/avatars/ana-idle.png",
     avatarIdle: "/avatars/ana-idle.png",
     avatarTalk: ["/avatars/ana-idle.png", "/avatars/ana-talk1.png", "/avatars/ana-talk2.png"],

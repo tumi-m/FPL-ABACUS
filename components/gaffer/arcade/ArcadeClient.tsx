@@ -46,7 +46,7 @@ export function ArcadeClient() {
                   boxShadow: `inset 3px 0 0 ${p.accentVar}, inset 0 0 0 1px var(--line), 0 4px 0 0 rgba(0,0,0,.35)`,
                 }}
               >
-                <p className="upper-label text-2xs" style={{ color: p.accentVar }}>
+                <p className="upper-label text-2xs" style={{ color: p.accentInkVar }}>
                   {p.name}
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-ink-hi">{p.intro}</p>

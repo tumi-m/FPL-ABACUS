@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getElementSummary } from "@/lib/fpl/endpoints";

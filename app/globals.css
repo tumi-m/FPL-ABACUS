@@ -203,6 +203,16 @@
   --persona-kofi:#35C95E;  /* vivid green — The Maverick          */
   --persona-mei:#E85A5A;   /* soft red — The Scout                */
   --persona-ana:#E8C83F;   /* gold — The Fixture Specialist       */
+  /* The same four as INK rather than as a fill.
+     The accents above are plate colours: a bright block with black type on
+     it, which works on any ground because it brings its own. Written as text
+     they need a ground to read against, and these four were tuned for a dark
+     one — gold on the light theme's near-white card came out at 1.6:1, which
+     is not a colour, it is a rumour. */
+  --persona-oleg-ink:var(--persona-oleg);
+  --persona-kofi-ink:var(--persona-kofi);
+  --persona-mei-ink:var(--persona-mei);
+  --persona-ana-ink:var(--persona-ana);
 
   /* landing floodlight ramp — stadium turf green into floodlit teal */
   --landing-a:#123B27;     /* turf green under the lights         */
@@ -372,6 +382,10 @@
        pane arrives brighter — the turf came through the header green enough
        to eat the team name at the dark theme's 58%. */
     --glass-tint:color-mix(in oklab, var(--bg-raised) 78%, transparent);
+    --persona-oleg-ink:#1B6AAF;
+    --persona-kofi-ink:#0F7A36;
+    --persona-mei-ink:#B3312C;
+    --persona-ana-ink:#7E6000;
     --glass-tint-strong:color-mix(in oklab, var(--bg-raised) 90%, transparent);
     --glass-tint-edge:color-mix(in oklab, var(--bg-raised) 84%, transparent);
     /* On a near-white surface a bright rim is invisible and the shadow does
@@ -431,6 +445,10 @@
      pane arrives brighter — the turf came through the header green enough
      to eat the team name at the dark theme's 58%. */
   --glass-tint:color-mix(in oklab, var(--bg-raised) 78%, transparent);
+  --persona-oleg-ink:#1B6AAF;
+  --persona-kofi-ink:#0F7A36;
+  --persona-mei-ink:#B3312C;
+  --persona-ana-ink:#7E6000;
   --glass-tint-strong:color-mix(in oklab, var(--bg-raised) 90%, transparent);
   --glass-tint-edge:color-mix(in oklab, var(--bg-raised) 84%, transparent);
   /* On a near-white surface a bright rim is invisible and the shadow does the
