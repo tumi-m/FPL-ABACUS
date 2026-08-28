@@ -288,6 +288,28 @@ test.describe("authenticated routes", () => {
     );
   });
 
+  test("the squad charts become head-to-head when a rival is loaded", async ({ page }) => {
+    await asTeam(page);
+
+    // Solo: the charts describe your fifteen and name nobody else.
+    await page.goto("/field?mode=points");
+    await expect(page.locator("section[aria-label='Your gameweek']")).toBeVisible();
+    await expect(page.getByText(/Points by position — \d+ on the board/)).toBeVisible();
+
+    // With a rival they change subject, and say whose colour is whose.
+    await page.goto("/field?mode=points&compare=4242");
+    const h2h = page.locator("section[aria-label='You against them']");
+    await expect(h2h).toBeVisible();
+    await expect(h2h.getByText(/Points by position — you \d+, /)).toBeVisible();
+    await expect(h2h.getByText("Bonus leaders — both squads")).toBeVisible();
+    // Four charts, each carrying the head-to-head eyebrow rather than its solo one.
+    expect(await h2h.getByText("Head to head").count()).toBe(4);
+
+    // The season block stays yours, and has to say so rather than sit
+    // unlabelled next to four charts that are about both of you.
+    await expect(page.getByText(/Your squad only/)).toBeVisible();
+  });
+
   test("the gap breakdown adds up to the scoreline", async ({ page }) => {
     await asTeam(page);
     await page.goto("/field?mode=points&compare=4242");
