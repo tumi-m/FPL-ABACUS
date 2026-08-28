@@ -487,6 +487,14 @@ export function FieldClient({
    */
   const yourTotal = model.hero.gwPoints;
 
+  /* One shape for every comparative chart, so a rival is passed the same way
+     everywhere and `undefined` is the single switch back to solo. */
+  const rivalSeries = React.useMemo(
+    () =>
+      rival ? { name: rival.teamName ?? `Entry ${rival.entry}`, rows: rival.rows } : undefined,
+    [rival],
+  );
+
   return (
     <div className="space-y-4">
       {/* The title said "The Field" on the Field. The bar keeps its job — pick
@@ -932,19 +940,47 @@ export function FieldClient({
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <PositionContribution rows={model.squad} />
-        <Availability rows={model.squad} />
-        <BonusLeaders rows={model.squad} />
-        <CaptainShare rows={model.squad} />
-      </div>
+      {/* The squad-shape charts. With a rival loaded they stop being a report
+          on your fifteen and become a comparison of two, on the pitch's own
+          colours: volt is you, ultra is them, the same pair the differential
+          bars use, so the mapping is learned once. */}
+      <section aria-label={rival ? "You against them" : "Your gameweek"} className="space-y-4">
+        {rival && (
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="upper-label text-2xs text-ink-lo">You against them</h2>
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-ink-lo">
+              <span className="inline-flex items-center gap-1.5">
+                <span aria-hidden className="inline-block h-2 w-2 rounded-full bg-volt" />
+                you
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span aria-hidden className="inline-block h-2 w-2 rounded-full bg-ultra" />
+                {rival.teamName ?? `Entry ${rival.entry}`}
+              </span>
+            </p>
+          </div>
+        )}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <PositionContribution rows={model.squad} rival={rivalSeries} />
+          <Availability rows={model.squad} rival={rivalSeries} />
+          <BonusLeaders rows={model.squad} rival={rivalSeries} />
+          <CaptainShare rows={model.squad} rival={rivalSeries} />
+        </div>
+      </section>
 
       {/* the season underneath the gameweek — are the players any good */}
       <section aria-label="Your fifteen this season" className="space-y-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="upper-label text-2xs text-ink-lo">Your fifteen this season</h2>
+          {/* Named as yours even in compare mode. These read a player's whole
+              season rather than this week's scoreline, so putting a rival's
+              fifteen on the same axes would double the marks without adding a
+              comparison — and leaving the heading ambiguous next to four
+              charts that ARE comparative is the worse mistake. */}
           <p className="text-2xs text-ink-lo">
-            Season totals, not projections — what they have actually done.
+            {rival
+              ? "Your squad only — season totals, not projections."
+              : "Season totals, not projections — what they have actually done."}
           </p>
         </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
