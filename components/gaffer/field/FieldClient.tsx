@@ -511,22 +511,34 @@ export function FieldClient({
       {(() => {
         const gwTotal = model.squad.filter((s) => !s.onBench).reduce((sum, s) => sum + s.livePoints, 0);
         return (
-          <div className="flex items-end justify-between rounded-lg has-gloss card-lift bg-raised px-5 py-4">
+          /* Three destinations do not fit beside the hero figure on a phone —
+             the third ran off the right edge and squeezed the total to make
+             room. The row stacks under 640px and only sits side by side once
+             there is width for both. */
+          <div className="flex flex-col items-stretch gap-3 rounded-lg has-gloss card-lift bg-raised px-5 py-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div>
               <p className="upper-label text-2xs text-ink-lo">GW{gw} points</p>
               <p className="hero-figure mt-1 text-[clamp(44px,6vw,64px)] leading-none">
                 {Math.round(gwTotal).toLocaleString("en-GB")}
               </p>
             </div>
-            {/* The two ways out of the pitch: down into your own score, or out
-                to the league your fifteen were picked from. */}
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {/* The three ways out of the pitch: out to the league your fifteen
+                were picked from, sideways into what a pair of them costs, or
+                down into your own score. */}
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
               <Link
                 href="/field/clubs"
                 role="button"
                 className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
               >
                 <span>Club numbers</span>
+              </Link>
+              <Link
+                href="/field/combos"
+                role="button"
+                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+              >
+                <span>Combinations</span>
               </Link>
               <Link
                 href="/field/points"

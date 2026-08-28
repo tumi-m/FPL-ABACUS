@@ -368,7 +368,7 @@ test.describe("authenticated routes", () => {
 
   test("combinations prices two sides at the same spend", async ({ page }) => {
     await asTeam(page);
-    await page.goto("/combos");
+    await page.goto("/field/combos");
     await expect(page.getByRole("heading", { name: "Combinations" })).toBeVisible();
 
     const duel = page.locator('section[aria-label="Head to head"]');
@@ -397,7 +397,7 @@ test.describe("authenticated routes", () => {
 
   test("the combination boards switch between the three rankings", async ({ page }) => {
     await asTeam(page);
-    await page.goto("/combos");
+    await page.goto("/field/combos");
     const board = page.locator('section[aria-label="Top thirty combinations"]');
     const firstPair = () => board.locator("tbody tr th").first().innerText();
 
@@ -417,6 +417,18 @@ test.describe("authenticated routes", () => {
     // Combinations, which has no thumb slot, so the link says what it opens.
     await page.getByRole("button", { name: "Combinations" }).click();
     await expect(page).toHaveURL(/\/combos/);
+  });
+
+  test("the Field opens the combination board, and the old route still lands there", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field");
+    // Where the user looked for it: beside Club numbers and Points contribution.
+    await page.getByRole("button", { name: "Combinations" }).click();
+    await expect(page).toHaveURL(/\/field\/combos/);
+    await expect(page.getByRole("heading", { name: "Combinations" })).toBeVisible();
+    // It shipped at /combos for one release; that link has to keep working.
+    await page.goto("/combos");
+    await expect(page).toHaveURL(/\/field\/combos/);
   });
 
   test("Combinations is reachable from the chrome on a desktop", async ({ page }) => {
