@@ -36,14 +36,28 @@ export default async function PlannerPage() {
             This is the only way in on a phone — Combinations sits in the
             desktop nav but has no thumb slot — so it is an accent fill and it
             says its own name, rather than the muted riddle it used to be. */}
-        <Link
-          href="/field/combos"
-          role="button"
-          className="skewed inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-volt px-4 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.98] sm:h-9 sm:w-auto"
-        >
-          <span>Combinations</span>
-          <span aria-hidden>→</span>
-        </Link>
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <Link
+            href="/field/combos"
+            role="button"
+            className="skewed inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-volt px-4 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.98] sm:h-9 sm:w-auto"
+          >
+            <span>Combinations</span>
+            <span aria-hidden>→</span>
+          </Link>
+          {/* The Deadline Desk had nothing at all pointing at it: the app
+              routes the whole pre-deadline week to the Board, so the one page
+              built around the countdown — and now around putting it in your
+              calendar — was reachable only by typing the URL. */}
+          <Link
+            href="/deadline"
+            role="button"
+            className="skewed inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi sm:h-9 sm:w-auto"
+          >
+            <span>Deadline reminders</span>
+            <span aria-hidden>→</span>
+          </Link>
+        </div>
       </header>
 
       <TransferPlanner data={data} />
