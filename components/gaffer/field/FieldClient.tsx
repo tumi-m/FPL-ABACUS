@@ -30,6 +30,7 @@ import { CrestTile } from "@/components/gaffer/ClubCrest";
 import { PlayerAvatar, AvatarToggle, useAvatarMode, type AvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { MatchEventLegend, MatchEventStrip, matchEvents } from "@/components/gaffer/field/MatchEvents";
 import { InjuryReport } from "@/components/gaffer/field/InjuryReport";
+import { describeReason, itemiseGap, topSwings } from "@/lib/engines/compareGap";
 import { availabilityLabel } from "@/lib/engines/availability";
 import { GameweekPicker } from "@/components/gaffer/GameweekPicker";
 import type { TopPerformersData } from "@/components/gaffer/field/TopPerformers";
@@ -179,6 +180,8 @@ interface RivalPayload {
   teamName: string | null;
   rows: RivalRow[];
   totals: { gw: number; bench: number };
+  /** Their transfer cost, so the gap breakdown reads hits rather than infers them. */
+  transfersCost: number;
   subs: { out: number; in: number }[];
 }
 
@@ -472,7 +475,17 @@ export function FieldClient({
     const mine = new Set(model.squad.map((p) => p.element));
     return new Set(rival.rows.filter((r) => mine.has(r.element)).map((r) => r.element));
   }, [rival, model.squad]);
-  const yourTotal = model.squad.filter((s) => !s.onBench).reduce((sum, s) => sum + s.livePoints, 0);
+  /*
+   * Your score, the way FPL counts it.
+   *
+   * This was the sum of the starters' raw points, which is not a gameweek
+   * score: it drops the captain's doubling and ignores a hit. Against a rival
+   * — whose total comes from liveSquad and therefore IS multiplied and net of
+   * hits — that compared two different quantities and called the difference a
+   * gap. A captained haul made you look eight points worse than you were.
+   * Both sides read the same figure now.
+   */
+  const yourTotal = model.hero.gwPoints;
 
   return (
     <div className="space-y-4">
@@ -509,7 +522,9 @@ export function FieldClient({
 
       {/* hero — the gameweek total, FIFA-oblique but not oversized */}
       {(() => {
-        const gwTotal = model.squad.filter((s) => !s.onBench).reduce((sum, s) => sum + s.livePoints, 0);
+        // The same correction as the compare scoreline: multiplied and net of
+        // hits, which is what "GW points" means everywhere else in the game.
+        const gwTotal = model.hero.gwPoints;
         return (
           /* Three destinations do not fit beside the hero figure on a phone —
              the third ran off the right edge and squeezed the total to make
@@ -658,6 +673,22 @@ export function FieldClient({
               </p>
             </div>
           </div>
+
+          {/* Why, not just how much. The scoreline says you are six behind; on
+              its own that is a number to feel bad about rather than something
+              to learn from. This is the same six, itemised — and it is
+              arithmetic, not a model: a score is the sum of points x
+              multiplier, so the difference between two scores is the sum of
+              the per-player differences, and every point lands on exactly one
+              name. Captaincy shows up here even on a player you BOTH own,
+              which is the case the differential bars on the pitch cannot see
+              and is very often the whole story of the week. */}
+          <GapBreakdown
+            rows={model.squad}
+            rival={rival}
+            netGap={yourTotal - rival.totals.gw}
+            yourCost={model.hero.transfersCost}
+          />
 
           <div className="mt-3 flex justify-center">
             <div role="group" aria-label="Compare view" className="flex gap-1 rounded-md glass-edge p-1">
@@ -1039,6 +1070,73 @@ function fmt90(v: number | null | undefined): string {
   return v < 1 ? v.toFixed(2).replace(/^0/, "") : v.toFixed(1);
 }
 
+/**
+ * The one line under a player's name, and what it should say.
+ *
+ * It used to be "xG .00 · xGC .00" whatever was happening, on the reasoning
+ * that a consistent line keeps the points pills aligned. In practice thirteen
+ * of the fifteen tokens on a pitch read exactly that — a wall of zeroes that
+ * is the most repeated text on the screen and the least informative, because
+ * a player whose match has not kicked off has no expectation to report and a
+ * player who has done nothing has already told you so with a nought.
+ *
+ * So the line answers the question the reader actually has at that moment:
+ *   before kick-off   who he plays, home or away
+ *   on the pitch      how long he has been on, and what he has threatened
+ *   came off / done   the same, in the past tense
+ *   never came on     that, plainly
+ *
+ * The threat figure follows the position, because it is a different question
+ * at each end: a forward is judged on the chances he gets (xG), a keeper or
+ * defender on the ones his team gives up (xGC). Showing both to everybody was
+ * how one of the two ended up meaningless on every token.
+ *
+ * Nothing here invents a number. Every branch reads a figure the feed gives
+ * us, and a branch with nothing to report says nothing rather than "0.00".
+ */
+function tokenLine(row: SquadRow): { text: string; title: string } {
+  const defensive = row.pos === 1 || row.pos === 2;
+  const live = row.liveStats;
+  const threat = live
+    ? defensive
+      ? live.xgc
+      : live.xg
+    : defensive
+      ? row.xgc90
+      : row.xg90;
+  const label = defensive ? "xGC" : "xG";
+
+  if (row.fixtureState === "pre") {
+    const opp = row.opponentShort;
+    return {
+      text: opp && opp !== "—" ? (opp.startsWith("@") ? opp : `v ${opp}`) : "\u00a0",
+      title: "This gameweek's fixture — @ means away",
+    };
+  }
+
+  if (row.minutes <= 0) {
+    return {
+      text: row.fixtureState === "done" ? "did not play" : "not on",
+      title:
+        row.fixtureState === "done"
+          ? "No minutes in this gameweek"
+          : "Has not come on yet",
+    };
+  }
+
+  const mins = `${row.minutes}'`;
+  // A zero is worth saying only where it is a fact rather than an absence:
+  // once a player is on, "no threat yet" is information. Before that it is not.
+  const figure =
+    threat != null && Number.isFinite(threat) && threat > 0 ? ` · ${label} ${fmt90(threat)}` : "";
+  return {
+    text: `${mins}${figure}`,
+    title: figure
+      ? `Minutes played · this gameweek's ${defensive ? "expected goals conceded while he was on" : "expected goals"}, from the FPL/Opta feed`
+      : "Minutes played this gameweek",
+  };
+}
+
 /** Player face in a club-rail frame with armband, DEFCON arc and state ring. */
 export function ShirtToken({
   row, mode, swing, lev, webMean, riskShare, avatar = "face",
@@ -1048,6 +1146,7 @@ export function ShirtToken({
 }) {
   const club = clubOf(row.teamId);
   const done = row.fixtureState === "done";
+  const line = tokenLine(row);
   const live = row.fixtureState === "live";
   const val = modeValue(row, mode, swing, lev, webMean, riskShare);
   const defconPct = row.defconThreshold < 99 ? Math.min(1, row.defconCount / row.defconThreshold) : 0;
@@ -1247,25 +1346,16 @@ export function ShirtToken({
 
       <span className="mt-0.5 block truncate text-[calc(11*var(--s))] font-semibold text-ink-hi">{row.webName}</span>
 
-      {/* expectation line — the real gameweek xG/xGC once the player is on the
-          pitch (live feed, same Opta numbers the scoresites carry); the
-          season per-90 expectation before kick-off */}
-      {/* Always rendered, so the points pill sits at the same height on every
-          token in the row even when a player has no expectation to show. */}
-      {(
-        <span
-          className="mt-0.5 block h-[calc(9*var(--s))] whitespace-nowrap text-[calc(9*var(--s))] leading-none text-ink-lo num-tabular"
-          title={
-            row.liveStats
-              ? "This gameweek's live xG and expected goals conceded (xGC) from the FPL/Opta feed"
-              : "Season xG per 90 · team expected goals conceded (xGC) for this fixture"
-          }
-        >
-          {row.liveStats || row.xg90 != null || row.xgc90 != null
-            ? `xG ${fmt90(row.liveStats ? row.liveStats.xg : row.xg90)} · xGC ${fmt90(row.liveStats ? row.liveStats.xgc : row.xgc90)}`
-            : "\u00a0"}
-        </span>
-      )}
+      {/* The one line that says where this player is in his week. See
+          tokenLine: the slot is always rendered, so the points pills stay on
+          one baseline across the row, but it only ever carries something a
+          reader can act on. */}
+      <span
+        className="mt-0.5 block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none text-ink-lo num-tabular"
+        title={line.title}
+      >
+        {line.text}
+      </span>
 
       {/* value pill on the shoulder — points count up + wash on poll diffs; done fills, live pulses, pre outlines */}
       <span
@@ -1372,8 +1462,33 @@ function ComparePitch({
           ))}
         </ul>
       ))}
-      {/* halfway line — the two strike forces meet here */}
-      <div className="relative my-1 h-px bg-line-hi/60" />
+      {/*
+       * The halfway line, drawn like one.
+       *
+       * It was a one-pixel hairline at 60% opacity, which on a dark pitch is
+       * invisible — so twenty-two players read as one twenty-two-player team,
+       * and because you and a rival usually share half a squad the same name
+       * appeared twice with nothing to explain why. The two labels that did
+       * exist sat at the very top and the very bottom, both off-screen on a
+       * phone at the moment you needed them.
+       *
+       * So the join is a band across the pitch carrying both names, each
+       * pointing at its own half. Wherever you stop scrolling, the nearest
+       * thing to the middle of the screen tells you whose eleven you are
+       * looking at. It draws no line of its own: the pitch already has a
+       * halfway line and a centre circle, and a second pair a few rows off
+       * from those read as a mistake rather than as structure.
+       */}
+      <div className="my-2 flex items-center justify-between gap-3 rounded-full bg-[rgba(4,18,31,.58)] px-3 py-1.5 ring-1 ring-[rgba(255,255,255,.16)]">
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-2xs uppercase-label text-ultra">
+          <span aria-hidden>↑</span>
+          <span className="truncate">{rival.teamName ?? `Entry ${rival.entry}`}</span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1.5 text-2xs uppercase-label text-volt">
+          <span>You</span>
+          <span aria-hidden>↓</span>
+        </span>
+      </div>
       {/* near half — you, GK at the bottom edge, forwards facing theirs */}
       {[...rows].reverse().map((row, i) => (
         <ul key={`me${i}`} className={ROW}>
@@ -1390,7 +1505,6 @@ function ComparePitch({
           ))}
         </ul>
       ))}
-      <p className="text-center text-2xs uppercase-label text-volt">You</p>
       <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-1 text-center text-2xs text-ink-lo">
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden className="inline-block h-[3px] w-5 rounded-full bg-volt" />
@@ -1405,6 +1519,116 @@ function ComparePitch({
         </span>
       </p>
       <p className="text-center text-2xs text-ink-lo">Auto-subs and provisional bonus included.</p>
+    </div>
+  );
+}
+
+/**
+ * The gap, itemised.
+ *
+ * Three names carry most of any weekly gap, and naming them turns a deficit
+ * into a lesson: a captain you got wrong is a different week from a player you
+ * do not own. The parts reconcile with the scoreline exactly — see
+ * lib/engines/compareGap, which has a test that says so — so the remainder
+ * line is honest arithmetic rather than a fudge, and it only appears when
+ * there is a remainder to declare.
+ */
+function GapBreakdown({
+  rows,
+  rival,
+  netGap,
+  yourCost,
+}: {
+  rows: SquadRow[];
+  rival: RivalPayload;
+  /** The scoreline's own gap, which the parts must add up to. */
+  netGap: number;
+  /** Points you spent on transfers this week. */
+  yourCost: number;
+}) {
+  const { rows: gapRows } = itemiseGap(
+    rows.map((r) => ({
+      element: r.element,
+      webName: r.webName,
+      teamId: r.teamId,
+      livePoints: r.livePoints,
+      multiplier: r.multiplier,
+    })),
+    rival.rows.map((r) => ({
+      element: r.element,
+      webName: r.webName,
+      teamId: r.teamId,
+      livePoints: r.livePoints,
+      multiplier: r.multiplier,
+    })),
+  );
+
+  /*
+   * Hits are the one part of a gap that belongs to nobody, and they are read
+   * from both managers' actual transfer costs rather than inferred.
+   *
+   * The tempting shortcut is netGap - playerGap: both totals are net of hits,
+   * so whatever the players do not explain "must" be the hit difference. That
+   * is only true when nothing else is out of step, and the failure mode is
+   * ugly — anything anomalous in the data gets confidently relabelled as a
+   * transfer hit, in fours or not. Reading the two costs means the hit line is
+   * a fact, and anything still unexplained stays in the remainder where a
+   * reader can see it is a remainder.
+   */
+  const hitGap = rival.transfersCost - yourCost;
+  if (gapRows.length === 0 && hitGap === 0) return null;
+  const top = topSwings(gapRows, 3);
+  const rest = Math.round(netGap - hitGap - top.reduce((sum, r) => sum + r.delta, 0));
+
+  return (
+    <div className="mt-3 border-t border-hairline pt-3">
+      <p className="upper-label text-2xs text-ink-lo">What is making the difference</p>
+      <ul className="mt-2 space-y-1.5">
+        {top.map((row) => {
+          const good = row.delta > 0;
+          return (
+            <li key={row.element} className="flex items-center gap-2.5 text-xs">
+              <span
+                className={cn(
+                  "skewed inline-flex h-6 w-11 shrink-0 items-center justify-center rounded-sm text-2xs font-extrabold num-tabular",
+                  good ? "bg-surge text-on-accent" : "bg-flare text-on-accent",
+                )}
+              >
+                {good ? "+" : "\u2212"}
+                {Math.abs(row.delta)}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-ink-hi">{row.webName}</span>
+              <span className="shrink-0 text-2xs text-ink-lo">{describeReason(row)}</span>
+            </li>
+          );
+        })}
+      </ul>
+      {hitGap !== 0 && (
+        <p className="mt-2 flex items-center gap-2.5 text-xs">
+          <span
+            className={cn(
+              "skewed inline-flex h-6 w-11 shrink-0 items-center justify-center rounded-sm text-2xs font-extrabold num-tabular",
+              hitGap > 0 ? "bg-surge text-on-accent" : "bg-flare text-on-accent",
+            )}
+          >
+            {hitGap > 0 ? "+" : "\u2212"}
+            {Math.abs(hitGap)}
+          </span>
+          <span className="min-w-0 flex-1 text-ink-hi">Transfer hits</span>
+          <span className="shrink-0 text-2xs text-ink-lo">
+            {hitGap > 0 ? "they took more" : "you took more"}
+          </span>
+        </p>
+      )}
+      {rest !== 0 && (
+        <p className="mt-2 text-2xs text-ink-lo num-tabular">
+          {gapRows.length - top.length > 0
+            ? `${gapRows.length - top.length} more ${gapRows.length - top.length === 1 ? "difference accounts" : "differences account"} for the remaining `
+            : "Remaining "}
+          {rest > 0 ? "+" : "\u2212"}
+          {Math.abs(rest)}.
+        </p>
+      )}
     </div>
   );
 }

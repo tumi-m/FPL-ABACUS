@@ -21,6 +21,14 @@ export interface RivalSquadPayload {
   teamName: string | null;
   rows: SquadRow[];
   totals: { gw: number; bench: number };
+  /**
+   * Points this manager spent on transfers. Exposed because the compare
+   * breakdown has to attribute the gap exactly: both totals are net of hits,
+   * so without this the difference has to be inferred from the residual — and
+   * an inference is indistinguishable from any other discrepancy, which is
+   * how a breakdown ends up confidently labelling a data problem as a hit.
+   */
+  transfersCost: number;
   subs: { out: number; in: number }[];
 }
 
@@ -139,6 +147,7 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
       gw: Math.round(squadState.gwPoints),
       bench: Math.round(squadState.benchPoints),
     },
+    transfersCost: picks.entry_history.event_transfers_cost,
     subs: squadState.subs,
   };
 }

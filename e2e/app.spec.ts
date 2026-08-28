@@ -288,6 +288,33 @@ test.describe("authenticated routes", () => {
     );
   });
 
+  test("the gap breakdown adds up to the scoreline", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field?mode=points&compare=4242");
+    const heading = page.getByText(/What is making the difference/i);
+    if ((await heading.count()) === 0) return; // identical squads — nothing to break down
+
+    // The gap is stated once as a headline and again as a list of causes. If
+    // those two ever disagree the breakdown is lying, and a breakdown that
+    // does not reconcile is worse than no breakdown.
+    const chip = page.locator("span[aria-label*='points ahead'], span[aria-label*='points behind']");
+    const gap = Number((await chip.getAttribute("aria-label"))!.match(/(\d+) points/)![1]) *
+      ((await chip.getAttribute("aria-label"))!.includes("behind") ? -1 : 1);
+
+    const card = heading.locator("xpath=..");
+    const parts = (await card.locator("span.num-tabular").allInnerTexts())
+      .map((t) => t.replace(/\u2212/, "-").trim())
+      .filter((t) => /^[+-]?\d+$/.test(t))
+      .map(Number);
+    const rest = await card.locator("p.num-tabular").innerText().catch(() => "");
+    const remainder = rest ? Number((rest.match(/([+\u2212-]\d+)\./) ?? ["", "0"])[1].replace("\u2212", "-")) : 0;
+
+    // Guard against a green tick that parsed nothing: a reconciliation test
+    // over an empty list reconciles beautifully and checks nothing.
+    expect(parts.length).toBeGreaterThan(0);
+    expect(parts.reduce((a, b) => a + b, 0) + remainder).toBe(gap);
+  });
+
   test("the pitch draws FPL's own formation, one line per position", async ({ page }) => {
     // A row of five used to wrap at phone widths, so a 3-5-2 drew itself as a
     // 3-4-1-2 — a shape the game does not have.
