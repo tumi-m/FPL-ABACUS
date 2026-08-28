@@ -873,6 +873,52 @@ test.describe("authenticated routes", () => {
     await expect(page.getByRole("group", { name: "Filter" })).toBeVisible();
   });
 
+  test("the deadline calendar feed is a calendar any client can subscribe to", async ({ page }) => {
+    const res = await page.request.get("/api/calendar/deadlines.ics");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain("text/calendar");
+    const body = await res.text();
+    expect(body.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
+    expect(body.endsWith("END:VCALENDAR\r\n")).toBe(true);
+    // Every line CRLF-terminated and inside the 75-octet limit: iOS refuses a
+    // feed that breaks either, and it refuses it silently.
+    for (const line of body.split("\r\n").slice(0, -1)) {
+      expect(Buffer.byteLength(line, "utf8")).toBeLessThanOrEqual(75);
+    }
+    expect(body).toContain("BEGIN:VALARM");
+    expect(body).toContain("TRIGGER:-PT120M");
+  });
+
+  test("the calendar feed takes its reminder lead from the URL", async ({ page }) => {
+    const quiet = await (await page.request.get("/api/calendar/deadlines.ics?alarm=none")).text();
+    expect(quiet).toContain("BEGIN:VCALENDAR");
+    expect(quiet).not.toContain("BEGIN:VALARM");
+
+    const day = await (await page.request.get("/api/calendar/deadlines.ics?alarm=1440")).text();
+    expect(day).toContain("TRIGGER:-PT1440M");
+
+    const one = await (await page.request.get("/api/calendar/deadlines.ics?only=next")).text();
+    expect((one.match(/BEGIN:VEVENT/g) ?? []).length).toBeLessThanOrEqual(1);
+  });
+
+  test("the deadline desk offers the calendar, and the Planner points at it", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/planner");
+    await page.getByRole("button", { name: /Deadline reminders/i }).click();
+    await expect(page).toHaveURL(/\/deadline/);
+
+    const card = page.locator("section[aria-labelledby='cal-h']");
+    await expect(card.getByRole("heading", { name: /Never miss a deadline/i })).toBeVisible();
+    // The subscribe link has to be webcal:, or iOS imports a dead copy of
+    // today's events instead of subscribing to the feed.
+    const apple = card.getByRole("link", { name: /Apple Calendar/i });
+    expect(await apple.getAttribute("href")).toMatch(/^webcal:\/\/.+deadlines\.ics/);
+
+    // Choosing a lead time rewrites the links rather than storing a preference.
+    await card.getByRole("button", { name: /1 hour$/ }).click();
+    expect(await apple.getAttribute("href")).toContain("alarm=60");
+  });
+
   test("deadline desk renders", async ({ page }) => {
     await asTeam(page);
     await page.goto("/deadline");

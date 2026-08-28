@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
@@ -6,6 +6,7 @@ import { getPicks } from "@/lib/fpl/endpoints";
 import { Countdown } from "@/components/gaffer/Countdown";
 import { Badge } from "@/components/primitives/Badge";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
+import { CalendarSubscribe } from "@/components/gaffer/deadline/CalendarSubscribe";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Deadline Desk" };
@@ -15,6 +16,14 @@ export default async function DeadlinePage() {
   const raw = store.get("gaffer_team")?.value;
   const teamId = raw && /^\d+$/.test(raw) ? Number(raw) : null;
   if (!teamId) redirect("/");
+
+  // The feed URL has to be absolute — it is handed to an operating system, not
+  // followed inside the app — so it comes off the request rather than off an
+  // env var that is only right in one environment.
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const origin = `${proto}://${host}`;
 
   const boot = await getBootstrapLite();
   const nextEvent = boot.events.find((e) => e.is_next) ?? boot.events.find((e) => e.is_current);
@@ -53,6 +62,8 @@ export default async function DeadlinePage() {
           </div>
         </div>
       </div>
+      <CalendarSubscribe origin={origin} />
+
       <p className="text-xs leading-relaxed text-ink-3">
         Transfer simulator with xP + variance deltas, template drift ring and price-pressure gauges land with the
         projection engine wiring. Squad statuses above are live from FPL.
