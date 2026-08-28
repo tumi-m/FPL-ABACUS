@@ -342,6 +342,13 @@ export default async function LeagueDetail({
                     ) : (
                       <Link
                         href={`/field?mode=points&compare=${r.entry}`}
+                        /*
+                         * Fifty rows, fifty rival squads. Prefetching these
+                         * asks the server to start building a head-to-head for
+                         * every manager on the page on the off-chance you tap
+                         * one. One compare, when you ask for it.
+                         */
+                        prefetch={false}
                         title={`Compare with ${r.player_name || r.entry_name}`}
                         className="transition-colors dur-instant hover:text-volt"
                       >
@@ -378,13 +385,30 @@ export default async function LeagueDetail({
       {/* centred pagination — appends the next 50; padded clear of the status pill */}
       <div className="flex justify-center pb-8">
         {rows.length >= PAGE_SIZE && hasNext && view !== "month" ? (
-          <Link
+          /*
+           * A plain anchor, deliberately — not next/link.
+           *
+           * Through the client router the first click on this button was
+           * swallowed whenever the route had not been rendered before: the
+           * RSC request went out, came back 200, and the router never
+           * committed it, so the page sat on page one and a second click was
+           * needed to do anything. Warm it was invisible; cold it was every
+           * time, which on serverless means every visitor who arrives at a
+           * cold instance. Measured: click one, 50 rows; click two, 100.
+           *
+           * There is nothing to lose by leaving the router out of it. The
+           * route is force-dynamic, so no client cache survives the trip
+           * anyway, and a full navigation renders page two in about 130ms
+           * cold. It also stops Next speculatively rendering the next fifty
+           * rows for everybody who merely scrolls this far.
+           */
+          <a
             href={viewHref(view, requested + 1)}
             role="button"
             className="skewed inline-flex h-11 items-center rounded-md bg-raised px-6 text-sm uppercase-label text-ink-hi card-ring transition-colors dur-instant hover:bg-surface-3"
           >
             <span>Load 50 more</span>
-          </Link>
+          </a>
         ) : (
           <p className="text-xs text-ink-lo">
             {rows.length > 0 ? "End of standings." : "Standings publish after GW1 is final."}

@@ -21,7 +21,7 @@ const NAV = [
   { href: "/live", label: "Home", short: "Home", thumb: true },
   { href: "/field", label: "Field", short: "Field", thumb: true },
   { href: "/planner", label: "Planner", short: "Plan", thumb: true },
-  { href: "/combos", label: "Combinations", short: "Pairs", thumb: false },
+  { href: "/field/combos", label: "Combinations", short: "Pairs", thumb: false },
   { href: "/board", label: "Board", short: "Board", thumb: true },
   { href: "/leagues", label: "Leagues", short: "Mini", thumb: true },
 ] as const;
@@ -56,7 +56,16 @@ export function AppShell({
   children?: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  /*
+   * Most specific wins. Combinations lives at /field/combos, so a plain
+   * prefix test lights up Field and Combinations at once and the chrome says
+   * you are in two places. Match the longest href that covers the path.
+   */
+  const covers = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const deepest = NAV.filter((item) => covers(item.href)).sort(
+    (a, b) => b.href.length - a.href.length,
+  )[0];
+  const isActive = (href: string) => deepest?.href === href;
 
   return (
     <div className="min-h-dvh">
@@ -79,6 +88,8 @@ export function AppShell({
                 <Link
                   key={item.href}
                   href={item.href}
+                  /* Never prefetched — see the thumb bar below for why. */
+                  prefetch={false}
                   className={cn(
                     "h-8 inline-flex items-center rounded-md px-3 text-sm transition-colors dur-instant",
                     isActive(item.href)
@@ -115,6 +126,20 @@ export function AppShell({
               key={item.href}
               href={item.href}
               aria-label={item.label}
+              /*
+               * Never prefetched.
+               *
+               * Every destination in NAV is force-dynamic and the shell is on
+               * every screen, so the default fired six or seven RSC requests
+               * on every single page view, for pages nobody had asked for —
+               * measured in the browser, not assumed. A dynamic route's
+               * payload cannot be reused, so that is work spent for nothing.
+               *
+               * Navigation feels the same without it: these are server renders
+               * of 130ms, and the click starts one rather than waiting on a
+               * speculative one.
+               */
+              prefetch={false}
               className={cn(
                 "skewed flex h-11 min-w-[44px] items-center justify-center rounded-md text-2xs uppercase-label transition-colors dur-instant",
                 isActive(item.href)

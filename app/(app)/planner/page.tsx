@@ -37,7 +37,7 @@ export default async function PlannerPage() {
             desktop nav but has no thumb slot — so it is an accent fill and it
             says its own name, rather than the muted riddle it used to be. */}
         <Link
-          href="/combos"
+          href="/field/combos"
           role="button"
           className="skewed inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-volt px-4 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.98] sm:h-9 sm:w-auto"
         >
