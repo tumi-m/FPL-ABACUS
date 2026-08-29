@@ -1130,7 +1130,7 @@ function modeValue(
   switch (mode) {
     case "points": {
       const live = row.fixtureState === "live";
-      return { text: String(row.livePoints), tone: live ? "volt" : "plain" };
+      return { text: String(tokenScore(row)), tone: live ? "volt" : "plain" };
     }
     case "ownership":
       return { text: `${Math.round(row.eo)}%`, tone: row.eo >= 50 ? "plain" : row.eo <= 10 ? "ultra" : "plain" };
@@ -1224,6 +1224,29 @@ function fmt90(v: number | null | undefined): string {
  * Nothing here invents a number. Every branch reads a figure the feed gives
  * us, and a branch with nothing to report says nothing rather than "0.00".
  */
+/**
+ * The number on a token: what this player put on YOUR scoreboard.
+ *
+ * It was the raw player score, so a captain showed eight where he had earned
+ * you sixteen — and the pitch therefore did not add up to the total printed
+ * above it, which is the one arithmetic a reader will actually check. Every
+ * other surface in the app already multiplies: the hero figure, the compare
+ * scoreline, the gap breakdown, `contribution()` in the charts. The pitch was
+ * the last place still reporting the raw figure, and the only place where the
+ * discrepancy was visible.
+ *
+ * Multiplier rather than isCaptain, because a vice who inherits the armband
+ * has the multiplier and not the flag, and a triple captain has three.
+ *
+ * A bench player's multiplier is zero, and zero is the wrong thing to print
+ * for a man who scored eleven you did not get: off the pitch the honest
+ * number is what he scored, which is exactly the "points left on the bench"
+ * story the bench heading tells.
+ */
+function tokenScore(row: SquadRow): number {
+  return row.multiplier > 0 ? row.livePoints * row.multiplier : row.livePoints;
+}
+
 function tokenLine(row: SquadRow): { text: string; title: string } {
   const defensive = row.pos === 1 || row.pos === 2;
   const live = row.liveStats;
@@ -1543,6 +1566,15 @@ export function ShirtToken({
               val.tone === "ultra" && !done && "bg-transparent text-ultra",
             )}
             style={!done && !live ? { background: "rgba(255,255,255,.10)" } : undefined}
+            title={
+              mode !== "points"
+                ? undefined
+                : row.multiplier > 1
+                  ? `${row.livePoints} points, ${row.multiplier === 3 ? "tripled" : "doubled"} for the armband — ${tokenScore(row)} to you`
+                  : row.multiplier === 0
+                    ? `${row.livePoints} points, on the bench — none of them counted`
+                    : `${row.livePoints} points`
+            }
           >
             {mode === "points" ? (
               /*
@@ -1558,7 +1590,7 @@ export function ShirtToken({
               row.fixtureState === "pre" ? (
                 <span aria-label={`${row.webName} has not kicked off`}>–</span>
               ) : (
-                <AnimatedNumber value={row.livePoints} format={(v) => String(Math.round(v))} />
+                <AnimatedNumber value={tokenScore(row)} format={(v) => String(Math.round(v))} />
               )
             ) : (
               <span>{val.text}</span>
@@ -1905,8 +1937,18 @@ function CompareColumn({ title, rows, tone }: { title: string; rows: SquadRow[];
                 {r.opponentShort}
                 {r.fixtureState !== "pre" && ` · ${Math.min(r.fixtureMinute, 90)}′`}
               </td>
-              <td className="px-1.5 py-1.5 text-right font-semibold text-ink-hi">
-                {r.livePoints}
+              {/* Same rule as the pitch — see tokenScore. This column has to
+                  add up to the scoreline beside it, and a raw captain does
+                  not. */}
+              <td
+                className="px-1.5 py-1.5 text-right font-semibold text-ink-hi"
+                title={
+                  r.multiplier > 1
+                    ? `${r.livePoints} points, ${r.multiplier === 3 ? "tripled" : "doubled"} for the armband`
+                    : undefined
+                }
+              >
+                {tokenScore(r)}
                 {!r.bonusOfficial && r.bonus > 0 && <sup className="text-bonus">*</sup>}
               </td>
               <td className="px-1.5 py-1.5 text-right text-ultra">{r.subbedInFor !== null ? "⇅" : ""}</td>

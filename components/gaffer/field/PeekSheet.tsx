@@ -90,6 +90,24 @@ export function PeekSheet({
               <p className="fig-num mt-0.5 text-3xl leading-none text-ink-hi">
                 <AnimatedNumber value={row.livePoints} />
               </p>
+              {/*
+               * What he scored, and what you got for it.
+               *
+               * The pitch shows the multiplied figure, because that is what
+               * landed on your score. This sheet is about the player, so it
+               * leads with what he actually scored — and then says the other
+               * number out loud, because seeing 8 here and 16 on the pitch
+               * with no explanation is worse than either on its own.
+               */}
+              {row.multiplier > 1 && (
+                <p className="mt-1 text-2xs text-volt num-tabular">
+                  {row.multiplier === 3 ? "Tripled" : "Doubled"} for the armband —{" "}
+                  <span className="font-extrabold">{row.livePoints * row.multiplier}</span> to you
+                </p>
+              )}
+              {row.multiplier === 0 && (
+                <p className="mt-1 text-2xs text-ink-lo">On the bench — none of them counted</p>
+              )}
             </div>
             <div className="text-right text-xs text-ink-mid num-tabular">
               <p>
