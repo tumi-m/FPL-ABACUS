@@ -187,6 +187,7 @@ function squadFixture() {
     fixtureState: "done" as const,
     fixtureMinute: 90,
     subbedInFor: null,
+    subbedOutFor: null,
     teamId: n.teamId,
     eo: n.eo,
     xg90: null,

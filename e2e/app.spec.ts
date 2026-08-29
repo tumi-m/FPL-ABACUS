@@ -288,6 +288,33 @@ test.describe("authenticated routes", () => {
     );
   });
 
+  test("the bench says who comes on first, and what it cost", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field");
+    const bench = page.locator("h3", { hasText: /^Bench$/ }).locator("xpath=../following-sibling::ul[1]");
+    await expect(bench).toBeVisible();
+
+    // FPL's own order decides every auto-sub, so it is on the token rather
+    // than something to infer from left-to-right. Asserted through the
+    // accessible name, which is the same fact a screen reader gets and cannot
+    // be confused with a bonus badge that happens to read "3".
+    const labels = await bench.locator("li button").evaluateAll((els) =>
+      els.map((el) => el.getAttribute("aria-label") ?? ""),
+    );
+    expect(labels.map((l) => l.match(/substitute (GK|1|2|3)/)?.[1] ?? null)).toEqual([
+      "GK",
+      "1",
+      "2",
+      "3",
+    ]);
+
+    // Eleven on the pitch, four on the bench — an auto-sub must not make twelve.
+    const pitchRows = page.locator("ul.flex-nowrap");
+    const counts = await pitchRows.evaluateAll((uls) => uls.map((u) => u.querySelectorAll("li").length));
+    expect(counts.slice(0, -1).reduce((a, b) => a + b, 0)).toBe(11);
+    expect(counts[counts.length - 1]).toBe(4);
+  });
+
   test("the squad charts become head-to-head when a rival is loaded", async ({ page }) => {
     await asTeam(page);
 

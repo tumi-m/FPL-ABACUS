@@ -37,6 +37,8 @@ export interface SquadRow {
   fixtureState: "pre" | "live" | "done";
   fixtureMinute: number;
   subbedInFor: number | null;
+  /** The bench player who replaced him, when an auto-sub took him off. */
+  subbedOutFor: number | null;
   /** FPL team id (1–20) — the club-identity lookup key. */
   teamId: number;
   /** Effective ownership % in the selected cohort (estimated prior if no snapshot). */
@@ -151,6 +153,26 @@ export interface MatchdayModel {
   upstreamDegraded?: boolean;
 }
 
+/**
+ * Is this pick outside the eleven that counts?
+ *
+ * Shared by your squad and a rival's so the two can never drift apart, and
+ * exported so the rule can be tested on its own — it is four lines and it
+ * decides how many players a pitch draws.
+ *
+ * The bug it replaced only asked the first half of the question. A bench seat
+ * that came on left the bench, correctly; a starting seat that was taken off
+ * stayed on the pitch, so an auto-sub produced twelve players in the formation
+ * with the blanked one still drawn as though he were playing. A swap has two
+ * ends.
+ *
+ * Bench boost never generates auto-subs, so this reduces to the seat number
+ * there and the bench still renders as a bench — it just scores.
+ */
+export function isBenched(position: number, subbedIn: boolean, subbedOut: boolean): boolean {
+  return position >= 12 ? !subbedIn : subbedOut;
+}
+
 const MAX_SWINGS = 30;
 const MAX_LEVERAGE_ROWS = 12;
 
@@ -211,6 +233,7 @@ export function composeMatchdayModel(deps: {
     const player = squadState.players.get(p.element);
     const meta = boot.elements[p.element];
     const subbedIn = squadState.subs.find((s) => s.in === p.element);
+    const subbedOut = squadState.subs.find((s) => s.out === p.element);
     const team = meta ? teamById.get(meta.team) : undefined;
     const teamFixtures = meta
       ? fixtures.filter((f) => f.team_h === meta.team || f.team_a === meta.team)
@@ -232,7 +255,7 @@ export function composeMatchdayModel(deps: {
       multiplier: squadState.multipliers.get(p.element) ?? p.multiplier,
       isCaptain: p.is_captain,
       isVice: p.is_vice_captain,
-      onBench: p.position >= 12 && !subbedIn,
+      onBench: isBenched(p.position, Boolean(subbedIn), Boolean(subbedOut)),
       minutes: player?.minutes ?? 0,
       livePoints: player?.livePoints ?? 0,
       provisionalBonus: player?.provisionalBonus ?? 0,
@@ -245,6 +268,7 @@ export function composeMatchdayModel(deps: {
       fixtureState: state,
       fixtureMinute: fx?.minutes ?? 0,
       subbedInFor: subbedIn ? subbedIn.out : null,
+      subbedOutFor: subbedOut ? subbedOut.in : null,
       teamId: meta?.team ?? 0,
       eo: round1(eoOf(p.element)),
       photo: meta?.photo ?? "",

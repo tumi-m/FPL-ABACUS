@@ -460,6 +460,34 @@ export function FieldClient({
     starters.filter((s) => s.pos === pos).sort((a, b) => b.multiplier - a.multiplier),
   );
   const bench = model.squad.filter((s) => s.onBench);
+  const benchPts = model.hero.benchPoints;
+  const benchBoost = model.hero.chip === "bboost";
+
+  /**
+   * The bench in the order FPL actually uses.
+   *
+   * A reserve keeper can only ever replace your keeper, so he is labelled GK
+   * rather than given a number he would never honour; the outfield three come
+   * on 1, 2, 3 in the order you left them, which is the single fact a bench
+   * exists to tell you and the one this had no way of showing.
+   *
+   * A starter an auto-sub has already taken off arrives here through the same
+   * filter (see isBenched). He keeps no order — he is not next on, he is done
+   * — and sorts to the end so the three who might still play stay together.
+   */
+  const benchOrdered = React.useMemo(() => {
+    const waiting = bench.filter((row) => row.subbedOutFor === null);
+    const cameOff = bench.filter((row) => row.subbedOutFor !== null);
+    let outfield = 0;
+    return [
+      ...waiting.map((row) => ({
+        row,
+        badge: row.pos === 1 ? "GK" : String(++outfield),
+        off: false,
+      })),
+      ...cameOff.map((row) => ({ row, badge: "", off: true })),
+    ];
+  }, [bench]);
 
   /**
    * The players you BOTH own.
@@ -862,19 +890,59 @@ export function FieldClient({
           )}
         </div>
 
-        <h3 className="mb-2 mt-4 upper-label text-ink-lo">Bench</h3>
-        {/* The heading above already says these are substitutes. 70% made them
-            look half-rendered rather than secondary, which is the same
-            complaint as the compare fade — 88% steps back without that. */}
+        {/*
+         * The bench, with the two things a bench is actually for.
+         *
+         * It was four dimmed tokens in pick order and nothing else — no way to
+         * tell who comes on first, which is the whole point of a bench, and no
+         * answer to the only question anyone asks of it, which is what it
+         * cost you. FPL's own order is GK, then 1-2-3 outfield, and that order
+         * decides every auto-sub, so it is a badge on the token rather than
+         * something to infer from left-to-right.
+         *
+         * A starter taken off by an auto-sub now lands here too (see
+         * isBenched), and he is marked "off" rather than given an order
+         * number: he is not waiting to come on, he has been.
+         */}
+        <div className="mb-2 mt-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h3 className="upper-label text-ink-lo">Bench</h3>
+          {benchPts > 0 && (
+            <p className="text-2xs text-ink-lo num-tabular">
+              <span className="font-extrabold text-ink-mid">{benchPts}</span>{" "}
+              {benchBoost ? "points from the bench — the boost is on" : "points left on it"}
+            </p>
+          )}
+        </div>
         <ul className={cn(ROW, "opacity-[0.88]")}>
-          {bench.map((p) => (
+          {benchOrdered.map(({ row: p, badge, off }) => (
             <li key={p.element} className={SLOT}>
               <button
                 type="button"
                 onClick={() => setPeekElement(p.element)}
-                aria-label={`${p.webName}, open details`}
-                className="block w-full rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
+                aria-label={
+                  off
+                    ? `${p.webName}, substituted off, open details`
+                    : `${p.webName}, substitute ${badge}, open details`
+                }
+                className="relative block w-full rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
               >
+                <span
+                  aria-hidden
+                  title={
+                    off
+                      ? "Auto-subbed off — he did not play"
+                      : badge === "GK"
+                        ? "Reserve goalkeeper — only replaces your keeper"
+                        : `Substitute ${badge} — comes on ${badge === "1" ? "first" : `${badge}${badge === "2" ? "nd" : "rd"}`}`
+                  }
+                  className={cn(
+                    "absolute left-[calc(2*var(--s))] top-[calc(2*var(--s))] z-20 grid h-[calc(16*var(--s))] min-w-[calc(16*var(--s))] place-items-center rounded-full px-1",
+                    "text-[calc(9*var(--s))] font-extrabold leading-none",
+                    off ? "bg-flare text-on-accent" : "bg-on-turf text-ink-mid card-ring",
+                  )}
+                >
+                  {off ? "OFF" : badge}
+                </span>
                 <ShirtToken
                   row={p}
                   mode={mode}
@@ -1236,7 +1304,17 @@ export function ShirtToken({
           threshold. It used to be a green ring on green turf, which read as
           decoration; now the colour carries the state: steel while the work is
           still being done, gold the moment the two points are banked. */}
-      {defconPct > 0 && (
+      {/*
+       * The defensive-contribution arc, only where it is the subject.
+       *
+       * It was drawn on every token in every mode, so a Points pitch came out
+       * covered in part-filled rings that read as loading spinners hovering
+       * over people's heads — the single biggest source of "something is going
+       * on that I cannot name" on this screen. It is a DEFCON idea, so it
+       * belongs in DEFCON mode; the one exception is a threshold already met,
+       * because two banked points are worth saying wherever you are.
+       */}
+      {defconPct > 0 && (mode === "defcon" || defconHit) && (
         <span
           className="absolute -left-1.5 -top-1.5 h-[calc(24*var(--s))] w-[calc(24*var(--s))]"
           title={`${row.webName}: ${row.defconCount} of ${row.defconThreshold} defensive contributions${
@@ -1313,6 +1391,23 @@ export function ShirtToken({
         )}
       </span>
 
+        {/* The other half of a swap. A substitute who has come on looks
+            exactly like a starter otherwise, and "why is he on my pitch" is a
+            question the pitch should answer itself. Left shoulder, so it can
+            never collide with the armband on the right. */}
+        {row.subbedInFor !== null && (
+          <span
+            aria-label="Came on as an automatic substitute"
+            title="Auto-subbed on — he replaced a starter who did not play"
+            className={cn(
+              "absolute -left-1.5 -top-1.5 z-20 grid h-[calc(16*var(--s))] place-items-center rounded-full px-1",
+              "bg-surge text-[calc(9*var(--s))] font-extrabold leading-none text-on-accent",
+            )}
+            style={{ boxShadow: "0 0 0 2px var(--bg-raised)" }}
+          >
+            ON
+          </span>
+        )}
         {row.isCaptain && (
           <span
             aria-label={row.multiplier >= 3 ? "Triple captain" : "Captain"}
@@ -1411,7 +1506,24 @@ export function ShirtToken({
         )}
       >
         {mode === "points" ? (
-          <AnimatedNumber value={row.livePoints} format={(v) => String(Math.round(v))} />
+          /*
+           * A player who has not kicked off has not scored nought.
+           *
+           * Eleven zeroes before a deadline is the same mistake the stat line
+           * used to make with "xG .00": it fills the most prominent slot on
+           * every token with a figure that reads as a result and is really an
+           * absence. Worse, it is indistinguishable from a striker who has
+           * played ninety minutes and blanked, which is a completely different
+           * week. A dash says "nothing yet" and lets the real numbers, when
+           * they arrive, be the only numbers on the pitch.
+           *
+           * A finished nought stays a nought — that one IS a result.
+           */
+          row.fixtureState === "pre" ? (
+            <span aria-label={`${row.webName} has not kicked off`}>–</span>
+          ) : (
+            <AnimatedNumber value={row.livePoints} format={(v) => String(Math.round(v))} />
+          )
         ) : (
           <span>{val.text}</span>
         )}
