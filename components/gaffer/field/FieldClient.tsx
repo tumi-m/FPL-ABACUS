@@ -1249,24 +1249,27 @@ function tokenLine(row: SquadRow): { text: string; title: string } {
 }
 
 /**
- * Lines four and five: what he was expected to do, in four figures.
+ * Lines four and five: the two figures that matter, for the position he plays.
  *
  * xGI is the headline a manager scans and xG and xA are the split that
- * explains it — a forward on .40 xGI who creates none of it is a different
- * player from a midfielder on .40 who creates all of it, and one figure cannot
- * tell you which you own. xGC is the other end of the same question and the
- * only one that matters for a keeper or a defender.
+ * explains it — a forward on .40 who creates none of it is a different player
+ * from a midfielder on .40 who creates all of it. But that is an attacker's
+ * question, and printing it at a goalkeeper produces "xG .00 · xA .00 · xGI
+ * .00": three figures that are structurally nought for the whole of his
+ * career, taking up two thirds of his plate. A keeper is judged on saves, on
+ * what went past him, and on the clean sheet; a defender on the same plus the
+ * defensive-contribution threshold that is worth two points to him at ten
+ * where a midfielder needs twelve.
  *
- * Four will not fit on one line inside a 76px token without truncating, and a
- * truncated number is worse than no number, so they take two lines of two: the
- * split above, the totals below.
+ * So once a player has actually done something, line four reports what he did
+ * in the currency of his own position, and line five keeps the expectation:
+ * xGC for a keeper, xGI beside it for everybody who can score. Before he has
+ * kicked a ball there is nothing to report and both lines fall back to the
+ * season expectation, which is the same question for everyone.
  *
- * Live figures once the feed has him, season-and-fixture expectation before
- * that; the tooltip says which, because they are different quantities. xGI is
- * summed rather than read from FPL's own expected_goal_involvements so that it
- * always equals the xG and xA printed beside it — a headline that disagrees
- * with its own parts is the one thing this must not do. On the season side
- * both halves carry the same shrinkage, so their sum is shrunk consistently.
+ * xGI is summed from the xG and xA rather than read from FPL's own
+ * expected_goal_involvements, so a headline can never disagree with its own
+ * parts. On the season side both halves carry the same shrinkage.
  */
 function tokenExpectation(row: SquadRow): {
   split: string;
@@ -1274,16 +1277,49 @@ function tokenExpectation(row: SquadRow): {
   title: string;
 } {
   const live = row.liveStats;
+  const keeper = row.pos === 1;
+  const defender = row.pos === 2;
+  const blank = "\u00a0";
+
   const xg = live ? live.xg : row.xg90;
   const xa = live ? live.xa : row.xa90;
   const xgc = live ? live.xgc : row.xgc90;
-  const xgi =
-    xg == null && xa == null ? null : (xg ?? 0) + (xa ?? 0);
+  const xgi = xg == null && xa == null ? null : (xg ?? 0) + (xa ?? 0);
 
-  const nothing = xg == null && xa == null && xgc == null;
+  // Line five: what he was expected to face, and — unless he is the keeper —
+  // what he was expected to be worth at the other end.
+  const totals = keeper
+    ? xgc == null
+      ? blank
+      : `xGC ${fmt90(xgc)}`
+    : xg == null && xa == null && xgc == null
+      ? blank
+      : `xGI ${fmt90(xgi)} · xGC ${fmt90(xgc)}`;
+
+  // Line four: once he has played, his own position's currency.
+  if (live && row.minutes > 0 && keeper) {
+    return {
+      split: `SV ${live.saves} · GC ${live.conceded}`,
+      totals,
+      title: "Saves and goals conceded this gameweek · expected goals against, from the FPL/Opta feed",
+    };
+  }
+  if (live && row.minutes > 0 && defender && row.defconThreshold < 99) {
+    return {
+      split: `DC ${row.defconCount}/${row.defconThreshold} · GC ${live.conceded}`,
+      totals,
+      title: `Defensive contributions towards the ${row.defconThreshold}-action threshold worth 2 points, and goals conceded · expected goals against`,
+    };
+  }
+
+  // Everyone else, and everyone before kick-off: the attacking split. A
+  // keeper has no attacking split worth printing, so he gets the blank rather
+  // than two noughts.
+  const split =
+    keeper || (xg == null && xa == null) ? blank : `xG ${fmt90(xg)} · xA ${fmt90(xa)}`;
   return {
-    split: nothing ? "\u00a0" : `xG ${fmt90(xg)} · xA ${fmt90(xa)}`,
-    totals: nothing ? "\u00a0" : `xGI ${fmt90(xgi)} · xGC ${fmt90(xgc)}`,
+    split,
+    totals,
     title: live
       ? "This gameweek, from the FPL/Opta feed — expected goals, expected assists, their sum, and expected goals conceded while he was on"
       : "Season per 90 — expected goals, expected assists and their sum — with the fixture model's expected goals against for this match",
