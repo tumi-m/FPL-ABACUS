@@ -175,10 +175,15 @@ export function PeekSheet({
                   : "—"}
               </dd>
             </div>
-            <div>
-              <dt className="upper-label text-2xs text-ink-lo">Saves</dt>
-              <dd className="mt-0.5 num-tabular text-ink-hi">{row.liveStats?.saves ?? "—"}</dd>
-            </div>
+            {/* Only a keeper makes saves, so only a keeper is asked about them.
+                Outfield players were reading "Saves 0" as though it were a
+                fact about them rather than about the position. */}
+            {row.pos === 1 && (
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">Saves</dt>
+                <dd className="mt-0.5 num-tabular text-ink-hi">{row.liveStats?.saves ?? "—"}</dd>
+              </div>
+            )}
             <div>
               <dt className="upper-label text-2xs text-ink-lo">xG · xA</dt>
               <dd className="mt-0.5 num-tabular text-ink-hi">
@@ -210,12 +215,100 @@ export function PeekSheet({
 
           {row.defconThreshold < 99 && (
             <div className="mt-4">
-              <p className="upper-label mb-1 text-2xs text-ink-lo">
-                DEFCON {row.defconCount}/{row.defconThreshold}
-              </p>
+              {/* The meter already carries the count; saying it twice in two
+                  type sizes reads as two different numbers at a glance. */}
+              <p className="upper-label mb-1 text-2xs text-ink-lo">Defensive contributions</p>
               <Meter value={row.defconCount / row.defconThreshold} hint={`${row.defconCount}/${row.defconThreshold}`} />
+              <p className="mt-1 text-2xs text-ink-lo">
+                {row.defconCount >= row.defconThreshold
+                  ? "Threshold met — 2 points banked."
+                  : `${row.defconThreshold - row.defconCount} more for 2 points.`}
+              </p>
             </div>
           )}
+
+          {/*
+           * The season, under the gameweek.
+           *
+           * The sheet only ever described the ninety minutes in front of you,
+           * which is the half of the question you can already see on the
+           * pitch. Whether a player is worth owning is a season question —
+           * what he has scored, what he was expected to score, and whether
+           * those two agree — and the row has carried those figures all along
+           * for the charts without anything ever showing them to a reader who
+           * tapped a face.
+           */}
+          <div className="mt-5">
+            <p className="upper-label mb-2 text-2xs text-ink-lo">This season</p>
+            <dl className="grid grid-cols-3 gap-x-3 gap-y-3 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">Points</dt>
+                <dd className="mt-0.5 num-tabular text-ink-hi">{row.season.points}</dd>
+              </div>
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">Price</dt>
+                <dd className="mt-0.5 num-tabular text-ink-hi">
+                  £{(row.season.cost / 10).toFixed(1)}m
+                </dd>
+              </div>
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">Per £m</dt>
+                <dd className="mt-0.5 num-tabular text-ink-hi">
+                  {row.season.cost > 0
+                    ? (row.season.points / (row.season.cost / 10)).toFixed(1)
+                    : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">Starts</dt>
+                <dd className="mt-0.5 num-tabular text-ink-hi">
+                  {row.season.starts}
+                  <span className="text-ink-lo"> · {row.season.minutes}′</span>
+                </dd>
+              </div>
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">Goals</dt>
+                <dd className="mt-0.5 num-tabular text-ink-hi">
+                  {row.season.goals}
+                  <span className="text-ink-lo"> · xG {row.season.xg.toFixed(2)}</span>
+                </dd>
+              </div>
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">Assists</dt>
+                <dd className="mt-0.5 num-tabular text-ink-hi">
+                  {row.season.assists}
+                  <span className="text-ink-lo"> · xA {row.season.xa.toFixed(2)}</span>
+                </dd>
+              </div>
+              <div>
+                <dt className="upper-label text-2xs text-ink-lo">xGI</dt>
+                <dd className="mt-0.5 num-tabular text-ink-hi">
+                  {(row.season.xg + row.season.xa).toFixed(2)}
+                </dd>
+              </div>
+              <div>
+                {/*
+                 * Finishing against expectation, which is the whole reason to
+                 * put actuals and expected side by side. Positive means he has
+                 * scored more than the chances were worth — a run that
+                 * regresses as often as it continues, so it is stated as a
+                 * difference and not as a verdict.
+                 */}
+                <dt className="upper-label text-2xs text-ink-lo">G+A vs xGI</dt>
+                <dd className="mt-0.5 num-tabular text-ink-hi">
+                  {(() => {
+                    const gap = row.season.goals + row.season.assists - (row.season.xg + row.season.xa);
+                    return `${gap >= 0 ? "+" : "\u2212"}${Math.abs(gap).toFixed(2)}`;
+                  })()}
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-2 text-2xs leading-relaxed text-ink-lo">
+              Season totals from FPL, not projections. Per-90 rates on the pitch are shrunk
+              towards the position average so a player with 90 minutes does not outrank one with
+              900.
+            </p>
+          </div>
 
           <div className="mt-5 flex justify-center">
             <Link
