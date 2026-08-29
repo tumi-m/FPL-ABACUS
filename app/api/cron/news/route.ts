@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronGuard } from "@/lib/server/cronGuard";
 import { hasDb } from "@/lib/env";
+import { explainDbError } from "@/lib/db";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { NEWS_SOURCES, fetchAllSources } from "@/lib/news/sources";
 import { buildTagger, relevanceOf, tagItem, type TaggedItem } from "@/lib/news/tagger";
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     return NextResponse.json(
-      { ok: false, error: String(err instanceof Error ? err.message : err) },
+      { ok: false, error: explainDbError(err) },
       { status: 502 },
     );
   }

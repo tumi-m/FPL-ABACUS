@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronGuard } from "@/lib/server/cronGuard";
 import { hasDb } from "@/lib/env";
-import { db } from "@/lib/db";
+import { db, explainDbError } from "@/lib/db";
 import { rawArchive, scoreDistribution } from "@/lib/db/schema";
 import { loadGwContext } from "@/lib/server/gw";
 import { getRankCurveBundle } from "@/lib/server/rankCurveServer";
@@ -73,6 +73,6 @@ export async function GET(req: NextRequest) {
       twin,
     });
   } catch (err) {
-    return NextResponse.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, { status: 502 });
+    return NextResponse.json({ ok: false, error: explainDbError(err) }, { status: 502 });
   }
 }

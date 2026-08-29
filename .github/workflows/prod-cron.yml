@@ -59,9 +59,14 @@ jobs:
             code=$(printf '%s' "$out" | tail -n 1)
             body=$(printf '%s' "$out" | sed '$d')
             echo "→ $1 [$code]"
-            if [ "$VERBOSE" = "true" ]; then
-              echo "   ${body:0:500}"
-            fi
+            # Always print the body of a failure, not only when someone
+            # remembers to tick verbose. A red run that does not say why is a
+            # red run somebody has to reproduce by hand, and the schedule is
+            # the only thing that fires this.
+            case "$code" in
+              2*) [ "$VERBOSE" = "true" ] && echo "   ${body:0:500}" ;;
+              *)  echo "   ${body:0:500}" ;;
+            esac
             case "$code" in
               2*) ;;
               *) FAILED="$FAILED $1($code)" ;;

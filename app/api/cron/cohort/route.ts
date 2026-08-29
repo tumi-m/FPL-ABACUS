@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronGuard } from "@/lib/server/cronGuard";
 import { hasDb } from "@/lib/env";
+import { explainDbError } from "@/lib/db";
 import { buildCohortSnapshot } from "@/lib/server/cohortBuilder";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 
@@ -28,6 +29,6 @@ export async function GET(req: NextRequest) {
     const result = await buildCohortSnapshot(gw);
     return NextResponse.json(result, { status: result.ok ? 200 : 502 });
   } catch (err) {
-    return NextResponse.json({ ok: false, error: String(err instanceof Error ? err.message : err) }, { status: 502 });
+    return NextResponse.json({ ok: false, error: explainDbError(err) }, { status: 502 });
   }
 }

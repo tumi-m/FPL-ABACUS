@@ -28,3 +28,21 @@ export function db(): Db {
   }
   return client;
 }
+
+/**
+ * Turn a Postgres error into something a person can act on.
+ *
+ * The one that matters here is 42P01, undefined_table: it means DATABASE_URL
+ * is set and reachable but the schema was never applied, which is a deployment
+ * step rather than a server fault and stays broken until somebody runs the
+ * migration. Left raw it reads as an opaque 502 for ever; named, it tells you
+ * the command.
+ */
+export function explainDbError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  const code = (err as { code?: string } | null)?.code;
+  if (code === "42P01" || /relation ".*" does not exist/i.test(message)) {
+    return `${message} — the database has no schema yet: run \`pnpm db:migrate\` against DATABASE_URL`;
+  }
+  return message;
+}
