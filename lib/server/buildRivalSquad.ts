@@ -4,7 +4,7 @@ import { getEntry, getEventStatus, getFixtures, getFixturesAll, getLive, getPick
 import { bonusAddedDays } from "@/lib/engines/matchState";
 import { buildLiveSquad } from "@/lib/engines/liveSquad";
 import { buildFixtureModel, projectFixture } from "@/lib/engines/fixtureModel";
-import type { SquadRow } from "@/lib/engines/matchdayModel";
+import { isBenched, type SquadRow } from "@/lib/engines/matchdayModel";
 import type { Fixture } from "@/lib/fpl/schemas";
 import { readAvailability } from "@/lib/engines/availability";
 import { FplHttpError } from "@/lib/fpl/client";
@@ -96,7 +96,11 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
       multiplier: squadState.multipliers.get(p.element) ?? p.multiplier,
       isCaptain: p.is_captain,
       isVice: p.is_vice_captain,
-      onBench: p.position >= 12 && !subbedIn,
+      onBench: isBenched(
+        p.position,
+        Boolean(subbedIn),
+        squadState.subs.some((sub) => sub.out === p.element),
+      ),
       minutes: player?.minutes ?? 0,
       livePoints: player?.livePoints ?? 0,
       provisionalBonus: player?.provisionalBonus ?? 0,
@@ -109,6 +113,7 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
       fixtureState: state,
       fixtureMinute: fx?.minutes ?? 0,
       subbedInFor: subbedIn ? subbedIn.out : null,
+      subbedOutFor: squadState.subs.find((sub) => sub.out === p.element)?.in ?? null,
       photo: meta?.photo ?? "",
       liveStats: player?.stats ?? null,
       availability: readAvailability({
