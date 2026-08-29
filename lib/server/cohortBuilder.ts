@@ -73,6 +73,17 @@ interface RunState {
   /** v3-10: per-entry detail for the twin study (persists with the snapshot). */
   squadsDetailed: { entry: number; elements: number[]; multipliers: number[]; squadCostTenths: number; bankTenths: number; eventTransfers: number }[] | null;
   pickCursor: number;
+  /**
+   * How many standings pages actually answered.
+   *
+   * A failing page is swallowed on purpose — one bad page should shrink the
+   * sample, not kill the run — but that made an FPL outage indistinguishable
+   * from an empty league: both end with no candidates. Counting the successes
+   * separates "there is nothing to sample yet", which is normal before the
+   * first gameweek settles, from "we could not reach FPL at all", which is the
+   * only one of the two worth waking anybody for.
+   */
+  pagesOk?: number;
   /** ── v3-10 30k top-up ── ids of the requesting squads we match twins for. */
   twinSeeds?: { entry: number; elements: number[] }[];
   twinPagesLeft?: number[];
@@ -93,6 +104,7 @@ function newState(): RunState {
     squads: null,
     squadsDetailed: null,
     pickCursor: 0,
+    pagesOk: 0,
   };
 }
 
@@ -158,7 +170,13 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
     while (Date.now() - t0 < WORK_BUDGET_MS) {
       if (state.phase === "pages") {
         if (state.pagesLeft.length === 0) {
-        if (state.candidates.length === 0) return { ok: false, gw, cohort: COHORT_ID, skipped: "no-squads" };
+        if (state.candidates.length === 0) {
+          // Pages answered and the league is empty: normal until the first
+          // gameweek is final. No page answered at all: FPL is unreachable,
+          // and that is a fault worth reporting.
+          const reachedFpl = (state.pagesOk ?? 0) > 0;
+          return { ok: reachedFpl, gw, cohort: COHORT_ID, skipped: "no-squads" };
+        }
           state.sampled = [...reservoirSample(new Set(state.candidates), Math.min(TARGET_SAMPLE, state.candidates.length))];
           state.squads = [];
           state.squadsDetailed = [];
@@ -169,6 +187,7 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
         const page = state.pagesLeft.shift() as number;
         try {
           const res = await getStandings(LEAGUE_314, page);
+          state.pagesOk = (state.pagesOk ?? 0) + 1;
           for (const r of res.standings.results) state.candidates.push(r.entry);
           // The sweep doubles as directory growth (best-effort, never fatal).
           try {
@@ -330,8 +349,11 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
       squad.map(([element, multiplier]) => toEnginePick({ element, position: 1, multiplier })),
     );
     if (engineSquads.length === 0) {
+      // Candidates existed but none of their picks came back — nobody has set
+      // a side for this gameweek yet. The run resets and tries again next
+      // tick; there is nothing here for a human to fix.
       await store.del(stateKey);
-      return { ok: false, gw, cohort: COHORT_ID, skipped: "no-squads" };
+      return { ok: true, gw, cohort: COHORT_ID, skipped: "no-squads" };
     }
 
     // ── Budget exhausted mid-run → persist state, resume next tick ──────

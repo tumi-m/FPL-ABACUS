@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronGuard } from "@/lib/server/cronGuard";
 import { hasDb } from "@/lib/env";
-import { db } from "@/lib/db";
+import { db, explainDbError } from "@/lib/db";
 import { priceChange, priceSnapshot } from "@/lib/db/schema";
 import { getBootstrap } from "@/lib/fpl/endpoints";
 import { cacheStore } from "@/lib/cache/store";
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
         }
         persisted = true;
       } catch (err) {
-        persistedError = String(err instanceof Error ? err.message : err);
+        persistedError = explainDbError(err);
       }
     }
 
