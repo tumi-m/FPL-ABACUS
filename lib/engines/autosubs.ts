@@ -120,6 +120,23 @@ export function effectiveMultipliers(picks: Pick[], subsResult: SubResult, chip:
   const armbandMoved = !originalCaptain || originalCaptain.element !== subsResult.captainId;
   // A promoted vice never inherits Triple Captain — the chip dies with the blanked captain.
   const captainMultiplier: Multiplier = tcActive && !armbandMoved ? 3 : 2;
+
+  /*
+   * Take the armband off the man who lost it.
+   *
+   * FPL ships the captain with multiplier 2 in the picks, and that is what he
+   * kept here even once he had blanked and the vice had taken over. It cost no
+   * points — a blanked captain has none to double — but the multiplier is the
+   * field every surface now reads to answer "who is the captain", so he went
+   * on wearing the armband on the pitch while the vice quietly scored double
+   * beside him wearing a V. Two captains, and the wrong one marked.
+   */
+  if (armbandMoved && originalCaptain) {
+    const benched = !bb && originalCaptain.position >= 12;
+    const subbedOut = subsResult.subs.some((s) => s.out === originalCaptain.element);
+    mults.set(originalCaptain.element, benched || subbedOut ? 0 : 1);
+  }
+
   mults.set(subsResult.captainId, captainMultiplier);
   return mults;
 }

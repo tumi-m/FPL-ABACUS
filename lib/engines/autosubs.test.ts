@@ -139,6 +139,38 @@ describe("effectiveMultipliers", () => {
     expect(mults.get(15)).toBe(2);
   });
 
+  it("a blanked captain who cannot be subbed loses the armband rather than keeping x2", () => {
+    // No bench player has minutes, so nobody comes on: the captain stays in
+    // the XI on nought. FPL still ships him with multiplier 2 in the picks,
+    // and that used to survive, leaving two men reading as captain.
+    const players = new Map([
+      player(1, 1, 90), player(2, 2, 90), player(3, 2, 90), player(4, 2, 90), player(5, 2, 90),
+      player(6, 3, 90), player(7, 3, 90), player(8, 3, 90), player(9, 3, 90),
+      player(10, 4, 90), player(11, 4, 0),
+      player(12, 1, 0), player(13, 3, 0), player(14, 4, 0), player(15, 2, 0),
+    ]);
+    const subs = projectAutoSubs(basePicks(), players, MIN_PLAY, null);
+    expect(subs.subs).toEqual([]);
+    expect(subs.captainId).toBe(15);
+
+    const mults = effectiveMultipliers(basePicks(), subs, null);
+    expect(mults.get(11)).toBe(1);
+    expect(mults.get(15)).toBe(2);
+  });
+
+  it("a captain who plays keeps x2 and the vice stays on x1", () => {
+    const players = new Map([
+      player(1, 1, 90), player(2, 2, 90), player(3, 2, 90), player(4, 2, 90), player(5, 2, 90),
+      player(6, 3, 90), player(7, 3, 90), player(8, 3, 90), player(9, 3, 90),
+      player(10, 4, 90), player(11, 4, 90),
+      player(12, 1, 0), player(13, 3, 90), player(14, 4, 0), player(15, 2, 90),
+    ]);
+    const subs = projectAutoSubs(basePicks(), players, MIN_PLAY, null);
+    const mults = effectiveMultipliers(basePicks(), subs, null);
+    expect(mults.get(11)).toBe(2);
+    expect(mults.get(15)).toBe(0);
+  });
+
   it("Triple Captain gives ×3 to an playing captain", () => {
     const players = new Map([
       player(1, 1, 90), player(2, 2, 90), player(3, 2, 90), player(4, 2, 90), player(5, 2, 90),

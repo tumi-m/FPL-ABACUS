@@ -1222,6 +1222,25 @@ function tokenScore(row: SquadRow): number {
 }
 
 /**
+ * Who is actually wearing the armband, right now.
+ *
+ * This read `isCaptain`, which is the flag FPL sets when the side is picked
+ * and never moves again. Once a captain blanks, the vice inherits the double
+ * — so the flag and the truth come apart at exactly the moment a reader is
+ * looking hardest, and the pitch showed a C on a man scoring single and a V
+ * on the man scoring double. The multiplier is the thing that actually paid
+ * out, so the badge is read from it: 3 for Triple Captain, 2 for an armband
+ * however it was come by, and the V only while the understudy is still an
+ * understudy.
+ */
+function armband(row: SquadRow): "3C" | "C" | "V" | null {
+  if (row.multiplier >= 3) return "3C";
+  if (row.multiplier >= 2) return "C";
+  if (row.isVice) return "V";
+  return null;
+}
+
+/**
  * Line three: where this player is in his week.
  *
  * Before kick-off the useful fact is who he plays and whether it is away;
@@ -1298,6 +1317,8 @@ export function ShirtToken({
   const done = row.fixtureState === "done";
   const line = tokenLine(row);
   const expectation = tokenExpectation(row);
+  const band = armband(row);
+  const capped = band === "C" || band === "3C";
   const live = row.fixtureState === "live";
   const val = modeValue(row, mode, swing, lev, webMean, riskShare);
   const defconPct = row.defconThreshold < 99 ? Math.min(1, row.defconCount / row.defconThreshold) : 0;
@@ -1425,12 +1446,12 @@ export function ShirtToken({
         {/* The captain's ring is an armband and always shows. The club
             hairline and the bottom vignette were edges for the plate, so they
             go with it. */}
-        {(row.isCaptain || !bareFace) && (
+        {(capped || !bareFace) && (
           <span
             aria-hidden
             className="absolute inset-0 rounded-md"
             style={{
-              boxShadow: row.isCaptain
+              boxShadow: capped
                 ? "inset 0 0 0 2px var(--volt)" + (bareFace ? "" : ", inset 0 -10px 12px -8px rgba(0,0,0,.5)")
                 : "inset 0 0 0 1px color-mix(in oklab, " + club.rail + " 35%, transparent), inset 0 -10px 12px -8px rgba(0,0,0,.5)",
             }}
@@ -1455,14 +1476,20 @@ export function ShirtToken({
             ON
           </span>
         )}
-        {row.isCaptain && (
+        {capped && (
           <span
-            aria-label={row.multiplier >= 3 ? "Triple captain" : "Captain"}
-            title={row.multiplier >= 3 ? "Triple captain — scores treble" : "Captain — scores double"}
+            aria-label={band === "3C" ? "Triple captain" : "Captain"}
+            title={
+              band === "3C"
+                ? "Triple captain — scores treble"
+                : row.isCaptain
+                  ? "Captain — scores double"
+                  : "Captain — the armband passed to him when the captain did not play"
+            }
             className={cn(
               "absolute -right-1.5 -top-1.5 z-20 grid place-items-center rounded-full",
               "bg-volt font-extrabold leading-none text-on-accent",
-              row.multiplier >= 3
+              band === "3C"
                 ? "h-[calc(19*var(--s))] w-[calc(19*var(--s))] text-[calc(10*var(--s))]"
                 : "h-[calc(18*var(--s))] w-[calc(18*var(--s))] text-[calc(11*var(--s))]",
             )}
@@ -1471,10 +1498,10 @@ export function ShirtToken({
                 "0 0 0 2px var(--bg-raised), 0 0 10px 1px color-mix(in oklab, var(--volt) 55%, transparent)",
             }}
           >
-            {row.multiplier >= 3 ? "3C" : "C"}
+            {band === "3C" ? "3C" : "C"}
           </span>
         )}
-        {row.isVice && !row.isCaptain && (
+        {band === "V" && (
           <span
             aria-label="Vice-captain"
             title="Vice-captain — takes the armband if the captain does not play"
@@ -1682,6 +1709,10 @@ function ComparePitch({
     row: SquadRow; tokenMode: Mode; swing?: SwingRow; lev?: LevRow; side: "you" | "them";
   }) => {
     const differs = !sharedSet.has(row.element);
+    /* The cohort is sampled around your own mini-league, so it says nothing
+       about an arbitrary rival's men: theirs is always the estimated prior and
+       always carries the tilde, whichever source yours came from. */
+    const estimated = side === "them" ? true : eoEstimated;
     return (
       <button
         type="button"
@@ -1696,7 +1727,7 @@ function ComparePitch({
         }
         className="block w-full rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
       >
-        <ShirtToken row={row} mode={tokenMode} swing={swing} lev={lev} avatar={avatar} eoEstimated={eoEstimated} />
+        <ShirtToken row={row} mode={tokenMode} swing={swing} lev={lev} avatar={avatar} eoEstimated={estimated} />
         <span
           aria-hidden
           className="mx-auto mt-1 block h-[3px] w-9 rounded-full"
@@ -1727,16 +1758,31 @@ function ComparePitch({
           <span aria-hidden>↓</span>
         </span>
       </div>
-      {/* far half — the rival's XI with real live data, GK at the top edge */}
-      {rivalBands.map((band, i) => (
-        <ul key={`rv${i}`} className={ROW}>
-          {band.map((r) => (
-            <li key={r.element} className={SLOT}>
-              <Token row={r} tokenMode="points" side="them" />
-            </li>
-          ))}
-        </ul>
-      ))}
+      {/*
+       * far half — the rival's XI with real live data, GK at the top edge.
+       *
+       * Washed in their colour, because the two halves were otherwise the same
+       * pitch in the same palette and the only thing separating twenty-two
+       * identical tokens was a line of text you had to be scrolled to. Half a
+       * squad is usually shared, so the same face appears in both halves; a
+       * reader who lands mid-pitch and reads upward has no way to know he is
+       * looking at somebody else's captain. A tint holds wherever you are
+       * scrolled, which a label in one fixed place cannot.
+       */}
+      <div
+        className="space-y-2.5 rounded-2xl px-1 py-1.5"
+        style={{ background: "linear-gradient(180deg, color-mix(in oklab, var(--ultra) 13%, transparent), transparent 92%)" }}
+      >
+        {rivalBands.map((band, i) => (
+          <ul key={`rv${i}`} className={ROW}>
+            {band.map((r) => (
+              <li key={r.element} className={SLOT}>
+                <Token row={r} tokenMode="points" side="them" />
+              </li>
+            ))}
+          </ul>
+        ))}
+      </div>
       {/*
        * The halfway line, drawn like one.
        *
@@ -1764,22 +1810,28 @@ function ComparePitch({
           <span aria-hidden>↓</span>
         </span>
       </div>
-      {/* near half — you, GK at the bottom edge, forwards facing theirs */}
-      {[...rows].reverse().map((row, i) => (
-        <ul key={`me${i}`} className={ROW}>
-          {row.map((p) => (
-            <li key={p.element} className={SLOT}>
-              <Token
-                row={p}
-                tokenMode={mode}
-                side="you"
-                swing={swingByElement.get(p.element)}
-                lev={leverageByElement.get(p.element)}
-              />
-            </li>
-          ))}
-        </ul>
-      ))}
+      {/* near half — you, GK at the bottom edge, forwards facing theirs, in
+          your colour for the same reason theirs is in theirs */}
+      <div
+        className="space-y-2.5 rounded-2xl px-1 py-1.5"
+        style={{ background: "linear-gradient(0deg, color-mix(in oklab, var(--volt) 13%, transparent), transparent 92%)" }}
+      >
+        {[...rows].reverse().map((row, i) => (
+          <ul key={`me${i}`} className={ROW}>
+            {row.map((p) => (
+              <li key={p.element} className={SLOT}>
+                <Token
+                  row={p}
+                  tokenMode={mode}
+                  side="you"
+                  swing={swingByElement.get(p.element)}
+                  lev={leverageByElement.get(p.element)}
+                />
+              </li>
+            ))}
+          </ul>
+        ))}
+      </div>
       <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-1 text-center text-2xs text-ink-lo">
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden className="inline-block h-[3px] w-5 rounded-full bg-volt" />
@@ -1945,11 +1997,11 @@ function CompareColumn({ title, rows, tone }: { title: string; rows: SquadRow[];
             >
               <td className="px-1.5 py-1.5 font-medium text-ink-hi">
                 {r.webName}
-                {r.isCaptain && r.multiplier >= 2 && (
+                {r.multiplier >= 2 && (
                   <span className={`ml-1 inline-grid h-4 w-4 place-items-center rounded-full align-[1px] text-[9px] font-bold ${
                     tone === "volt" ? "bg-volt text-on-accent" : "bg-ultra text-on-accent"
                   }`}>
-                    C
+                    {r.multiplier >= 3 ? "3C" : "C"}
                   </span>
                 )}
                 {r.onBench && <span className="ml-1 text-2xs uppercase tracking-wide text-ink-lo">bench</span>}

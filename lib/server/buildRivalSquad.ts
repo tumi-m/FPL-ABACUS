@@ -7,6 +7,7 @@ import { buildFixtureModel, projectFixture } from "@/lib/engines/fixtureModel";
 import { isBenched, type SquadRow } from "@/lib/engines/matchdayModel";
 import type { Fixture } from "@/lib/fpl/schemas";
 import { readAvailability } from "@/lib/engines/availability";
+import { fallbackEO } from "@/lib/engines/eo";
 import { FplHttpError } from "@/lib/fpl/client";
 
 /**
@@ -69,6 +70,7 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
   const addedDays = status ? bonusAddedDays(status, eventId) : new Set<string>();
 
   const squadState = buildLiveSquad({ picks, live, fixtures, boot, bonusAddedDays: addedDays });
+  const mostCaptained = event.most_captained ?? null;
   const teamById = new Map(boot.teams.map((t) => [t.id, t]));
   const fxModel = buildFixtureModel(allFixtures.length ? allFixtures : fixtures, { upToGw: eventId });
 
@@ -138,8 +140,26 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
         meta && fx && oppId
           ? Math.round(projectFixture(fxModel, meta.team, oppId, isHome).xgAgainst * 100) / 100
           : null,
-      // ownership is *your* exposure — the rival view never shows it
-      eo: 0,
+      /*
+       * Effective ownership is a fact about the player, not about whose team
+       * he is sitting in. This was hard-zeroed on the theory that ownership is
+       * "your exposure", which put a flat ~0% under all eleven of the rival's
+       * men — including a forward two thirds of the game owns. A zero that is
+       * not a measurement reads as one, and it is the single most checkable
+       * number on the token, so it made the whole board look invented.
+       *
+       * It is the estimated prior rather than the sampled cohort: the cohort
+       * is built around your own mini-league and does not extend to an
+       * arbitrary rival, so these carry the tilde that says so.
+       */
+      eo: meta
+        ? fallbackEO({
+            selectedByPercent: meta.selected_by_percent,
+            pos: meta.element_type,
+            mostCaptainedId: mostCaptained,
+            elementId: p.element,
+          })
+        : 0,
     };
   });
 
