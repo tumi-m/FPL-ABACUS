@@ -285,6 +285,35 @@ const KEY_MARKS = LEGEND.slice(0, 5);
  * reads. The five common marks are named on the row itself, and the full list
  * — the rarer marks and the DEFCON ring — opens from it.
  */
+/**
+ * The defensive-contribution ring, at whatever fill.
+ *
+ * It is the only mark on the pitch that is not an icon chip, and since the
+ * arc was gated to DEFCON mode the ONLY version an ordinary Points pitch ever
+ * shows is the completed one — a solid yellow circle that appeared in the
+ * legend nowhere at all, because the legend only carried the blue partial and
+ * only behind "all marks". An unexplained mark on somebody's player is worse
+ * than no mark.
+ */
+function DefconRing({ full, size = 21 }: { full?: boolean; size?: number }) {
+  return (
+    <span aria-hidden className="grid shrink-0 place-items-center" style={{ height: size, width: size }}>
+      <svg viewBox="0 0 40 40" className="h-full w-full">
+        <circle cx="20" cy="20" r="17" fill="none" stroke="var(--bg-overlay)" strokeWidth="5" />
+        <circle
+          cx="20" cy="20" r="17" fill="none"
+          stroke={full ? "var(--defcon-hit)" : "var(--defcon)"}
+          strokeWidth="5"
+          strokeDasharray="107 107"
+          strokeDashoffset={full ? 0 : 40}
+          strokeLinecap="round"
+          transform="rotate(-90 20 20)"
+        />
+      </svg>
+    </span>
+  );
+}
+
 export function MatchEventLegend({ className }: { className?: string }) {
   return (
     <details className={cn("group rounded-md card-ring px-3 py-2", className)}>
@@ -301,6 +330,10 @@ export function MatchEventLegend({ className }: { className?: string }) {
               <span className="text-2xs text-ink-mid">{l.label}</span>
             </span>
           ))}
+          <span className="inline-flex items-center gap-1.5">
+            <DefconRing full size={15} />
+            <span className="text-2xs text-ink-mid">Defence bonus</span>
+          </span>
           <span className="ml-auto text-2xs uppercase-label text-ink-lo group-hover:text-ink-hi">
             all marks
             <span aria-hidden className="ml-1 inline-block transition-transform dur-instant group-open:rotate-90">
@@ -325,19 +358,21 @@ export function MatchEventLegend({ className }: { className?: string }) {
           </li>
         ))}
         <li className="flex items-center gap-2">
-          <span aria-hidden className="grid h-[21px] w-[21px] shrink-0 place-items-center">
-            <svg viewBox="0 0 40 40" className="h-full w-full">
-              <circle cx="20" cy="20" r="17" fill="none" stroke="var(--bg-overlay)" strokeWidth="5" />
-              <circle
-                cx="20" cy="20" r="17" fill="none" stroke="var(--defcon)" strokeWidth="5"
-                strokeDasharray="107 107" strokeDashoffset="40" strokeLinecap="round"
-                transform="rotate(-90 20 20)"
-              />
-            </svg>
-          </span>
+          <DefconRing />
           <span className="min-w-0">
-            <span className="block text-xs text-ink-hi">DEFCON ring</span>
-            <span className="block text-2xs text-ink-lo">progress to the two-point line</span>
+            <span className="block text-xs text-ink-hi">Defensive contributions</span>
+            <span className="block text-2xs text-ink-lo">
+              progress to the threshold — 10 actions for a defender, 12 for anyone else
+            </span>
+          </span>
+        </li>
+        <li className="flex items-center gap-2">
+          <DefconRing full />
+          <span className="min-w-0">
+            <span className="block text-xs text-ink-hi">Defence bonus banked</span>
+            <span className="block text-2xs text-ink-lo">
+              threshold met — 2 points, and the only ring shown outside DEFCON mode
+            </span>
           </span>
         </li>
       </ul>
