@@ -507,7 +507,10 @@ test.describe("authenticated routes", () => {
     await expect(page).toHaveURL(/\/field\/combos/);
   });
 
-  test("Combinations is reachable from the chrome on a desktop", async ({ page }) => {
+  test("Combinations is reachable from the chrome on a desktop", async ({ page, isMobile }) => {
+    // The primary nav is a desktop affordance; a phone reaches Combinations
+    // through the Field's own button, covered by the test above.
+    test.skip(!!isMobile, "desktop chrome only");
     await asTeam(page);
     await page.goto("/field");
     await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Combinations" }).click();
@@ -916,7 +919,10 @@ test.describe("authenticated routes", () => {
     await expect(bar.locator("a")).toHaveCount(5);
   });
 
-  test("the brand opens the Arcade and the team pill goes back to the gate", async ({ page }) => {
+  test("the brand opens the Arcade and the team pill goes back to the gate", async ({ page, isMobile }) => {
+    // The header's team pill is hidden on a phone by design; the phone route to
+    // the gate is its own test, "a phone reaches the gate through the Arcade".
+    test.skip(!!isMobile, "desktop header only");
     await asTeam(page);
     await page.goto("/live");
     await page.locator("header").getByRole("link", { name: /The Arcade/ }).click();

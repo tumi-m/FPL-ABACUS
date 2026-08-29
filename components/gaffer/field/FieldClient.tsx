@@ -1249,43 +1249,39 @@ function tokenLine(row: SquadRow): { text: string; title: string } {
 }
 
 /**
- * The one expectation figure a token carries.
+ * The two expectation figures a token carries.
  *
- * This grew to four across two lines — xG, xA, their sum, and xGC — and four
- * figures on fifteen tokens is sixty numbers on one screen, which is a
- * spreadsheet rather than a pitch. A token has room to answer one question
- * well; the rest belongs where there is space to lay it out, which is the
- * sheet a tap opens.
+ * This has been through both extremes. Four figures across two lines — xG, xA,
+ * their sum, and xGC — put sixty numbers on one screen and made a pitch read
+ * as a spreadsheet. Cutting to one per position went too far the other way:
+ * the two questions are not alternatives, they are the two ends of the same
+ * player. What is he worth going forward, and what is his team letting in
+ * behind him. A defender on a clean sheet with xGI .13 is a different asset
+ * from one on the same xGI whose side is shipping two a game.
  *
- * The one that survives is the one the position is judged by. A keeper and a
- * defender live on what gets past them, so they keep xGC; a midfielder or a
- * forward is read by what he is worth at the other end, so they keep xGI —
- * the headline, with its xG and xA split one tap away.
+ * So both, on one line, for every position. It is one line either way, which
+ * is the whole point — the split that explains xGI, the saves, the defensive
+ * contributions and the season all live in the sheet a tap opens, where there
+ * is room to lay them out.
+ *
+ * xGI is summed from xG and xA rather than read from FPL's own field, so the
+ * headline can never disagree with the split the sheet shows underneath. A
+ * keeper's xGI is very near nought for the whole of his career; that is a true
+ * thing about keepers rather than a gap in the data, and the xGC beside it is
+ * the figure he is actually read by.
  */
 function tokenExpectation(row: SquadRow): { text: string; title: string } {
   const live = row.liveStats;
-  const defensive = row.pos === 1 || row.pos === 2;
-
-  if (defensive) {
-    const xgc = live ? live.xgc : row.xgc90;
-    return {
-      text: xgc == null ? "\u00a0" : `xGC ${fmt90(xgc)}`,
-      title: live
-        ? "Expected goals conceded while he was on, this gameweek"
-        : "The fixture model's expected goals against for this match — tap for the rest",
-    };
-  }
-
   const xg = live ? live.xg : row.xg90;
   const xa = live ? live.xa : row.xa90;
-  if (xg == null && xa == null) return { text: "\u00a0", title: "" };
+  const xgc = live ? live.xgc : row.xgc90;
+  if (xg == null && xa == null && xgc == null) return { text: "\u00a0", title: "" };
+  const xgi = xg == null && xa == null ? null : (xg ?? 0) + (xa ?? 0);
   return {
-    // Summed from xG and xA rather than read from FPL's own field, so the
-    // headline can never disagree with the split the sheet shows underneath.
-    text: `xGI ${fmt90((xg ?? 0) + (xa ?? 0))}`,
+    text: `xGI ${fmt90(xgi)} · xGC ${fmt90(xgc)}`,
     title: live
-      ? "Expected goal involvements this gameweek — expected goals plus expected assists. Tap for the split."
-      : "Season expected goal involvements per 90 — expected goals plus expected assists. Tap for the split.",
+      ? "This gameweek — expected goal involvements (goals plus assists) and expected goals conceded while he was on. Tap for the split."
+      : "Season expected goal involvements per 90, and the fixture model's expected goals against for this match. Tap for the split.",
   };
 }
 
