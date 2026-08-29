@@ -13,6 +13,7 @@ import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getFixturesAll, getHistory, getPicks } from "@/lib/fpl/endpoints";
 import { buildSolverContext, computeFreeTransfers } from "@/lib/server/buildBoardDesk";
 import { buildTicker } from "@/lib/engines/planner";
+import type { ValuePoint } from "@/lib/engines/teamValue";
 import type {
   PlannerClub,
   PlannerGw,
@@ -53,6 +54,26 @@ export interface PlannerData {
   ticker: Ticker;
   bankTenths: number;
   squadValueTenths: number;
+  /**
+   * Team value at every deadline so far, oldest first. FPL writes one row per
+   * gameweek and never revises it, so this is the only record of what a side
+   * was worth in week three — the bootstrap knows today's prices and nothing
+   * else. Empty when the history call fails; the value surfaces then fall back
+   * to the live figure with no trail behind it.
+   */
+  valueSeries: ValuePoint[];
+  /**
+   * Team value — squad at selling prices plus bank, FPL's own definition.
+   *
+   * Taken from the history row rather than summed here whenever there is one.
+   * `squadValueTenths` above falls back to `now_cost` when the picks endpoint
+   * will not give us selling prices, and `now_cost` ignores the rule that you
+   * only bank half of a rise — so summing it overstates a profitable squad by
+   * however much it has made. FPL has already done the arithmetic correctly at
+   * the last deadline, and prices only move overnight, so its figure is both
+   * righter and the one the user will compare against.
+   */
+  teamValueTenths: number;
   freeTransfers: number;
   /** True when the picks endpoint refused us — the planner degrades to market only. */
   squadUnavailable: boolean;
@@ -171,10 +192,20 @@ export async function buildPlanner(teamId: number, weeks = HORIZON): Promise<Pla
 
   let bankTenths = 0;
   let freeTransfers = 1;
+  let valueSeries: ValuePoint[] = [];
+  let teamValueTenths = 0;
   if (historyRes.status === "fulfilled") {
     const history = historyRes.value;
     bankTenths = history.current[history.current.length - 1]?.bank ?? 0;
     freeTransfers = computeFreeTransfers(history.current, history.chips, currentGw);
+    // FPL's `value` is already squad-plus-bank at that deadline, the same
+    // quantity the site calls Team Value — no adding of `bank` on top.
+    teamValueTenths = history.current[history.current.length - 1]?.value ?? 0;
+    valueSeries = history.current.map((row) => ({
+      gw: row.event,
+      totalTenths: row.value,
+      bankTenths: row.bank,
+    }));
   }
 
   const wallGw = boot.chips.length ? Math.min(...boot.chips.map((ch) => ch.stop_event)) : null;
@@ -203,6 +234,8 @@ export async function buildPlanner(teamId: number, weeks = HORIZON): Promise<Pla
     ticker,
     bankTenths,
     squadValueTenths,
+    valueSeries,
+    teamValueTenths: teamValueTenths || squadValueTenths + bankTenths,
     freeTransfers,
     squadUnavailable: picksRes.status !== "fulfilled" || squad.length === 0,
   };

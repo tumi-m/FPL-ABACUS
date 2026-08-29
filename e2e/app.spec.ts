@@ -1098,6 +1098,41 @@ test.describe("authenticated routes", () => {
     await expect(watch.getByText(/every figure is an estimate/)).toBeVisible();
   });
 
+  test("price watch leads with team value and the squad's price ledger", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/planner");
+    await page.getByRole("button", { name: "Price watch" }).click();
+
+    const board = page.getByRole("region", { name: "Team value" });
+    await expect(board).toBeVisible();
+    // The headline is a money figure and the change is measured against the
+    // budget everyone opened on, not against the first week played.
+    await expect(board.getByText(/^£\d+\.\d+m$/).first()).toBeVisible();
+    await expect(board.getByText(/since the £100\.0m everyone started on/)).toBeVisible();
+    // The caveat that stops the ledger below being read as profit.
+    await expect(board.getByText(/Selling banks only half a player.s rise/)).toBeVisible();
+
+    await expect(board.getByText("What each has done since GW1")).toBeVisible();
+    await expect(board.getByText("Season's biggest risers")).toBeVisible();
+    await expect(board.getByText("Season's biggest fallers")).toBeVisible();
+
+    // Team value also has to be on the plan bar itself, on every width — it
+    // used to be labelled "squad value" and hidden below a large breakpoint.
+    // a <dl> maps to no ARIA role, so it is addressed by its label directly
+    const bar = page.locator('dl[aria-label="Plan resources"]');
+    await expect(bar.getByText("Team value")).toBeVisible();
+  });
+
+  test("my team header states value, its change, and the two halves apart", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/squad");
+    // FPL's `value` already includes the bank, so the two must never be
+    // printed as if a reader should add them.
+    await expect(page.getByText("Team value")).toBeVisible();
+    await expect(page.getByText("Since GW1")).toBeVisible();
+    await expect(page.getByText(/Squad . bank/)).toBeVisible();
+  });
+
   test("planner keeps independent plan slots", async ({ page }) => {
     await asTeam(page);
     await page.goto("/planner");

@@ -8,6 +8,8 @@ import { PlannerPitch, type PitchMode, type PitchSlot } from "@/components/gaffe
 import { MarketPanel } from "@/components/gaffer/planner/MarketPanel";
 import { FixtureTicker } from "@/components/gaffer/planner/FixtureTicker";
 import { PriceWatch } from "@/components/gaffer/planner/PriceWatch";
+import { TeamValueBoard } from "@/components/gaffer/planner/TeamValueBoard";
+import { fmtDeltaM, fmtM, readTeamValue, type PriceMove, type ValuePoint } from "@/lib/engines/teamValue";
 import { ChipLane } from "@/components/gaffer/planner/ChipLane";
 import { AvatarToggle, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import {
@@ -137,6 +139,32 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
   const workingIds = React.useMemo(() => applyMoves(baseIds, moves), [baseIds, moves]);
   const ownedIds = React.useMemo(() => new Set(workingIds), [workingIds]);
 
+  /* Market rows carry everything the price ledger needs; this is the shape
+     change, not a second source. */
+  const toMove = React.useCallback(
+    (p: PlannerPlayer): PriceMove => ({
+      id: p.id,
+      name: p.name,
+      code: p.code,
+      photo: p.photo,
+      pos: p.pos,
+      teamId: p.team,
+      costTenths: p.cost,
+      startTenths: p.costChangeStart,
+      eventTenths: p.costChangeEvent,
+      netTransfers: p.netTransfers,
+    }),
+    [],
+  );
+  const marketMoves = React.useMemo(() => data.players.map(toMove), [data.players, toMove]);
+  /* The ledger reads the side you actually own, not the one you are planning:
+     team value is what FPL would pay you today, and a staged transfer has not
+     happened. */
+  const ownedMoves = React.useMemo(() => {
+    const owned = new Set(data.squad.map((sl) => sl.element));
+    return marketMoves.filter((m) => owned.has(m.id));
+  }, [marketMoves, data.squad]);
+
   const weeks = MODES.find((m) => m.key === mode)?.weeks ?? 3;
 
   const summary = React.useMemo(
@@ -264,7 +292,8 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
         summary={summary}
         freeTransfers={data.freeTransfers}
         weeks={weeks}
-        squadValueTenths={data.squadValueTenths}
+        teamValueTenths={data.teamValueTenths}
+        valueSeries={data.valueSeries}
       />
 
       {/* plan slots — one desk per strategy, all device-local */}
@@ -428,7 +457,18 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
       )}
 
       {tab === "prices" && (
-        <PriceWatch players={data.players} clubs={data.clubs} ownedIds={ownedIds} />
+        <div className="space-y-4">
+          {/* What the week's traffic is worth to you, before who is close to
+              moving tonight: the ledger is the reason to care about the watch. */}
+          <TeamValueBoard
+            teamValueTenths={data.teamValueTenths}
+            bankTenths={data.bankTenths}
+            valueSeries={data.valueSeries}
+            ownedMoves={ownedMoves}
+            marketMoves={marketMoves}
+          />
+          <PriceWatch players={data.players} clubs={data.clubs} ownedIds={ownedIds} />
+        </div>
       )}
 
       <p className="text-2xs leading-relaxed text-ink-lo">
@@ -443,14 +483,23 @@ function PlanHeader({
   summary,
   freeTransfers,
   weeks,
-  squadValueTenths,
+  teamValueTenths,
+  valueSeries,
 }: {
   summary: ReturnType<typeof summarisePlan>;
   freeTransfers: number;
   weeks: number;
-  squadValueTenths: number;
+  teamValueTenths: number;
+  valueSeries: ValuePoint[];
 }) {
   const overdrawn = summary.bankTenths < 0;
+  /* What you are worth now, not what a staged plan would make you worth — a
+     transfer sitting in the ledger has not happened, so it must not move the
+     figure this bar reports as your team value. */
+  const value = readTeamValue(valueSeries, {
+    totalTenths: teamValueTenths,
+    bankTenths: summary.bankTenths,
+  });
   return (
     <dl
       aria-label="Plan resources"
@@ -494,10 +543,27 @@ function PlanHeader({
           )}
         </dd>
       </div>
-      <div className="hidden lg:block">
-        <dt className="upper-label text-2xs text-ink-lo">Squad value</dt>
-        <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">
-          £{((squadValueTenths + summary.bankTenths) / 10).toFixed(1)}m
+      {/*
+       * Team value, named correctly and on every screen.
+       *
+       * It read "Squad value" over a figure that was squad plus bank — which
+       * is team value, the number FPL itself shows — so the two quantities on
+       * this bar double-counted the bank to anyone reading it literally. And
+       * it was hidden below lg, meaning the one figure that says whether a
+       * season of transfers has paid for itself was absent on a phone, which
+       * is where the planner is mostly used.
+       */}
+      <div>
+        <dt className="upper-label text-2xs text-ink-lo">Team value</dt>
+        <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">{fmtM(teamValueTenths)}</dd>
+        <dd
+          className={cn(
+            "mt-0.5 text-2xs num-tabular",
+            value.changeTenths === 0 ? "text-ink-lo" : value.changeTenths > 0 ? "text-surge" : "text-flare",
+          )}
+          title="Against the £100.0m every manager started the season on"
+        >
+          {fmtDeltaM(value.changeTenths)}
         </dd>
       </div>
     </dl>

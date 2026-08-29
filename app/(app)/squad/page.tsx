@@ -10,6 +10,7 @@ import { CrestBadge } from "@/components/gaffer/CrestBadge";
 import { Badge } from "@/components/primitives/Badge";
 import { KitWeave } from "@/components/generative/KitWeave";
 import { COPY } from "@/lib/copy/deck";
+import { fmtDeltaM, fmtM, STARTING_BUDGET_TENTHS } from "@/lib/engines/teamValue";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My team" };
@@ -64,11 +65,48 @@ export default async function SquadPage() {
     <div className="space-y-4">
       <div className="relative overflow-hidden rounded-lg has-gloss card-lift bg-raised px-5 py-4">
         <KitWeave teamIds={squadTeamIds} />
-        <header className="relative flex flex-wrap items-baseline justify-between gap-2">
+        <header className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <h1 className="fig-num text-[22px] leading-none">My team</h1>
-          <p className="upper-label text-2xs text-ink-lo num-tabular">
-            Value £{(value / 10).toFixed(1)}m · Bank £{(bank / 10).toFixed(1)}m · Transfers {totalTransfers}
-          </p>
+          {/*
+           * Team value, spelled out.
+           *
+           * This was "Value £100.4m · Bank £0.5m", two figures that read as if
+           * they add up — and FPL's `value` already includes the bank, so a
+           * reader doing the obvious sum was half a million out. The total is
+           * the headline now, its two halves sit underneath it, and the change
+           * against the hundred everyone opened on is the part that actually
+           * tells you whether the season's transfers have paid.
+           */}
+          <dl className="flex flex-wrap items-end gap-x-5 gap-y-2">
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">Team value</dt>
+              <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">{fmtM(value)}</dd>
+            </div>
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">Since GW1</dt>
+              <dd
+                className={`fig-num mt-0.5 text-xl leading-none ${
+                  value === STARTING_BUDGET_TENTHS
+                    ? "text-ink-mid"
+                    : value > STARTING_BUDGET_TENTHS
+                      ? "text-surge"
+                      : "text-flare"
+                }`}
+              >
+                {fmtDeltaM(value - STARTING_BUDGET_TENTHS)}
+              </dd>
+            </div>
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">Squad · bank</dt>
+              <dd className="mt-0.5 text-sm leading-none text-ink-mid num-tabular">
+                {fmtM(value - bank)} · {fmtM(bank)}
+              </dd>
+            </div>
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">Transfers</dt>
+              <dd className="mt-0.5 text-sm leading-none text-ink-mid num-tabular">{totalTransfers}</dd>
+            </div>
+          </dl>
         </header>
       </div>
 
