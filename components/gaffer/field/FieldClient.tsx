@@ -1201,39 +1201,13 @@ function fmt90(v: number | null | undefined): string {
 }
 
 /**
- * The one line under a player's name, and what it should say.
- *
- * It used to be "xG .00 · xGC .00" whatever was happening, on the reasoning
- * that a consistent line keeps the points pills aligned. In practice thirteen
- * of the fifteen tokens on a pitch read exactly that — a wall of zeroes that
- * is the most repeated text on the screen and the least informative, because
- * a player whose match has not kicked off has no expectation to report and a
- * player who has done nothing has already told you so with a nought.
- *
- * So the line answers the question the reader actually has at that moment:
- *   before kick-off   who he plays, home or away
- *   on the pitch      how long he has been on, and what he has threatened
- *   came off / done   the same, in the past tense
- *   never came on     that, plainly
- *
- * The threat figure follows the position, because it is a different question
- * at each end: a forward is judged on the chances he gets (xG), a keeper or
- * defender on the ones his team gives up (xGC). Showing both to everybody was
- * how one of the two ended up meaningless on every token.
- *
- * Nothing here invents a number. Every branch reads a figure the feed gives
- * us, and a branch with nothing to report says nothing rather than "0.00".
- */
-/**
  * The number on a token: what this player put on YOUR scoreboard.
  *
  * It was the raw player score, so a captain showed eight where he had earned
  * you sixteen — and the pitch therefore did not add up to the total printed
  * above it, which is the one arithmetic a reader will actually check. Every
- * other surface in the app already multiplies: the hero figure, the compare
- * scoreline, the gap breakdown, `contribution()` in the charts. The pitch was
- * the last place still reporting the raw figure, and the only place where the
- * discrepancy was visible.
+ * other surface already multiplies: the hero figure, the compare scoreline,
+ * the gap breakdown, `contribution()` in the charts.
  *
  * Multiplier rather than isCaptain, because a vice who inherits the armband
  * has the multiplier and not the flag, and a triple captain has three.
@@ -1247,22 +1221,19 @@ function tokenScore(row: SquadRow): number {
   return row.multiplier > 0 ? row.livePoints * row.multiplier : row.livePoints;
 }
 
+/**
+ * Line three: where this player is in his week.
+ *
+ * Before kick-off the useful fact is who he plays and whether it is away;
+ * once he is on it is how long he has been on; afterwards the same in the past
+ * tense, or plainly that he never came on. It used to carry a threat figure
+ * too, which turned out to be the wrong place for it — see tokenExpectation.
+ */
 function tokenLine(row: SquadRow): { text: string; title: string } {
-  const defensive = row.pos === 1 || row.pos === 2;
-  const live = row.liveStats;
-  const threat = live
-    ? defensive
-      ? live.xgc
-      : live.xg
-    : defensive
-      ? row.xgc90
-      : row.xg90;
-  const label = defensive ? "xGC" : "xG";
-
   if (row.fixtureState === "pre") {
     const opp = row.opponentShort;
     return {
-      text: opp && opp !== "—" ? (opp.startsWith("@") ? opp : `v ${opp}`) : "\u00a0",
+      text: opp && opp !== "\u2014" ? (opp.startsWith("@") ? opp : `v ${opp}`) : "\u00a0",
       title: "This gameweek's fixture — @ means away",
     };
   }
@@ -1270,23 +1241,40 @@ function tokenLine(row: SquadRow): { text: string; title: string } {
   if (row.minutes <= 0) {
     return {
       text: row.fixtureState === "done" ? "did not play" : "not on",
-      title:
-        row.fixtureState === "done"
-          ? "No minutes in this gameweek"
-          : "Has not come on yet",
+      title: row.fixtureState === "done" ? "No minutes in this gameweek" : "Has not come on yet",
     };
   }
 
-  const mins = `${row.minutes}'`;
-  // A zero is worth saying only where it is a fact rather than an absence:
-  // once a player is on, "no threat yet" is information. Before that it is not.
-  const figure =
-    threat != null && Number.isFinite(threat) && threat > 0 ? ` · ${label} ${fmt90(threat)}` : "";
+  return { text: `${row.minutes}'`, title: "Minutes played this gameweek" };
+}
+
+/**
+ * Line four: both expectation figures, for every player, always.
+ *
+ * I collapsed these to one — xG for attackers, xGC for defenders — on the
+ * argument that only one of the pair is the question at each end of the pitch.
+ * That was wrong twice over. It threw away a number the reader had been using,
+ * and it was justified by a case that mostly is not real: pre-kick-off these
+ * are the season per-90 and the fixture model's expected goals against, and
+ * those are rarely nought. Only a live gameweek in which a player has yet to
+ * touch the ball produces the row of zeroes I was reacting to, and that is a
+ * few minutes of a Saturday, not the default.
+ *
+ * So both, and on their own line, where neither has to fight the minutes for
+ * room. Live figures once the feed has him; the season and fixture-model
+ * expectation before that, which the tooltip distinguishes because they are
+ * genuinely different quantities.
+ */
+function tokenExpectation(row: SquadRow): { text: string; title: string } {
+  const live = row.liveStats;
+  const xg = live ? live.xg : row.xg90;
+  const xgc = live ? live.xgc : row.xgc90;
+  const nothing = xg == null && xgc == null;
   return {
-    text: `${mins}${figure}`,
-    title: figure
-      ? `Minutes played · this gameweek's ${defensive ? "expected goals conceded while he was on" : "expected goals"}, from the FPL/Opta feed`
-      : "Minutes played this gameweek",
+    text: nothing ? "\u00a0" : `xG ${fmt90(xg)} · xGC ${fmt90(xgc)}`,
+    title: live
+      ? "This gameweek's expected goals and expected goals conceded, from the FPL/Opta feed"
+      : "Season expected goals per 90 · the fixture model's expected goals against for this match",
   };
 }
 
@@ -1302,6 +1290,7 @@ export function ShirtToken({
   const club = clubOf(row.teamId);
   const done = row.fixtureState === "done";
   const line = tokenLine(row);
+  const expectation = tokenExpectation(row);
   const live = row.fixtureState === "live";
   const val = modeValue(row, mode, swing, lev, webMean, riskShare);
   const defconPct = row.defconThreshold < 99 ? Math.min(1, row.defconCount / row.defconThreshold) : 0;
@@ -1623,15 +1612,22 @@ export function ShirtToken({
           )}
         </span>
 
-        {/* Where this player is in his week. See tokenLine — always rendered
-            so the plates stay the same height across a row, but it only ever
-            carries something a reader can act on. */}
+        {/* Where he is in his week, then what he is expected to do. Both
+            slots always render so the plates keep one height across a row —
+            see tokenLine and tokenExpectation. */}
         <span
           className="mt-[calc(2*var(--s))] block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none num-tabular"
           style={{ color: "rgba(255,255,255,.58)" }}
           title={line.title}
         >
           {line.text}
+        </span>
+        <span
+          className="mt-[calc(1*var(--s))] block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none num-tabular"
+          style={{ color: "rgba(255,255,255,.50)" }}
+          title={expectation.title}
+        >
+          {expectation.text}
         </span>
       </span>
     </div>
