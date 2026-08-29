@@ -594,12 +594,17 @@ test.describe("authenticated routes", () => {
     // is a legend nobody reads.
     const key = page.locator("details").filter({ hasText: "all marks" }).first();
     await expect(key).toBeVisible();
-    for (const mark of ["Goal", "Assist", "Bonus", "Clean sheet", "Saves"]) {
+    // The defence-bonus ring is in the unopened row because it is the only
+    // ring an ordinary Points pitch draws — it appeared on a player with no
+    // explanation anywhere, which is worse than not drawing it.
+    for (const mark of ["Goal", "Assist", "Bonus", "Clean sheet", "Saves", "Defence bonus"]) {
       await expect(key.getByText(mark, { exact: true }).first()).toBeVisible();
     }
     // and the rarer marks are one tap away
     await key.getByText("all marks").click();
-    await expect(key.getByRole("listitem").filter({ hasText: "DEFCON ring" })).toBeVisible();
+    for (const mark of ["Defensive contributions", "Defence bonus banked", "Booking"]) {
+      await expect(key.getByRole("listitem").filter({ hasText: mark }).first()).toBeVisible();
+    }
   });
 
   test("risk carries the treatment table with the injury and the return date", async ({ page }) => {

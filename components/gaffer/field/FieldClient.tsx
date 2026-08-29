@@ -1716,8 +1716,21 @@ function ComparePitch({
 
   return (
     <div className="relative space-y-2.5">
-      {/* far end — the rival's name over their goal */}
-      <p className="text-center text-2xs uppercase-label text-ultra">{rival.teamName ?? `Entry ${rival.entry}`}</p>
+      {/*
+       * The rival's name over their goal, on a plate of its own.
+       *
+       * It was bare text in the normal flow, sitting exactly where the chalk
+       * draws the goal and the six-yard box — so a white line ran through the
+       * middle of somebody's team name and the whole thing read as clipped.
+       * The halfway band already solved this problem once; the far end gets
+       * the same treatment rather than a second answer to it.
+       */}
+      <div className="flex justify-center">
+        <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[rgba(4,18,31,.58)] px-3 py-1 text-2xs uppercase-label text-ultra ring-1 ring-[rgba(255,255,255,.16)]">
+          <span className="truncate">{rival.teamName ?? `Entry ${rival.entry}`}</span>
+          <span aria-hidden>↓</span>
+        </span>
+      </div>
       {/* far half — the rival's XI with real live data, GK at the top edge */}
       {rivalBands.map((band, i) => (
         <ul key={`rv${i}`} className={ROW}>
