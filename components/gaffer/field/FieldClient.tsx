@@ -1249,32 +1249,44 @@ function tokenLine(row: SquadRow): { text: string; title: string } {
 }
 
 /**
- * Line four: both expectation figures, for every player, always.
+ * Lines four and five: what he was expected to do, in four figures.
  *
- * I collapsed these to one — xG for attackers, xGC for defenders — on the
- * argument that only one of the pair is the question at each end of the pitch.
- * That was wrong twice over. It threw away a number the reader had been using,
- * and it was justified by a case that mostly is not real: pre-kick-off these
- * are the season per-90 and the fixture model's expected goals against, and
- * those are rarely nought. Only a live gameweek in which a player has yet to
- * touch the ball produces the row of zeroes I was reacting to, and that is a
- * few minutes of a Saturday, not the default.
+ * xGI is the headline a manager scans and xG and xA are the split that
+ * explains it — a forward on .40 xGI who creates none of it is a different
+ * player from a midfielder on .40 who creates all of it, and one figure cannot
+ * tell you which you own. xGC is the other end of the same question and the
+ * only one that matters for a keeper or a defender.
  *
- * So both, and on their own line, where neither has to fight the minutes for
- * room. Live figures once the feed has him; the season and fixture-model
- * expectation before that, which the tooltip distinguishes because they are
- * genuinely different quantities.
+ * Four will not fit on one line inside a 76px token without truncating, and a
+ * truncated number is worse than no number, so they take two lines of two: the
+ * split above, the totals below.
+ *
+ * Live figures once the feed has him, season-and-fixture expectation before
+ * that; the tooltip says which, because they are different quantities. xGI is
+ * summed rather than read from FPL's own expected_goal_involvements so that it
+ * always equals the xG and xA printed beside it — a headline that disagrees
+ * with its own parts is the one thing this must not do. On the season side
+ * both halves carry the same shrinkage, so their sum is shrunk consistently.
  */
-function tokenExpectation(row: SquadRow): { text: string; title: string } {
+function tokenExpectation(row: SquadRow): {
+  split: string;
+  totals: string;
+  title: string;
+} {
   const live = row.liveStats;
   const xg = live ? live.xg : row.xg90;
+  const xa = live ? live.xa : row.xa90;
   const xgc = live ? live.xgc : row.xgc90;
-  const nothing = xg == null && xgc == null;
+  const xgi =
+    xg == null && xa == null ? null : (xg ?? 0) + (xa ?? 0);
+
+  const nothing = xg == null && xa == null && xgc == null;
   return {
-    text: nothing ? "\u00a0" : `xG ${fmt90(xg)} · xGC ${fmt90(xgc)}`,
+    split: nothing ? "\u00a0" : `xG ${fmt90(xg)} · xA ${fmt90(xa)}`,
+    totals: nothing ? "\u00a0" : `xGI ${fmt90(xgi)} · xGC ${fmt90(xgc)}`,
     title: live
-      ? "This gameweek's expected goals and expected goals conceded, from the FPL/Opta feed"
-      : "Season expected goals per 90 · the fixture model's expected goals against for this match",
+      ? "This gameweek, from the FPL/Opta feed — expected goals, expected assists, their sum, and expected goals conceded while he was on"
+      : "Season per 90 — expected goals, expected assists and their sum — with the fixture model's expected goals against for this match",
   };
 }
 
@@ -1632,7 +1644,13 @@ export function ShirtToken({
           className="mt-[calc(1*var(--s))] block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none text-ink-lo num-tabular"
           title={expectation.title}
         >
-          {expectation.text}
+          {expectation.split}
+        </span>
+        <span
+          className="mt-[calc(1*var(--s))] block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none text-ink-lo num-tabular"
+          title={expectation.title}
+        >
+          {expectation.totals}
         </span>
       </span>
     </div>

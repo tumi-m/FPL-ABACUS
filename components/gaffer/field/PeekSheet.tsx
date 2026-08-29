@@ -185,6 +185,21 @@ export function PeekSheet({
                 {row.liveStats ? `${row.liveStats.xg.toFixed(2)} · ${row.liveStats.xa.toFixed(2)}` : "—"}
               </dd>
             </div>
+            {/* The sheet has room the token does not, so the sum gets a cell
+                of its own rather than being left for the reader to do. Summed
+                from the two above so it can never disagree with them. */}
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">xGI</dt>
+              <dd className="mt-0.5 num-tabular text-ink-hi">
+                {row.liveStats ? (row.liveStats.xg + row.liveStats.xa).toFixed(2) : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="upper-label text-2xs text-ink-lo">xGC</dt>
+              <dd className="mt-0.5 num-tabular text-ink-hi">
+                {row.liveStats ? row.liveStats.xgc.toFixed(2) : "—"}
+              </dd>
+            </div>
             <div>
               <dt className="upper-label text-2xs text-ink-lo">Clean sheet</dt>
               <dd className="mt-0.5 num-tabular text-ink-hi">

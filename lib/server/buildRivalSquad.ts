@@ -133,6 +133,7 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
       },
       teamId: meta?.team ?? 0,
       xg90: meta?.xg90 ?? null,
+      xa90: meta?.xa90 ?? null,
       xgc90:
         meta && fx && oppId
           ? Math.round(projectFixture(fxModel, meta.team, oppId, isHome).xgAgainst * 100) / 100
