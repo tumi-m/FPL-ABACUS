@@ -1532,11 +1532,10 @@ export function ShirtToken({
        */}
       <span
         className="mt-[calc(3*var(--s))] block w-full overflow-hidden rounded-md px-[calc(4*var(--s))] py-[calc(3*var(--s))] text-left"
-        style={{ background: "var(--surface-on-turf)" }}
+        style={{ background: "var(--plate)" }}
       >
         <span
-          className="block truncate text-[calc(11*var(--s))] font-semibold leading-tight"
-          style={{ color: "var(--ink-on-dark)" }}
+          className="block truncate text-[calc(11*var(--s))] font-semibold leading-tight text-ink-hi"
         >
           {row.webName}
         </span>
@@ -1547,14 +1546,23 @@ export function ShirtToken({
           <span
             className={cn(
               "inline-block shrink-0 skewed rounded-sm px-[calc(5*var(--s))] py-px text-center text-[calc(12*var(--s))] font-extrabold num-tabular",
-              done && "bg-score-turf text-on-accent",
+              /* A fixed near-white plate needs a fixed dark ink. text-on-accent
+                 is dark ON the turf and WHITE off it, so on the bench in light
+                 mode a finished score was white on near-white. */
+              done && "bg-score-turf",
               live && val.tone === "volt" && "bg-volt text-on-accent",
               !done && !live && "text-ink-mid",
               val.tone === "surge" && !done && "bg-transparent text-surge",
               val.tone === "flare" && !done && "bg-transparent text-flare",
               val.tone === "ultra" && !done && "bg-transparent text-ultra",
             )}
-            style={!done && !live ? { background: "rgba(255,255,255,.10)" } : undefined}
+            style={
+              done
+                ? { color: "var(--ink-fixed-dark)" }
+                : !live
+                  ? { background: "var(--plate-chip)" }
+                  : undefined
+            }
             title={
               mode !== "points"
                 ? undefined
@@ -1598,8 +1606,7 @@ export function ShirtToken({
            */}
           {mode === "points" && (
             <span
-              className="min-w-0 truncate text-[calc(9*var(--s))] leading-none num-tabular"
-              style={{ color: "rgba(255,255,255,.62)" }}
+              className="min-w-0 truncate text-[calc(9*var(--s))] leading-none text-ink-lo num-tabular"
               title={
                 eoEstimated
                   ? "Estimated effective ownership — no cohort sample yet"
@@ -1616,15 +1623,13 @@ export function ShirtToken({
             slots always render so the plates keep one height across a row —
             see tokenLine and tokenExpectation. */}
         <span
-          className="mt-[calc(2*var(--s))] block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none num-tabular"
-          style={{ color: "rgba(255,255,255,.58)" }}
+          className="mt-[calc(2*var(--s))] block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none text-ink-lo num-tabular"
           title={line.title}
         >
           {line.text}
         </span>
         <span
-          className="mt-[calc(1*var(--s))] block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none num-tabular"
-          style={{ color: "rgba(255,255,255,.50)" }}
+          className="mt-[calc(1*var(--s))] block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none text-ink-lo num-tabular"
           title={expectation.title}
         >
           {expectation.text}

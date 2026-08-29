@@ -258,6 +258,21 @@
   --defcon-hit-on-dark:#FFE27A;
   /* the ink that sits ON one of those accent fills */
   --on-accent-on-dark:#04121F;
+  /*
+   * The player plate, and why it is a variable rather than a fixed colour.
+   *
+   * The plate started as --surface-on-turf, a translucent dark, on the
+   * reasoning that it "carries its own contrast". It does not: translucency
+   * borrows whatever is behind it, so on dark green it read dark and on the
+   * bench's white card it composited to mid-grey with near-white text on top
+   * of it — the worst legibility on the page, in the one place the pitch's
+   * inks do not apply. So the plate is a context variable: .on-turf sets the
+   * dark pair, everywhere else takes the theme's own recessed surface, and
+   * the ink comes from text-ink-* which .on-turf already restates correctly.
+   */
+  --plate: var(--bg-sunk);
+  --plate-chip: var(--surface-3);
+
   /* and the surface for chrome drawn on the grass itself */
   --surface-on-turf:rgba(4,18,31,.62);
   /* A finished score is not a "gain", and it should never have borrowed
@@ -710,6 +725,9 @@
    here instead, so a component added to the turf later cannot forget. The
    dark theme's inks are already light, so this only pins them. */
 .on-turf{
+  /* the plate and the chip inside it — fixed, because grass is dark in both themes */
+  --plate: var(--surface-on-turf);
+  --plate-chip: rgba(255,255,255,.14);
   --ink-hi: var(--ink-on-dark);
   --ink-mid: rgba(255,255,255,.80);
   --ink-lo: rgba(255,255,255,.64);
