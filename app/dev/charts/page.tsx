@@ -190,6 +190,7 @@ function squadFixture() {
     subbedOutFor: null,
     teamId: n.teamId,
     eo: n.eo,
+    xa90: null,
     xg90: null,
     xgc90: null,
     photo: "",

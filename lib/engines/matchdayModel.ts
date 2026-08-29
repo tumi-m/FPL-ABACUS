@@ -47,6 +47,15 @@ export interface SquadRow {
   photo: string;
   /** Season xG per 90 (shrunk) — the scoring expectation under the face. */
   xg90: number | null;
+  /**
+   * Season xA per 90, shrunk the same way as xg90.
+   *
+   * bootstrapLite has computed this all along; it simply never reached the
+   * squad row, so the pitch could show what a player was expected to score and
+   * not what he was expected to create — which is most of what a midfielder is
+   * for.
+   */
+  xa90: number | null;
   /** Team expected goals conceded for this fixture (fixture model, per 90). */
   xgc90: number | null;
   /** Per-GW live stat line from the event feed — null before a player is involved. */
@@ -273,6 +282,7 @@ export function composeMatchdayModel(deps: {
       eo: round1(eoOf(p.element)),
       photo: meta?.photo ?? "",
       xg90: meta?.xg90 ?? null,
+      xa90: meta?.xa90 ?? null,
       xgc90:
         meta && fx && oppId
           ? Math.round(projectFixture(fxModel, meta.team, oppId, isHome).xgAgainst * 100) / 100
