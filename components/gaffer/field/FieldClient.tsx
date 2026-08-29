@@ -460,6 +460,9 @@ export function FieldClient({
     starters.filter((s) => s.pos === pos).sort((a, b) => b.multiplier - a.multiplier),
   );
   const bench = model.squad.filter((s) => s.onBench);
+  /* EO is a sampled cohort when the snapshot exists and an estimated prior
+     otherwise; the token marks the difference rather than hiding it. */
+  const eoEstimated = model.leverage.eoSource !== "cohort";
   const benchPts = model.hero.benchPoints;
   const benchBoost = model.hero.chip === "bboost";
 
@@ -808,14 +811,35 @@ export function FieldClient({
             boxShadow: "inset 0 -48px 80px -48px rgba(0,0,0,.75), inset 0 1px 0 rgba(230,248,255,.10)",
           }}
         >
-          {/* 1px chalk markings at 40% — white on green, like the real thing */}
-          <svg aria-hidden className="pointer-events-none absolute inset-0 h-full w-full opacity-40" preserveAspectRatio="none" viewBox="0 0 100 100">
-            <g fill="none" stroke="rgba(240,250,245,.85)" strokeWidth="0.25">
-              <rect x="4" y="4" width="92" height="92" />
-              <line x1="4" y1="50" x2="96" y2="50" />
-              <circle cx="50" cy="50" r="9" />
-              <rect x="26" y="4" width="48" height="14" />
-              <rect x="26" y="82" width="48" height="14" />
+          {/*
+           * Chalk: one half, the half the squad is actually standing on.
+           *
+           * This drew a whole pitch into the same box — halfway line straight
+           * through the midfield row, and a second penalty area under the
+           * forwards belonging to nobody. The rows run keeper at the top to
+           * forwards at the bottom, which is your own half, so that is what
+           * gets drawn: the goal and the eighteen-yard box around the keeper
+           * where he actually stands, and the centre circle breaking the
+           * bottom edge where the forwards are. Suddenly the shape under the
+           * players agrees with the players.
+           *
+           * Everything straight is drawn stretched, which is honest — a
+           * squashed pitch has squashed boxes. The two arcs are quadratics
+           * rather than circles for the same reason: a circle in a stretched
+           * viewBox is an ellipse pretending otherwise.
+           */}
+          <svg aria-hidden className="pointer-events-none absolute inset-0 h-full w-full opacity-55" preserveAspectRatio="none" viewBox="0 0 100 100">
+            <g fill="none" stroke="rgba(240,250,245,.9)" strokeWidth="0.35" strokeLinecap="square">
+              <rect x="2" y="2" width="96" height="96" />
+              {/* goal, six-yard box, eighteen-yard box — the keeper's furniture */}
+              <rect x="43" y="0.7" width="14" height="1.3" />
+              <rect x="36" y="2" width="28" height="8" />
+              <rect x="24" y="2" width="52" height="22" />
+              <path d="M 40 24 Q 50 30 60 24" />
+              <circle cx="50" cy="15" r="0.6" fill="rgba(240,250,245,.9)" stroke="none" />
+              {/* halfway, and the arc of the centre circle rising off it */}
+              <line x1="2" y1="98" x2="98" y2="98" />
+              <path d="M 30 98 Q 50 84 70 98" />
             </g>
           </svg>
 
@@ -846,7 +870,7 @@ export function FieldClient({
 
           {rival && rivalView === "field" ? (
             <ComparePitch
-              rows={rows} mode={mode} rival={rival}
+              rows={rows} mode={mode} rival={rival} eoEstimated={eoEstimated}
               swingByElement={swingByElement} leverageByElement={leverageByElement} sharedSet={sharedSet}
               onPeek={setPeekElement}
               avatar={avatar}
@@ -873,6 +897,7 @@ export function FieldClient({
                         className="block w-full rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
                       >
                         <ShirtToken
+                          eoEstimated={eoEstimated}
                           row={p}
                           mode={mode}
                           swing={swingByElement.get(p.element)}
@@ -944,6 +969,7 @@ export function FieldClient({
                   {off ? "OFF" : badge}
                 </span>
                 <ShirtToken
+                  eoEstimated={eoEstimated}
                   row={p}
                   mode={mode}
                   swing={swingByElement.get(p.element)}
@@ -1243,10 +1269,12 @@ function tokenLine(row: SquadRow): { text: string; title: string } {
 
 /** Player face in a club-rail frame with armband, DEFCON arc and state ring. */
 export function ShirtToken({
-  row, mode, swing, lev, webMean, riskShare, avatar = "face",
+  row, mode, swing, lev, webMean, riskShare, avatar = "face", eoEstimated = true,
 }: {
   row: SquadRow; mode: Mode; swing?: SwingRow; lev?: LevRow;
   webMean?: number; riskShare?: number; avatar?: AvatarMode;
+  /** True while EO is the prior rather than a sampled cohort — it gets a tilde. */
+  eoEstimated?: boolean;
 }) {
   const club = clubOf(row.teamId);
   const done = row.fixtureState === "done";
@@ -1475,58 +1503,104 @@ export function ShirtToken({
         })}
       />
 
-      <span className="mt-0.5 block truncate text-[calc(11*var(--s))] font-semibold text-ink-hi">{row.webName}</span>
-
-      {/* The one line that says where this player is in his week. See
-          tokenLine: the slot is always rendered, so the points pills stay on
-          one baseline across the row, but it only ever carries something a
-          reader can act on. */}
+      {/*
+       * One plate, not three things floating on grass.
+       *
+       * The name, the score and the context line were three separate stacks
+       * with three different treatments, painted straight onto a textured
+       * pitch — so fifteen players read as forty-five loose fragments and
+       * every one of them fought the turf for legibility. Grouping them onto a
+       * single dark plate is what makes a crowded pitch calm: the plate
+       * carries its own contrast, so it works on grass and on the bench's
+       * light card without either needing to know about the other.
+       *
+       * The score keeps a pill of its own inside it, because the fill is
+       * carrying state — settled, live, not yet — and that is worth more than
+       * the tidiness of flattening it into text.
+       */}
       <span
-        className="mt-0.5 block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none text-ink-lo num-tabular"
-        title={line.title}
+        className="mt-[calc(3*var(--s))] block w-full overflow-hidden rounded-md px-[calc(4*var(--s))] py-[calc(3*var(--s))] text-left"
+        style={{ background: "var(--surface-on-turf)" }}
       >
-        {line.text}
-      </span>
+        <span
+          className="block truncate text-[calc(11*var(--s))] font-semibold leading-tight"
+          style={{ color: "var(--ink-on-dark)" }}
+        >
+          {row.webName}
+        </span>
 
-      {/* value pill on the shoulder — points count up + wash on poll diffs; done fills, live pulses, pre outlines */}
-      <span
-        className={cn(
-          "mt-0.5 inline-block min-w-[calc(36*var(--s))] skewed rounded-sm px-1.5 py-px text-center text-[calc(12*var(--s))] font-extrabold num-tabular",
-          /* Finished: a scoreboard plate, not an accent. See --score-on-turf. */
-          done && "bg-score-turf text-on-accent",
-          live && val.tone === "volt" && "bg-volt text-on-accent",
-          /* Yet to kick off. The fill has to be a fixed dark chip, not
-             `bg-overlay`: overlay is white in the light theme and the turf
-             ink is near-white, so this pill was a white number on a white
-             pill for every player before his fixture started. */
-          !done && !live && "bg-on-turf text-ink-mid card-ring",
-          val.tone === "surge" && !done && "bg-transparent text-surge",
-          val.tone === "flare" && !done && "bg-transparent text-flare",
-          val.tone === "ultra" && !done && "bg-transparent text-ultra",
-        )}
-      >
-        {mode === "points" ? (
-          /*
-           * A player who has not kicked off has not scored nought.
+        <span className="mt-[calc(2*var(--s))] flex min-w-0 items-center justify-between gap-[calc(3*var(--s))]">
+          {/* value pill — done fills as a scoreboard, live pulses volt, yet to
+              play stays an outline. See --score-on-turf. */}
+          <span
+            className={cn(
+              "inline-block shrink-0 skewed rounded-sm px-[calc(5*var(--s))] py-px text-center text-[calc(12*var(--s))] font-extrabold num-tabular",
+              done && "bg-score-turf text-on-accent",
+              live && val.tone === "volt" && "bg-volt text-on-accent",
+              !done && !live && "text-ink-mid",
+              val.tone === "surge" && !done && "bg-transparent text-surge",
+              val.tone === "flare" && !done && "bg-transparent text-flare",
+              val.tone === "ultra" && !done && "bg-transparent text-ultra",
+            )}
+            style={!done && !live ? { background: "rgba(255,255,255,.10)" } : undefined}
+          >
+            {mode === "points" ? (
+              /*
+               * A player who has not kicked off has not scored nought.
+               *
+               * Eleven zeroes before a deadline fills the most prominent slot
+               * on every token with a figure that reads as a result and is
+               * really an absence — and it is indistinguishable from a striker
+               * who played ninety minutes and blanked, which is a completely
+               * different week. A finished nought stays a nought: that one IS
+               * a result.
+               */
+              row.fixtureState === "pre" ? (
+                <span aria-label={`${row.webName} has not kicked off`}>–</span>
+              ) : (
+                <AnimatedNumber value={row.livePoints} format={(v) => String(Math.round(v))} />
+              )
+            ) : (
+              <span>{val.text}</span>
+            )}
+          </span>
+
+          {/*
+           * Ownership, next to the score rather than instead of it.
            *
-           * Eleven zeroes before a deadline is the same mistake the stat line
-           * used to make with "xG .00": it fills the most prominent slot on
-           * every token with a figure that reads as a result and is really an
-           * absence. Worse, it is indistinguishable from a striker who has
-           * played ninety minutes and blanked, which is a completely different
-           * week. A dash says "nothing yet" and lets the real numbers, when
-           * they arrive, be the only numbers on the pitch.
-           *
-           * A finished nought stays a nought — that one IS a result.
-           */
-          row.fixtureState === "pre" ? (
-            <span aria-label={`${row.webName} has not kicked off`}>–</span>
-          ) : (
-            <AnimatedNumber value={row.livePoints} format={(v) => String(Math.round(v))} />
-          )
-        ) : (
-          <span>{val.text}</span>
-        )}
+           * It had a mode of its own, which meant the two figures that decide
+           * whether a week is good — what he scored and how many other people
+           * had him — could never be read together. Nine points is a fine
+           * return and a disaster if ninety per cent of the game owns him.
+           * Marked with a tilde when it is the estimated prior rather than a
+           * sampled cohort, the same honesty the rest of the app uses.
+           */}
+          {mode === "points" && (
+            <span
+              className="min-w-0 truncate text-[calc(9*var(--s))] leading-none num-tabular"
+              style={{ color: "rgba(255,255,255,.62)" }}
+              title={
+                eoEstimated
+                  ? "Estimated effective ownership — no cohort sample yet"
+                  : "Effective ownership, sampled from the cohort"
+              }
+            >
+              {eoEstimated ? "~" : ""}
+              {Math.round(row.eo)}%
+            </span>
+          )}
+        </span>
+
+        {/* Where this player is in his week. See tokenLine — always rendered
+            so the plates stay the same height across a row, but it only ever
+            carries something a reader can act on. */}
+        <span
+          className="mt-[calc(2*var(--s))] block h-[calc(9*var(--s))] truncate whitespace-nowrap text-[calc(9*var(--s))] leading-none num-tabular"
+          style={{ color: "rgba(255,255,255,.58)" }}
+          title={line.title}
+        >
+          {line.text}
+        </span>
       </span>
     </div>
   );
@@ -1544,11 +1618,11 @@ export function ShirtToken({
  * loaded a rival the whole pitch went dead to the touch.
  */
 function ComparePitch({
-  rows, mode, rival, swingByElement, leverageByElement, sharedSet, avatar = "face", onPeek,
+  rows, mode, rival, swingByElement, leverageByElement, sharedSet, avatar = "face", onPeek, eoEstimated,
 }: {
   rows: SquadRow[][]; mode: Mode; rival: RivalPayload;
   swingByElement: Map<number, SwingRow>; leverageByElement: Map<number, LevRow>; sharedSet: Set<number>;
-  avatar?: AvatarMode; onPeek: (element: number) => void;
+  avatar?: AvatarMode; onPeek: (element: number) => void; eoEstimated: boolean;
 }) {
   const rivalStarters = rival.rows.filter((r) => !r.onBench);
   const rivalBands = [1, 2, 3, 4].map((pos) => rivalStarters.filter((r) => r.pos === pos));
@@ -1582,7 +1656,7 @@ function ComparePitch({
         }
         className="block w-full rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
       >
-        <ShirtToken row={row} mode={tokenMode} swing={swing} lev={lev} avatar={avatar} />
+        <ShirtToken row={row} mode={tokenMode} swing={swing} lev={lev} avatar={avatar} eoEstimated={eoEstimated} />
         <span
           aria-hidden
           className="mx-auto mt-1 block h-[3px] w-9 rounded-full"
