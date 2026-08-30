@@ -1,5 +1,6 @@
 import { cacheStore } from "@/lib/cache/store";
 import { BreakerOpenError, breakerOpen, breakerRemainingMs, recordUpstreamFailure, recordUpstreamSuccess } from "@/lib/cache/breaker";
+import { FplHttpError, FplSchemaError } from "@/lib/fpl/client";
 import type { GwPhase } from "@/lib/fpl/schemas";
 import { ttlFor, type TtlKind } from "@/lib/cache/ttl";
 
@@ -32,6 +33,34 @@ async function writeEntry<T>(key: string, data: T, ttl: number): Promise<void> {
   await cacheStore().set(key, JSON.stringify({ data, fetchedAt: Date.now(), ttl }), ttl * 2 + 3600);
 }
 
+/**
+ * Is this error evidence that FPL is unwell, or evidence that we asked it
+ * something silly?
+ *
+ * The breaker exists to stop hammering an upstream that is failing. A 404 on
+ * /entry/<id>/event/2/picks/ is not that: it is a correct, healthy answer to a
+ * question about one team — the id was mistyped, or that manager never picked
+ * a side. Counting it opened a breaker that is global and, in production,
+ * shared through Redis across every instance and every user. Five mistyped
+ * compare ids inside five minutes took the whole app off upstream for a
+ * minute, for everybody, and the compare box invited exactly that by telling
+ * the user to press the button again.
+ *
+ * So a request-shaped 4xx is excluded. 429 stays in — that IS the upstream
+ * telling us to back off — as do 5xx, timeouts, aborts and network faults,
+ * which arrive as something other than FplHttpError and count by default.
+ */
+function isUpstreamFault(err: unknown): boolean {
+  if (err instanceof FplHttpError) {
+    if (err.status === 429) return true;
+    return !(err.status >= 400 && err.status < 500);
+  }
+  // A schema mismatch is our bug or their drift, not congestion; retrying
+  // cannot fix it and tripping the breaker punishes every other caller.
+  if (err instanceof FplSchemaError) return false;
+  return true;
+}
+
 async function runFetch<T>(key: string, fetcher: () => Promise<T>, ttl: number): Promise<T> {
   if (await breakerOpen()) throw new BreakerOpenError();
   try {
@@ -40,7 +69,7 @@ async function runFetch<T>(key: string, fetcher: () => Promise<T>, ttl: number):
     await recordUpstreamSuccess();
     return data;
   } catch (err) {
-    await recordUpstreamFailure();
+    if (isUpstreamFault(err)) await recordUpstreamFailure();
     throw err;
   }
 }
