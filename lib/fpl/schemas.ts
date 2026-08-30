@@ -417,79 +417,103 @@ export const zClassicStandings = z.object({
 
 /* ───────────────────────────  element-summary  ──────────────────────────── */
 
+/**
+ * element-summary — one player's season.
+ *
+ * Every field the app does not itself read is optional with a default, and the
+ * objects pass through what they do not know. This is not laziness about
+ * types: the previous version required thirty-five keys per history row, so a
+ * single field FPL renamed or dropped mid-season failed the whole parse, the
+ * player page caught it, and every player in the game reported "No match
+ * history yet this season" — a confident statement about the player, produced
+ * by a fault entirely on our side. The five keys below that stay required are
+ * the ones a row is meaningless without; a default of 0 on `saves` is a
+ * cheaper wrong answer than a blank page for everybody.
+ *
+ * Defaults rather than plain `.optional()` so the inferred type stays
+ * non-nullable and no consumer has to change.
+ */
 export const zElementSummary = z.object({
   fixtures: z.array(
-    z.object({
-      id: z.number(),
-      code: z.number(),
-      event: z.number().nullable(),
-      team_h: z.number(),
-      team_a: z.number(),
-      is_home: z.boolean(),
-      difficulty: z.number(),
-      kickoff_time: z.string().nullable(),
-      event_name: z.string().nullable(),
-      finished: z.boolean(),
-    }),
-  ),
-  history: z.array(
-    z.object({
-      element: z.number(),
-      fixture: z.number(),
-      opponent_team: z.number(),
-      total_points: z.number(),
-      was_home: z.boolean(),
-      kickoff_time: z.string(),
-      team_h_score: z.number().nullable(),
-      team_a_score: z.number().nullable(),
-      round: z.number(),
-      minutes: z.number(),
-      goals_scored: z.number(),
-      assists: z.number(),
-      clean_sheets: z.number(),
-      goals_conceded: z.number(),
-      own_goals: z.number(),
-      penalties_saved: z.number(),
-      penalties_missed: z.number(),
-      yellow_cards: z.number(),
-      red_cards: z.number(),
-      saves: z.number(),
-      bonus: z.number(),
-      bps: z.number(),
-      influence: num,
-      creativity: num,
-      threat: num,
-      ict_index: num,
-      clearances_blocks_interceptions: z.number(),
-      recoveries: z.number(),
-      tackles: z.number(),
-      defensive_contribution: z.number(),
-      starts: z.number(),
-      expected_goals: num,
-      expected_assists: num,
-      expected_goal_involvements: num,
-      expected_goals_conceded: num,
-      value: z.number(),
-      transfers_balance: z.number(),
-      selected: z.number(),
-      transfers_in: z.number(),
-      transfers_out: z.number(),
-    }),
-  ),
-  history_past: z.array(
     z
       .object({
-        season_name: z.string(),
-        element_code: z.number(),
-        start_cost: z.number(),
-        end_cost: z.number(),
-        total_points: z.number(),
-        minutes: z.number(),
-        goals_scored: z.number(),
-        assists: z.number(),
+        id: z.number(),
+        event: z.number().nullable(),
+        team_h: z.number(),
+        team_a: z.number(),
+        is_home: z.boolean(),
+        difficulty: z.number(),
+        kickoff_time: z.string().nullable().default(null),
+        code: z.number().optional(),
+        event_name: z.string().nullable().default(null),
+        finished: z.boolean().default(false),
       })
       .passthrough(),
   ),
+  history: z.array(
+    z
+      .object({
+        // Without these a row cannot be placed or read at all.
+        element: z.number(),
+        fixture: z.number(),
+        round: z.number(),
+        minutes: z.number(),
+        total_points: z.number(),
+
+        opponent_team: z.number().default(0),
+        was_home: z.boolean().default(false),
+        kickoff_time: z.string().default(""),
+        team_h_score: z.number().nullable().default(null),
+        team_a_score: z.number().nullable().default(null),
+        goals_scored: z.number().default(0),
+        assists: z.number().default(0),
+        clean_sheets: z.number().default(0),
+        goals_conceded: z.number().default(0),
+        own_goals: z.number().default(0),
+        penalties_saved: z.number().default(0),
+        penalties_missed: z.number().default(0),
+        yellow_cards: z.number().default(0),
+        red_cards: z.number().default(0),
+        saves: z.number().default(0),
+        bonus: z.number().default(0),
+        bps: z.number().default(0),
+        influence: num.default(0),
+        creativity: num.default(0),
+        threat: num.default(0),
+        ict_index: num.default(0),
+        clearances_blocks_interceptions: z.number().default(0),
+        recoveries: z.number().default(0),
+        tackles: z.number().default(0),
+        defensive_contribution: z.number().default(0),
+        starts: z.number().default(0),
+        expected_goals: num.default(0),
+        expected_assists: num.default(0),
+        expected_goal_involvements: num.default(0),
+        expected_goals_conceded: num.default(0),
+        value: z.number().default(0),
+        transfers_balance: z.number().default(0),
+        selected: z.number().default(0),
+        transfers_in: z.number().default(0),
+        transfers_out: z.number().default(0),
+      })
+      .passthrough(),
+  ),
+  history_past: z
+    .array(
+      z
+        .object({
+          season_name: z.string(),
+          element_code: z.number().default(0),
+          start_cost: z.number().default(0),
+          end_cost: z.number().default(0),
+          total_points: z.number().default(0),
+          minutes: z.number().default(0),
+          goals_scored: z.number().default(0),
+          assists: z.number().default(0),
+        })
+        .passthrough(),
+    )
+    .default([]),
 });
 
 export const zEventStatus = z.object({
