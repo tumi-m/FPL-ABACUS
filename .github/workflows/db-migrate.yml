@@ -1,0 +1,104 @@
+name: db-migrate
+
+# Applies drizzle migrations to the production database.
+#
+# Why this exists: the schema had never been created, so /api/cron/cohort
+# answered 502 with `relation "cohort_snapshot" does not exist` on every tick
+# and the app fell back to estimated effective ownership all season. Fixing it
+# needs one command run against a URL that lives in Vercel's environment, which
+# meant either a laptop with the production credential pasted into a shell, or
+# nothing happening. This is the third option: a button, with the credential
+# staying a repository secret.
+#
+# Safe to re-run. drizzle-kit records what it has applied in
+# __drizzle_migrations and skips those, so a second press is a no-op rather
+# than a replay.
+#
+# Setup, once: Settings → Secrets and variables → Actions → New repository
+# secret, named DATABASE_URL, holding the Neon connection string (the pooled
+# one is fine). Then Actions → db-migrate → Run workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      plan_only:
+        description: "List the migrations and stop without touching the database"
+        type: boolean
+        default: false
+
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: apply migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Fail on the missing secret with the remedy rather than letting
+      # drizzle-kit reach for the localhost default in drizzle.config.ts and
+      # time out against a database that was never going to be there.
+      - name: Check the credential is present
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL is not set. Add it under Settings → Secrets and variables → Actions, then run this workflow again."
+            exit 1
+          fi
+          echo "DATABASE_URL is set (${#DATABASE_URL} characters)."
+
+      - name: What is on disk
+        run: |
+          echo "Migrations in the journal, in order:"
+          node -e "for (const e of require('./drizzle/meta/_journal.json').entries) console.log('  ' + e.idx + '  ' + e.tag)"
+
+      - name: Apply
+        if: ${{ inputs.plan_only != true }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm db:migrate
+
+      # The point of the exercise: the table whose absence broke the cohort
+      # cron. Asserting it exists turns "the command exited 0" into "the thing
+      # that was broken is fixed", which are not the same claim.
+      - name: Verify the schema landed
+        if: ${{ inputs.plan_only != true }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          node -e "
+            const postgres = require('postgres');
+            const sql = postgres(process.env.DATABASE_URL, { max: 1, ssl: 'require' });
+            const want = ['cohort_snapshot', 'cohort_ownership', 'cohort_entry', 'price_snapshot', 'price_change', 'news_item', 'score_distribution', 'entry_analysis', 'entry_directory', 'raw_archive'];
+            sql\`select tablename from pg_tables where schemaname = 'public'\`
+              .then((rows) => {
+                const have = new Set(rows.map((r) => r.tablename));
+                for (const t of want) console.log((have.has(t) ? '  ok   ' : '  MISSING ') + t);
+                const missing = want.filter((t) => !have.has(t));
+                if (missing.length) {
+                  console.log('::error::tables still missing after migrate: ' + missing.join(', '));
+                  process.exit(1);
+                }
+                console.log('All ' + want.length + ' tables present.');
+              })
+              .catch((e) => { console.log('::error::' + e.message); process.exit(1); })
+              .finally(() => sql.end());
+          "
+
+      - name: Next
+        if: ${{ inputs.plan_only != true }}
+        run: echo "Schema is in place. The next prod-cron tick should report /api/cron/cohort [200]."
