@@ -3,12 +3,13 @@ import { cookies } from "next/headers";
 import { getStandings, getHistory } from "@/lib/fpl/endpoints";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { ClubFlag } from "@/components/gaffer/ClubCrest";
-import { COPY } from "@/lib/copy/deck";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/primitives/Table";
 import { LeagueFilters } from "./LeagueFilters";
 import { PageHeader } from "@/components/gaffer/PageHeader";
 import { BackLink } from "@/components/gaffer/BackLink";
 import { GameweekPicker } from "@/components/gaffer/GameweekPicker";
+import { UpstreamFailure } from "@/components/gaffer/UpstreamFailure";
+import { readUpstreamFailure } from "@/lib/engines/upstreamFailure";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "League" };
@@ -68,29 +69,46 @@ export default async function LeagueDetail({
   const requested = view === "month" ? 1 : Math.max(1, Math.min(20, Number(pageParam) || 1));
 
   const bootPromise = getBootstrapLite();
-  // Page 1 carries the league meta AND the authoritative has_next flag.
+  /*
+   * Page 1 carries the league meta AND the authoritative has_next flag.
+   *
+   * The error is kept, not discarded. It used to be `.catch(() => null)` under
+   * a fixed sentence — "FPL may be busy. Try again shortly" — which was
+   * printed just as readily for a league id that does not exist, and for our
+   * own breaker being open. A reader who follows that advice on a mistyped id
+   * retries forever, and nobody, user or maintainer, ever learns what actually
+   * went wrong.
+   */
   const firstPromise = getStandings(id, 1)
-    .then((s) => s)
-    .catch(() => null);
+    .then((s) => ({ ok: true as const, value: s }))
+    .catch((err: unknown) => ({ ok: false as const, err }));
   const restPromises = Array.from({ length: requested - 1 }, (_, i) =>
     getStandings(id, i + 2)
       .then((s) => ({ results: s.standings.results as StandingRow[], hasMore: s.standings.has_next }))
       .catch(() => ({ results: [] as StandingRow[], hasMore: false })),
   );
 
-  const [boot, first] = await Promise.all([bootPromise, firstPromise]);
+  const [boot, firstResult] = await Promise.all([bootPromise, firstPromise]);
   const currentGw = boot.events.find((e) => e.is_current)?.id ?? 1;
 
-  if (!first) {
+  if (!firstResult.ok) {
+    const read = readUpstreamFailure(firstResult.err, `league ${id}`);
+    console.error("[league] standings failed", { league: id, err: firstResult.err });
     return (
       <div className="space-y-4">
         <BackLink href="/leagues" label="All leagues" />
-        <p className="rounded-lg bg-surface-1 card-ring p-10 text-center text-sm text-ink-lo">
-          {COPY.standingsDown.title} — {COPY.standingsDown.body}
-        </p>
+        <UpstreamFailure read={read} retryHref={`/leagues/${id}`}>
+          <Link
+            href="/leagues"
+            className="skewed inline-flex h-9 items-center rounded-md bg-raised px-4 text-2xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+          >
+            <span>Your leagues</span>
+          </Link>
+        </UpstreamFailure>
       </div>
     );
   }
+  const first = firstResult.value;
   const rest = await Promise.all(restPromises);
 
   const leagueName = first.league.name;

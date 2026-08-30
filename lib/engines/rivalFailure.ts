@@ -1,5 +1,6 @@
-import { FplHttpError, FplSchemaError } from "@/lib/fpl/client";
+import { FplHttpError } from "@/lib/fpl/client";
 import { BreakerOpenError } from "@/lib/cache/breaker";
+import { describeFailure } from "@/lib/engines/upstreamFailure";
 
 export type RivalFailure =
   | "picks-not-set"
@@ -49,12 +50,4 @@ export function readRivalFailure(picksErr: unknown, probe?: EntryProbe): RivalFa
   return { reason: probe.kind === "missing" ? "no-such-entry" : "picks-not-set" };
 }
 
-/** A short, safe description — never a raw stack, never a URL carrying an id. */
-export function describeFailure(err: unknown): string {
-  if (err instanceof FplHttpError) return `FPL returned ${err.status}`;
-  if (err instanceof FplSchemaError) return "FPL sent a shape we did not expect";
-  if (err instanceof BreakerOpenError) return "Paused after repeated upstream failures";
-  if (err instanceof Error && err.name === "TimeoutError") return "FPL timed out";
-  if (err instanceof Error && err.message.includes("cold-miss timeout")) return "FPL timed out";
-  return "The request to FPL failed";
-}
+export { describeFailure } from "@/lib/engines/upstreamFailure";
