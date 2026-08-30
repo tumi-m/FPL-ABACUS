@@ -9,14 +9,18 @@ export const COPY = {
     body: (surface: string) =>
       `${surface} needs your squad. If the deadline hasn't passed, set your team in the official game — it lights up the moment picks exist.`,
   },
+  /*
+   * Kept only for the inline "stale data" note. The title and body used to be
+   * printed for any upstream failure and both asserted things nobody had
+   * checked — that FPL's servers were the problem, and that the breaker was
+   * involved. Screens read the error instead now: see
+   * lib/engines/upstreamFailure.ts. `standingsDown` was removed outright
+   * rather than left here to be reached for again.
+   */
   upstreamDown: {
     title: "FPL's servers aren't responding",
-    body: "Try again shortly — the circuit breaker recovers automatically.",
+    body: "Try again shortly.",
     inline: "Showing the last good data.",
-  },
-  standingsDown: {
-    title: "Couldn't load standings",
-    body: "FPL may be busy. Try again shortly.",
   },
   nothingToAttribute: {
     title: "Nothing to attribute yet",
