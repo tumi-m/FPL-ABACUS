@@ -34,7 +34,18 @@ export interface FetchOpts {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function fplFetch<T>(path: string, schema: z.ZodType<T>, opts: FetchOpts = {}): Promise<T> {
+/*
+ * The schema's input type is deliberately left open. What comes back from FPL
+ * is untrusted JSON, and a schema that fills in defaults for fields FPL may
+ * rename has an input type that differs from its output — the narrower
+ * `z.ZodType<T>` insists the two match, which quietly rules out exactly the
+ * resilience the parsing needs.
+ */
+export async function fplFetch<T>(
+  path: string,
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  opts: FetchOpts = {},
+): Promise<T> {
   const maxRetries = opts.retries ?? 2;
   let lastError: unknown;
 
