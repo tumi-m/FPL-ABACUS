@@ -9,6 +9,9 @@ import type { Fixture } from "@/lib/fpl/schemas";
 import { readAvailability } from "@/lib/engines/availability";
 import { fallbackEO } from "@/lib/engines/eo";
 import { FplHttpError } from "@/lib/fpl/client";
+import { BreakerOpenError } from "@/lib/cache/breaker";
+import { breakerMsLeft } from "@/lib/cache/swr";
+import { readRivalFailure, type EntryProbe, type RivalFailure } from "@/lib/engines/rivalFailure";
 
 /**
  * v4-E rival compare — the rival's gameweek run through the same live-squad
@@ -38,11 +41,20 @@ export interface RivalSquadPayload {
  * different fixes, and telling a user "no picks visible" when FPL timed out
  * sends them hunting for a fault in their rival's team that is not there.
  */
-export type RivalFailure = "picks-not-set" | "no-such-entry" | "no-gameweek" | "upstream";
+export type { RivalFailure } from "@/lib/engines/rivalFailure";
 
 export type RivalSquadResult =
   | RivalSquadPayload
-  | { ok: false; reason: RivalFailure; entry: number; gw: number | null };
+  | {
+      ok: false;
+      reason: RivalFailure;
+      entry: number;
+      gw: number | null;
+      /** What actually went wrong, for the user and for whoever reads the logs. */
+      detail?: string;
+      /** Seconds until the breaker reopens — only on "upstream-busy". */
+      retryInSeconds?: number;
+    };
 
 export async function buildRivalSquad(entryId: number, gw?: number): Promise<RivalSquadResult> {
   const boot = await getBootstrapLite();
@@ -181,16 +193,35 @@ export async function buildRivalSquad(entryId: number, gw?: number): Promise<Riv
 /**
  * Read a failed picks fetch.
  *
- * FPL answers 404 for two different things — an entry id that does not exist,
- * and an entry that exists but set no side for this week — and the fix a user
- * needs is different for each: retype the number, or pick another gameweek.
- * One extra request on the failure path tells them apart. Anything that is not
- * a 404 (a 5xx, a timeout, a tripped breaker, a schema drift) is our side
- * failing, and it says so rather than blaming the rival's team.
+ * The decision itself is pure and lives in lib/engines/rivalFailure.ts so it
+ * can be tested without a network; this only does the I/O it needs — one probe
+ * of the entry endpoint, and only when picks 404s.
  */
-async function diagnose(err: unknown, entryId: number): Promise<{ ok: false; reason: RivalFailure }> {
-  const status = err instanceof FplHttpError ? err.status : null;
-  if (status !== 404) return { ok: false, reason: "upstream" };
-  const entry = await getEntry(entryId).catch(() => null);
-  return { ok: false, reason: entry ? "picks-not-set" : "no-such-entry" };
+async function diagnose(
+  err: unknown,
+  entryId: number,
+): Promise<{ ok: false; reason: RivalFailure; detail?: string; retryInSeconds?: number }> {
+  if (err instanceof BreakerOpenError) {
+    const ms = await breakerMsLeft().catch(() => 0);
+    return {
+      ok: false,
+      ...readRivalFailure(err),
+      retryInSeconds: Math.max(1, Math.ceil(ms / 1000)),
+    };
+  }
+
+  let probe: EntryProbe | undefined;
+  if (err instanceof FplHttpError && err.status === 404) {
+    try {
+      await getEntry(entryId);
+      probe = { kind: "exists" };
+    } catch (entryErr) {
+      probe =
+        entryErr instanceof FplHttpError && entryErr.status === 404
+          ? { kind: "missing" }
+          : { kind: "failed", err: entryErr };
+    }
+  }
+
+  return { ok: false, ...readRivalFailure(err, probe) };
 }

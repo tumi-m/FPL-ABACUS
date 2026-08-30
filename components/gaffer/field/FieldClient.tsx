@@ -152,20 +152,41 @@ type RivalRow = SquadRow;
  * the same sentence, and only one of them was true. Each of these names the
  * actual problem and the actual fix.
  */
-const RIVAL_TROUBLE_FALLBACK = () =>
-  "FPL didn't answer just then. Give it a moment and press Compare again.";
+interface TroubleCtx {
+  entry: number;
+  gw: number | null;
+  detail?: string;
+  retryInSeconds?: number;
+}
 
-const RIVAL_TROUBLE: Record<string, (entry: number, gw: number | null) => string> = {
-  "no-such-entry": (entry) =>
+const RIVAL_TROUBLE_FALLBACK = ({ detail }: TroubleCtx) =>
+  `${detail ?? "The request to FPL failed"}. Try again in a moment.`;
+
+const RIVAL_TROUBLE: Record<string, (ctx: TroubleCtx) => string> = {
+  "no-such-entry": ({ entry }) =>
     `No FPL team with id ${entry}. The id is the number in the URL of their points page.`,
-  "picks-not-set": (entry, gw) =>
+  "picks-not-set": ({ entry, gw }) =>
     `Team ${entry} has no side for GW${gw ?? "?"} — they joined the game after it, or never picked one.`,
-  "no-gameweek": (_e, gw) => `GW${gw ?? "?"} hasn't been played yet.`,
+  "no-gameweek": ({ gw }) => `GW${gw ?? "?"} hasn't been played yet.`,
+  /*
+   * The breaker, said plainly.
+   *
+   * Every failure used to read "FPL didn't answer just then. Give it a moment
+   * and press Compare again" — which was wrong twice over when our own breaker
+   * was open. FPL had not been asked at all; we were declining to ask. And
+   * pressing Compare again was the one thing guaranteed not to help, since the
+   * pause runs on a clock. It now says whose pause it is and how long is left,
+   * so the advice is "wait", with a number attached.
+   */
+  "upstream-busy": ({ retryInSeconds }) =>
+    `Paused on FPL requests after a run of failures${
+      retryInSeconds ? ` — about ${retryInSeconds}s left` : ""
+    }. Compare will work again once it clears; pressing it now won't hurry it.`,
   upstream: RIVAL_TROUBLE_FALLBACK,
 };
 
-const rivalTrouble = (reason: string, entry: number, gw: number | null) =>
-  (RIVAL_TROUBLE[reason] ?? RIVAL_TROUBLE_FALLBACK)(entry, gw);
+const rivalTrouble = (reason: string, ctx: TroubleCtx) =>
+  (RIVAL_TROUBLE[reason] ?? RIVAL_TROUBLE_FALLBACK)(ctx);
 
 /**
  * A loaded rival. `ok` is the literal `true`, not `boolean`, so the failure
@@ -191,6 +212,10 @@ interface RivalTrouble {
   reason: string;
   entry: number;
   gw: number | null;
+  /** A short description of the actual fault, when the builder knows one. */
+  detail?: string;
+  /** Seconds left on our own upstream pause, on "upstream-busy". */
+  retryInSeconds?: number;
 }
 
 export function FieldClient({
@@ -426,7 +451,14 @@ export function FieldClient({
       const json = (await res.json()) as RivalPayload | RivalTrouble;
       if (!json.ok) {
         setRival(null);
-        setRivalError(rivalTrouble(json.reason, json.entry, json.gw));
+        setRivalError(
+          rivalTrouble(json.reason, {
+            entry: json.entry,
+            gw: json.gw,
+            detail: json.detail,
+            retryInSeconds: json.retryInSeconds,
+          }),
+        );
         return;
       }
       setRival(json);

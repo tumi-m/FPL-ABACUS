@@ -17,10 +17,13 @@ export async function GET(req: NextRequest) {
   try {
     const result = await buildRivalSquad(entry, gw);
     return NextResponse.json(result, { headers: { "Cache-Control": "private, max-age=30" } });
-  } catch {
+  } catch (err) {
     // A failure the builder could not attribute is still ours, not the rival's.
-    // It comes back 200 with a reason so the Field can say which of the four
-    // things went wrong instead of falling through to one generic sentence.
+    // It comes back 200 with a reason so the Field can say which of the things
+    // went wrong instead of falling through to one generic sentence. The
+    // message goes to the server log too: a compare that fails in production
+    // used to leave nothing behind to read afterwards.
+    console.error("[rival] unattributed failure", { entry, gw, err });
     return NextResponse.json({ ok: false, reason: "upstream", entry, gw: gw ?? null });
   }
 }
