@@ -1,0 +1,67 @@
+name: db-check
+
+# Is production's database actually usable?
+#
+# prod-cron used to answer this by going red on every tick — the same
+# unchanging sentence ("relation cohort_snapshot does not exist") mailed out
+# around the clock, which is how a real alert turns into something you filter
+# to a folder. A missing schema is not an outage: nothing is broken, no retry
+# helps, and it stays exactly as true in five minutes as it is now.
+#
+# So the tick treats it as a skip, and this runs once a day to make sure the
+# skip is never quietly permanent. One alert a day, naming the fix, instead of
+# ten saying nothing new.
+#
+# The fix, when this fails: Actions → db-migrate → Run workflow.
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: db-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: schema present
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the cohort endpoint
+        env:
+          URL: ${{ secrets.PROD_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$SECRET" ]; then
+            echo "PROD_URL and CRON_SECRET are not set; nothing to check."
+            exit 0
+          fi
+          # Same normalisation as prod-cron: a trailing slash or a bare http://
+          # origin answers 308, and without -L curl reports that as success.
+          URL="${URL%/}"
+          URL="${URL/#http:\/\//https://}"
+
+          out=$(curl -sS -L -m 120 --retry 2 --retry-delay 3 \
+                     -w $'\n%{http_code}' \
+                     -H "Authorization: Bearer $SECRET" \
+                     "$URL/api/cron/cohort" 2>&1) || true
+          code=$(printf '%s' "$out" | tail -n 1)
+          body=$(printf '%s' "$out" | sed '$d')
+          echo "→ /api/cron/cohort [$code]"
+          echo "   ${body:0:600}"
+
+          if printf '%s' "$body" | grep -q '"skipped":"no-schema"'; then
+            echo "::error::Production's database has no schema. Run the db-migrate workflow (Actions → db-migrate → Run workflow). Until then the cohort snapshot cannot be built and effective ownership stays estimated."
+            exit 1
+          fi
+
+          if printf '%s' "$body" | grep -q '"skipped":"no-database-configured"'; then
+            echo "::error::DATABASE_URL is not set on the deployment, so every database-backed job is a no-op."
+            exit 1
+          fi
+
+          case "$code" in
+            2*) echo "Schema is present; the cohort job is doing its work." ;;
+            *)  echo "::error::cohort endpoint answered $code"; exit 1 ;;
+          esac

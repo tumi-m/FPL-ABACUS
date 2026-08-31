@@ -38,10 +38,26 @@ export function db(): Db {
  * migration. Left raw it reads as an opaque 502 for ever; named, it tells you
  * the command.
  */
-export function explainDbError(err: unknown): string {
+/**
+ * Has the database simply never been migrated?
+ *
+ * SQLSTATE 42P01 is "undefined table". It is worth telling apart from every
+ * other database error because it is not a fault at all in the operational
+ * sense — nothing is broken, flaky or overloaded, and no amount of retrying
+ * changes it. It is a deployment step that has not been run, and it stays
+ * exactly as true in five minutes as it is now. Callers use this to skip
+ * rather than fail, so a missing schema is reported once a day instead of on
+ * every scheduled tick.
+ */
+export function isMissingSchema(err: unknown): boolean {
   const message = err instanceof Error ? err.message : String(err);
   const code = (err as { code?: string } | null)?.code;
-  if (code === "42P01" || /relation ".*" does not exist/i.test(message)) {
+  return code === "42P01" || /relation ".*" does not exist/i.test(message);
+}
+
+export function explainDbError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  if (isMissingSchema(err)) {
     return `${message} — the database has no schema yet: run \`pnpm db:migrate\` against DATABASE_URL`;
   }
   return message;

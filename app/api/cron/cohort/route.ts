@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronGuard } from "@/lib/server/cronGuard";
 import { hasDb } from "@/lib/env";
-import { explainDbError } from "@/lib/db";
+import { explainDbError, isMissingSchema } from "@/lib/db";
 import { buildCohortSnapshot } from "@/lib/server/cohortBuilder";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 
@@ -29,6 +29,19 @@ export async function GET(req: NextRequest) {
     const result = await buildCohortSnapshot(gw);
     return NextResponse.json(result, { status: result.ok ? 200 : 502 });
   } catch (err) {
+    /*
+     * A missing schema is a deployment step, not an outage.
+     *
+     * It answered 502 like any other fault, so the scheduled tick went red on
+     * every run — the same unchanging fact mailed out around the clock, which
+     * is how a real alert becomes something you filter. Nothing is broken
+     * here and no retry can help; the fix is one run of db-migrate. It is
+     * reported as a skip, the same shape this route already uses for "no
+     * database configured", and db-check nags about it once a day.
+     */
+    if (isMissingSchema(err)) {
+      return NextResponse.json({ ok: true, skipped: "no-schema", error: explainDbError(err) });
+    }
     return NextResponse.json({ ok: false, error: explainDbError(err) }, { status: 502 });
   }
 }

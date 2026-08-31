@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronGuard } from "@/lib/server/cronGuard";
 import { hasDb } from "@/lib/env";
-import { db, explainDbError } from "@/lib/db";
+import { db, explainDbError, isMissingSchema } from "@/lib/db";
 import { priceChange, priceSnapshot } from "@/lib/db/schema";
 import { getBootstrap } from "@/lib/fpl/endpoints";
 import { cacheStore } from "@/lib/cache/store";
@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
 
     let persisted = false;
     let persistedError: string | null = null;
+    let persistedMissingSchema = false;
     if (hasDb) {
       try {
         const now = new Date();
@@ -78,12 +79,20 @@ export async function GET(req: NextRequest) {
         persisted = true;
       } catch (err) {
         persistedError = explainDbError(err);
+        persistedMissingSchema = isMissingSchema(err);
       }
     }
 
+    /*
+     * The price read itself succeeded; only the write had nowhere to go. That
+     * is the same "deployment step not yet run" as the other jobs, so it says
+     * `skipped` in the same shape rather than `ok: false` under a 200 — which
+     * was neither a failure the tick could act on nor a skip anything counted.
+     */
     return NextResponse.json({
-      ok: persistedError === null,
+      ok: persistedError === null || persistedMissingSchema,
       persisted,
+      skipped: persistedMissingSchema ? "no-schema" : !hasDb ? "no-database-configured" : undefined,
       elements: Object.keys(current).length,
       changes,
       note: hasDb
@@ -93,6 +102,12 @@ export async function GET(req: NextRequest) {
         : "no-database-configured; changes reported but not stored",
     });
   } catch (err) {
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 502 });
+    /* A missing schema is a deployment step, not an outage — see the note in
+       the cohort route. Skip rather than fail, so the scheduled tick does not
+       go red around the clock on an unchanging fact; db-check nags daily. */
+    if (isMissingSchema(err)) {
+      return NextResponse.json({ ok: true, skipped: "no-schema", error: explainDbError(err) });
+    }
+    return NextResponse.json({ ok: false, error: explainDbError(err) }, { status: 502 });
   }
 }
