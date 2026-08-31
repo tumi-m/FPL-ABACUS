@@ -2,7 +2,7 @@
  * News store — the only module in lib/news that touches Postgres.
  * Insert-or-skip on the url hash; reads are bounded and ordered by time.
  */
-import { desc, gt, sql } from "drizzle-orm";
+import { desc, gt, lt } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { dbRead } from "@/lib/db/read";
 import { hasDb } from "@/lib/env";
@@ -76,6 +76,18 @@ export async function recentItems(limit = 120, maxAgeDays = 10): Promise<StoredN
 export async function pruneOld(maxAgeDays = 14): Promise<number> {
   if (!hasDb) return 0;
   const cutoff = new Date(Date.now() - maxAgeDays * 86_400_000);
-  const removed = await db().delete(newsItem).where(sql`${newsItem.publishedAt} < ${cutoff}`).returning({ id: newsItem.id });
+  /*
+   * lt(), not a raw sql template.
+   *
+   * `sql\`${col} < ${cutoff}\`` hands the Date to the driver as a bare
+   * parameter with no encoder attached, and postgres.js then tries to make a
+   * string of it: "The 'string' argument must be of type string or an instance
+   * of Buffer or ArrayBuffer. Received an instance of Date". So every news run
+   * threw at the prune step and the whole endpoint answered 502 — invisible
+   * until now only because the table it prunes has never existed in
+   * production. The operator knows the column is a timestamp and encodes
+   * accordingly.
+   */
+  const removed = await db().delete(newsItem).where(lt(newsItem.publishedAt, cutoff)).returning({ id: newsItem.id });
   return removed.length;
 }

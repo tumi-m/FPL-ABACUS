@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronGuard } from "@/lib/server/cronGuard";
 import { hasDb } from "@/lib/env";
-import { explainDbError } from "@/lib/db";
+import { explainDbError, isMissingSchema } from "@/lib/db";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { NEWS_SOURCES, fetchAllSources } from "@/lib/news/sources";
 import { buildTagger, relevanceOf, tagItem, type TaggedItem } from "@/lib/news/tagger";
@@ -60,6 +60,12 @@ export async function GET(req: NextRequest) {
       errors: results.filter((r) => r.error).map((r) => ({ source: r.sourceId, error: r.error })),
     });
   } catch (err) {
+    /* A missing schema is a deployment step, not an outage — see the note in
+       the cohort route. Skip rather than fail, so the scheduled tick does not
+       go red around the clock on an unchanging fact; db-check nags daily. */
+    if (isMissingSchema(err)) {
+      return NextResponse.json({ ok: true, skipped: "no-schema", error: explainDbError(err) });
+    }
     return NextResponse.json(
       { ok: false, error: explainDbError(err) },
       { status: 502 },

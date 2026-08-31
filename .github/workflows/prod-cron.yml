@@ -48,6 +48,7 @@ jobs:
 
           AUTH="Authorization: Bearer $SECRET"
           FAILED=""
+          SKIPPED=""
 
           # -L so a redirect is followed rather than reported as success.
           # Note curl drops the Authorization header across a cross-host
@@ -71,6 +72,20 @@ jobs:
               2*) ;;
               *) FAILED="$FAILED $1($code)" ;;
             esac
+            # A 2xx carrying "skipped" means the endpoint declined to do its
+            # work for a reason it knows about — no database, or no schema.
+            # That is worth saying out loud on every run without turning the
+            # run red: nothing is broken, and the same unchanging fact mailed
+            # out around the clock is how a real alert gets filtered away.
+            # db-check nags about it once a day instead.
+            case "$code" in
+              2*)
+                if printf '%s' "$body" | grep -q '"skipped"'; then
+                  SKIPPED="$SKIPPED $1"
+                  echo "   skipped: ${body:0:300}"
+                fi
+                ;;
+            esac
           }
 
           call /api/cron/warm
@@ -82,8 +97,16 @@ jobs:
           if [ "$MIN" -ge 30 ] && [ "$MIN" -le 34 ];  then call /api/cron/news; fi
           if [ "$HOUR" -eq 9 ] && [ "$MIN" -ge 10 ] && [ "$MIN" -le 19 ]; then call /api/cron/finalise; fi
 
+          # Visible on the run and in the job summary, but not a failure.
+          if [ -n "$SKIPPED" ]; then
+            echo "::warning::endpoints skipped their work:$SKIPPED — see the db-check workflow"
+            echo "Skipped:$SKIPPED" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
           # A green tick that fired nothing is worse than a red one. Fail the
           # run so a broken production scheduler is visible instead of silent.
+          # This still catches every genuine fault: a 5xx, a 401 from a bad
+          # PROD_URL, a timeout, an endpoint that has stopped existing.
           if [ -n "$FAILED" ]; then
             echo "::error::cron endpoints did not answer 2xx:$FAILED"
             exit 1
