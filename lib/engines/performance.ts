@@ -19,6 +19,8 @@
  * Pure functions — no fetching, no React.
  */
 
+import { DEFCON_THRESHOLD } from "@/lib/engines/types";
+
 export type Pos = 1 | 2 | 3 | 4;
 
 /** The season row every board here reads. */
@@ -158,8 +160,23 @@ export function verdict(index: number, band = 0.75): Verdict {
 }
 
 /** DEFCON: the 2025/26 defensive-contribution threshold that scores 2 points. */
+/**
+ * Contributions needed in a match to score, by position.
+ *
+ * Delegates to the engine's own table rather than restating it. This used to
+ * be `pos === 2 ? 10 : 12`, which handed goalkeepers a threshold of twelve —
+ * so the board printed "GK · needs 12" and, once it started showing what the
+ * lane paid, would have credited keepers points from a lane FPL does not let
+ * them score in. The table says 99 for a keeper, which is how the rest of the
+ * app spells "no defensive lane at all".
+ */
 export function defconThreshold(pos: number): number {
-  return pos === 2 ? 10 : 12;
+  return DEFCON_THRESHOLD[pos as 1 | 2 | 3 | 4] ?? 12;
+}
+
+/** Does this position score from the defensive lane at all? */
+export function hasDefconLane(pos: number): boolean {
+  return defconThreshold(pos) < 99;
 }
 
 /**

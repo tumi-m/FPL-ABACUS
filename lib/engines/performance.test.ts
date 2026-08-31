@@ -171,7 +171,10 @@ describe("DEFCON", () => {
   it("uses ten for defenders and twelve for everyone else", () => {
     expect(defconThreshold(2)).toBe(10);
     expect(defconThreshold(3)).toBe(12);
-    expect(defconThreshold(1)).toBe(12);
+    // A goalkeeper has no defensive lane — FPL does not award the points to
+    // him at all, and 99 is how the engine's table spells that. It used to
+    // return 12, so the board offered keepers a line they cannot cross.
+    expect(defconThreshold(1)).toBe(99);
   });
 
   it("estimates hits from the season total", () => {

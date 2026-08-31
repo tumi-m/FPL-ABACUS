@@ -11,6 +11,7 @@ import {
   defaultMinutesFloor,
   defconHitsEstimate,
   defconThreshold,
+  hasDefconLane,
   per90,
   rankBoard,
   type PerfPlayer,
@@ -43,7 +44,10 @@ const POS_TABS: { key: number | null; label: string }[] = [
   { key: 4, label: "FWD" },
 ];
 
-type Sort = "total" | "per90" | "hits" | "cards" | "cardRate";
+type Sort = "total" | "per90" | "hits" | "points" | "cards" | "cardRate";
+
+/** Two points every time a player clears his position's line in a match. */
+const DEFCON_POINTS = 2;
 
 const HITS_METHOD =
   "Counted from each gameweek's own feed — the number of matches in the window where the player actually cleared his position's threshold, not the season total divided by it.";
@@ -79,6 +83,8 @@ export function DefconBoard({ data }: { data: DefconBoardData }) {
           return p.defcon;
         case "hits":
           return measured ? (byElement.get(p.id)?.hits ?? 0) : defconHitsEstimate(p);
+        case "points":
+          return (measured ? (byElement.get(p.id)?.hits ?? 0) : defconHitsEstimate(p)) * DEFCON_POINTS;
         case "cards":
           return p.yellowCards + p.redCards;
         case "cardRate":
@@ -122,6 +128,7 @@ export function DefconBoard({ data }: { data: DefconBoardData }) {
             <option value="per90">Contributions per 90</option>
             <option value="total">Contributions (season)</option>
             <option value="hits">Times over the threshold</option>
+            <option value="points">Points from the lane</option>
             <option value="cards">Bookings</option>
             <option value="cardRate">Bookings per 90</option>
           </select>
@@ -192,6 +199,7 @@ export function DefconBoard({ data }: { data: DefconBoardData }) {
               <th className="hidden py-2 pr-2 text-right font-semibold md:table-cell">Rec</th>
               <th className="py-2 pr-2 text-right font-semibold">Per 90</th>
               <th className="py-2 pr-2 text-right font-semibold">Cleared</th>
+              <th className="py-2 pr-2 text-right font-semibold">Pts</th>
               <th className="hidden py-2 pr-2 text-right font-semibold sm:table-cell">Cards</th>
               <th className="py-2 pr-3 text-right font-semibold">DEFCON</th>
             </tr>
@@ -213,7 +221,11 @@ export function DefconBoard({ data }: { data: DefconBoardData }) {
                       <span className="min-w-0">
                         <span className="block truncate font-medium text-ink-hi">{p.name}</span>
                         <span className="block text-2xs text-ink-lo">
-                          {POS_SHORT[p.pos]} · needs {thr}
+                          {/* A keeper's threshold is 99, the engine's way of
+                              saying the lane does not apply to him — printing
+                              "needs 99" would be worse than the "needs 12" it
+                              replaced. */}
+                          {POS_SHORT[p.pos]} · {hasDefconLane(p.pos) ? `needs ${thr}` : "no lane"}
                         </span>
                       </span>
                     </span>
@@ -226,12 +238,32 @@ export function DefconBoard({ data }: { data: DefconBoardData }) {
                   <td
                     className={cn(
                       "py-2 pr-2 text-right text-xs font-semibold",
-                      rate >= thr ? "text-[var(--defcon-hit)]" : "text-[var(--defcon)]",
+                      hasDefconLane(p.pos) && rate >= thr
+                        ? "text-[var(--defcon-hit)]"
+                        : "text-[var(--defcon)]",
                     )}
                   >
                     {rate.toFixed(1)}
                   </td>
                   <td className="py-2 pr-2 text-right text-xs text-ink-mid">{hits}</td>
+                  {/*
+                   * What the lane actually paid.
+                   *
+                   * The board ranked by contributions and by times cleared but
+                   * never showed the points, which is the only figure that
+                   * ends up on a scoreboard — and the two do not track each
+                   * other: a season total twice somebody else's is worth
+                   * nothing if it never once crossed the line in a match.
+                   */}
+                  <td
+                    className={cn(
+                      "py-2 pr-2 text-right text-xs font-semibold num-tabular",
+                      hits > 0 ? "text-[var(--defcon-hit)]" : "text-ink-lo",
+                    )}
+                    title={`${hits} × ${DEFCON_POINTS} points`}
+                  >
+                    {hits * DEFCON_POINTS}
+                  </td>
                   <td className="hidden py-2 pr-2 text-right text-xs sm:table-cell">
                     <span className={p.redCards > 0 ? "text-flare" : "text-amber"}>
                       {p.yellowCards}
