@@ -1133,6 +1133,31 @@ test.describe("authenticated routes", () => {
     await expect(page.getByText(/Squad . bank/)).toBeVisible();
   });
 
+  test("the planner recommends transfers and can stage one", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/planner");
+
+    const panel = page.getByRole("region", { name: "Recommended transfers" });
+    await expect(panel).toBeVisible();
+    // It has to say what it is pricing over, or a gain is a number without units.
+    await expect(panel.getByText(/Every legal one-for-one swap/)).toBeVisible();
+
+    const stage = panel.getByRole("button", { name: "Stage it" }).first();
+    if ((await stage.count()) === 0) {
+      // A market where nothing beats the squad is a legitimate answer, and the
+      // panel must say so rather than showing an empty list.
+      await expect(panel.getByText(/Holding the transfer is the recommendation/)).toBeVisible();
+      return;
+    }
+
+    // Before staging, the ledger is the empty-state sentence, not a list.
+    const ledger = page.getByRole("region", { name: "Staged transfers" });
+    await expect(ledger).toHaveCount(0);
+    await stage.click();
+    // Staging happens here rather than handing off to another screen.
+    await expect(ledger).toBeVisible();
+  });
+
   test("planner keeps independent plan slots", async ({ page }) => {
     await asTeam(page);
     await page.goto("/planner");
