@@ -2,9 +2,12 @@ import { notFound } from "next/navigation";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getElementSummary } from "@/lib/fpl/endpoints";
 import { describeFailure } from "@/lib/engines/rivalFailure";
+import { parseScoring } from "@/lib/engines/scoring";
+import { pointsByGameweek, readDefcon, splitPoints } from "@/lib/engines/playerSeason";
+import { PointsByGameweek, PointsSources, DefconByMatch } from "@/components/gaffer/player/PlayerCharts";
+import type { Pos } from "@/lib/engines/types";
 import { Badge } from "@/components/primitives/Badge";
 import { Meter } from "@/components/charts/Meter";
-import { Sparkline } from "@/components/charts/Sparkline";
 import { SelfAvatar } from "@/components/gaffer/PlayerAvatarClient";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
 import { COPY } from "@/lib/copy/deck";
@@ -45,11 +48,33 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
 
   const team = boot.teams.find((t) => t.id === el.team);
   const teamName = (tid: number) => boot.teams.find((t) => t.id === tid)?.short_name ?? "—";
-  const defconThreshold = el.element_type === 2 ? 10 : 12;
 
   const recent = history.slice(-12).reverse();
-  const pointsByGw = history.map((h) => h.total_points);
   const per90 = el.minutes >= 90 ? (v: number) => round2((v / el.minutes) * 90) : () => null;
+
+  const pos = el.element_type as Pos;
+  /*
+   * Everything below is read from the per-match series rather than the season
+   * totals, because the two answer different questions. The defensive lane in
+   * particular pays per match against a threshold, so a season total of nine
+   * can be worth nought or four depending entirely on how it was distributed —
+   * see readDefcon.
+   */
+  const defcon = readDefcon(history, pos);
+  const gwSeries = pointsByGameweek(history);
+  const defconSeries = history
+    .slice()
+    .sort((a, b) => a.round - b.round)
+    .map((h) => ({ gw: h.round, defcon: h.defensive_contribution, minutes: h.minutes }));
+
+  /* FPL's own values, not ours: the defensive lane did not exist two seasons
+     ago and clean sheets have moved, so a hardcoded table would rot. */
+  let split: ReturnType<typeof splitPoints> | null = null;
+  try {
+    split = splitPoints(history, pos, parseScoring(boot.scoring));
+  } catch {
+    split = null;
+  }
 
   return (
     <div className="space-y-4">
@@ -128,12 +153,31 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
             <Stat label="xG / 90" value={`${per90(el.xgTotal) ?? "—"}`} />
             <Stat label="xA / 90" value={`${per90(el.xaTotal) ?? "—"}`} />
             <Stat label="Pts / 90" value={`${per90(el.total_points) ?? "—"}`} />
-            <Stat
-              label="DEFCON"
-              value={`${el.defcon}`}
-              sub={`${defconThreshold} for 2 pts`}
-              hint="Defensive contributions this season, and how many are needed in a match to score"
-            />
+            {/*
+             * The count was the headline and it is the less useful half: the
+             * lane pays per match, so what matters is how many times he
+             * actually crossed the line. Points first, the raw total under.
+             *
+             * Keepers have no defensive lane at all — a threshold of 99 is the
+             * engine's way of saying so — and "DEFCON pts 0, 0 of 7 matches"
+             * reads as a player failing at something rather than one who was
+             * never eligible. They get the figure they are actually read by.
+             */}
+            {defcon.threshold < 99 ? (
+              <Stat
+                label="DEFCON pts"
+                value={`${defcon.points}`}
+                sub={`${defcon.hits}/${defcon.played} matches · ${defcon.total} total`}
+                hint={`Two points each time he reaches ${defcon.threshold} defensive contributions in a match. Contributions below that line in a match score nothing, which is why the season total on its own does not tell you what the lane paid.`}
+              />
+            ) : (
+              <Stat
+                label="Conceded"
+                value={`${el.goalsConceded}`}
+                sub={`${per90(el.goalsConceded) ?? "—"} per 90`}
+                hint="Goals conceded this season — a keeper loses a point for every two"
+              />
+            )}
             {/* Letters inside the display face read as digits — "0Y 0R" comes
                 out looking like "OY OR" — so the units go on the second line. */}
             <Stat label="Cards" value={`${el.yellowCards} / ${el.redCards}`} sub="yellow / red" />
@@ -145,16 +189,18 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
           </dl>
         )}
 
-        {pointsByGw.length >= 2 && (
-          <div className="mt-3 flex items-center gap-3 border-t border-hairline pt-3">
-            <span className="upper-label shrink-0 text-2xs text-ink-lo">Points by gameweek</span>
-            <Sparkline values={pointsByGw} ariaLabel={`Points by gameweek, GW${history[0].round} to GW${history[history.length - 1].round}`} />
-            <span className="shrink-0 text-2xs text-ink-lo num-tabular">
-              best {Math.max(...pointsByGw)}
-            </span>
-          </div>
-        )}
       </section>
+
+      {/* The three reads the season totals cannot give: the shape of his
+          returns, what they were made of, and whether the defensive lane is
+          actually paying him. */}
+      {gwSeries.length > 0 && (
+        <div className="grid items-start gap-3 lg:grid-cols-2">
+          <PointsByGameweek series={gwSeries} />
+          {split && <PointsSources sources={split.sources} total={split.total} />}
+          <DefconByMatch series={defconSeries} threshold={defcon.threshold} />
+        </div>
+      )}
 
       <section aria-label="Recent matches" className="rounded-lg bg-surface-1 card-ring p-5">
         <h2 className="mb-3 text-2xs font-semibold uppercase tracking-wide text-ink-3">Last matches</h2>
@@ -205,11 +251,16 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
                   <td className="px-2 text-right text-ink-3">{round2(h.expected_assists)}</td>
                   <td className="px-2 text-right text-ink-3">{h.bps}</td>
                   <td className="pl-2">
-                    {defconThreshold === 10 ? (
-                      <Meter value={Math.min(1, h.defensive_contribution / defconThreshold)} hint={`${h.defensive_contribution}/${defconThreshold}`} />
-                    ) : (
-                      <Meter value={Math.min(1, (h.defensive_contribution + h.recoveries) / defconThreshold)} hint={`${h.defensive_contribution + h.recoveries}/${defconThreshold}`} />
-                    )}
+                    {/* FPL's defensive_contribution is already the
+                        position-appropriate figure — recoveries are inside it
+                        for a midfielder and outside it for a defender. Adding
+                        them on top, as this did, double-counted them for
+                        exactly the positions where they already counted, and
+                        showed the line cleared when it had not. */}
+                    <Meter
+                      value={Math.min(1, h.defensive_contribution / defcon.threshold)}
+                      hint={`${h.defensive_contribution}/${defcon.threshold}${h.defensive_contribution >= defcon.threshold ? " — cleared" : ""}`}
+                    />
                   </td>
                 </tr>
               ))}
