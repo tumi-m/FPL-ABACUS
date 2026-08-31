@@ -9,6 +9,7 @@ import { MarketPanel } from "@/components/gaffer/planner/MarketPanel";
 import { FixtureTicker } from "@/components/gaffer/planner/FixtureTicker";
 import { PriceWatch } from "@/components/gaffer/planner/PriceWatch";
 import { TeamValueBoard } from "@/components/gaffer/planner/TeamValueBoard";
+import { PlannerSuggestions } from "@/components/gaffer/planner/PlannerSuggestions";
 import { fmtDeltaM, fmtM, readTeamValue, type PriceMove, type ValuePoint } from "@/lib/engines/teamValue";
 import { ChipLane } from "@/components/gaffer/planner/ChipLane";
 import { AvatarToggle, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
@@ -258,6 +259,30 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
     setNotice(null);
   };
 
+  /* The eleven-plus-four as the plan currently leaves them. Suggestions read
+     this rather than data.squad so that staging a move changes what comes
+     next: the man you sold stops being offered, the bank reflects the sale,
+     and the club cap counts whoever arrived. */
+  const workingSquad = React.useMemo(
+    () => workingIds.map((id) => playersById.get(id)).filter((p): p is PlannerPlayer => p != null),
+    [workingIds, playersById],
+  );
+
+  const stageSuggestion = React.useCallback(
+    (outId: number, inId: number) => {
+      const res = checkSwap(outId, inId, swapCtx);
+      if (!res.ok) {
+        setNotice(res.reason ?? "That move is no longer available");
+        return;
+      }
+      persist(stageMove(moves, outId, inId));
+      setSelected(null);
+      setNotice(null);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [moves, swapCtx],
+  );
+
   const drop = (i: number) => persist(moves.filter((_, idx) => idx !== i));
   const reset = () => {
     persistPlans(withActive(plans, (pl) => ({ ...pl, moves: [], chips: {} })));
@@ -421,6 +446,19 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
               freeTransfers={data.freeTransfers}
               onDrop={drop}
               onReset={reset}
+            />
+
+            {/* The answer, under the pitch and the ledger rather than on
+                another screen — this is the desk that makes the move. */}
+            <PlannerSuggestions
+              squad={workingSquad}
+              market={data.players}
+              bankTenths={summary.bankTenths}
+              weeks={weeks}
+              freeTransfers={data.freeTransfers}
+              staged={moves.length}
+              sellPriceOf={sellPriceOf}
+              onStage={stageSuggestion}
             />
 
             <ChipLane
