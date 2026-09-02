@@ -52,7 +52,19 @@ jobs:
           echo "   ${body:0:600}"
 
           if printf '%s' "$body" | grep -q '"skipped":"no-schema"'; then
-            echo "::error::Production's database has no schema. Run the db-migrate workflow (Actions → db-migrate → Run workflow). Until then the cohort snapshot cannot be built and effective ownership stays estimated."
+            # Name the prerequisite, not just the action. db-migrate needs a
+            # DATABASE_URL repository secret and fails without one, so an
+            # alert that says only "run db-migrate" sends the reader into a
+            # second failure to discover the first step for themselves.
+            echo "::error::Production's database has no schema, so the cohort snapshot cannot be built and effective ownership stays estimated. Two steps, once: (1) Settings → Secrets and variables → Actions → New repository secret named DATABASE_URL, holding the Neon connection string; (2) Actions → db-migrate → Run workflow. This check goes green on the next run."
+            {
+              echo "### Production database has no schema"
+              echo ""
+              echo "1. **Settings → Secrets and variables → Actions → New repository secret**, named \`DATABASE_URL\`, holding the Neon connection string (the pooled one is fine)."
+              echo "2. **Actions → db-migrate → Run workflow.**"
+              echo ""
+              echo "Safe to re-run; drizzle records what it has applied and skips it. Until this is done the app falls back to estimated effective ownership — that is what the tilde on every ownership figure means."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
