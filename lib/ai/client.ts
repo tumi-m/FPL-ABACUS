@@ -8,16 +8,48 @@ import "server-only";
  * Trust rule (v2 §9 / v3 §Honesty): the model selects components and parameters
  * ONLY. Every number rendered comes from our engines via the resolver.
  *
- * Env:
+ * Env (canonical — matches Vercel + GitHub):
  *   OLLAMA_API_KEY   bearer token (set on Vercel + GitHub)
  *   OLLAMA_BASE_URL  defaults to https://ollama.com
  *   OLLAMA_MODEL     gateway model id (exact string from the provider)
+ * Legacy alias (deprecated, warns once): LLM_API_KEY / LLM_BASE_URL / LLM_MODEL.
  */
 
-const BASE_URL = (process.env.OLLAMA_BASE_URL ?? "https://ollama.com").replace(/\/+$/, "");
+function pick(env: Record<string, string | undefined>, ...names: string[]): string | undefined {
+  for (const name of names) {
+    const value = env[name];
+    if (value !== undefined && value !== "") return value;
+  }
+  return undefined;
+}
+
+let warnedLegacyAlias = false;
+
+/**
+ * Resolve the gateway config. OLLAMA_* wins; LLM_* is a deprecated fallback
+ * for anyone who followed the v2 spec doc (which named them LLM_*).
+ */
+export function resolveAiEnv(env: Record<string, string | undefined> = process.env): {
+  baseUrl: string;
+  model: string;
+  apiKey: string;
+} {
+  if (pick(env, "LLM_BASE_URL", "LLM_MODEL", "LLM_API_KEY") !== undefined && !warnedLegacyAlias) {
+    warnedLegacyAlias = true;
+    console.warn("[gaffer] LLM_* env vars are deprecated — rename them to OLLAMA_*; the alias will be removed.");
+  }
+  return {
+    baseUrl: (pick(env, "OLLAMA_BASE_URL", "LLM_BASE_URL") ?? "https://ollama.com").replace(/\/+$/, ""),
+    model: pick(env, "OLLAMA_MODEL", "LLM_MODEL") ?? "deepseek-v4-flash:0731",
+    apiKey: pick(env, "OLLAMA_API_KEY", "LLM_API_KEY") ?? "",
+  };
+}
+
+const AI_ENV = resolveAiEnv();
+const BASE_URL = AI_ENV.baseUrl;
 /** Default gateway model; override with OLLAMA_MODEL. List: GET /api/tags */
-const MODEL = process.env.OLLAMA_MODEL || "deepseek-v4-flash:0731";
-const API_KEY = process.env.OLLAMA_API_KEY ?? "";
+const MODEL = AI_ENV.model;
+const API_KEY = AI_ENV.apiKey;
 
 export function aiEnabled(): boolean {
   return Boolean(API_KEY);
