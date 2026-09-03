@@ -5,6 +5,9 @@ import { describeFailure } from "@/lib/engines/rivalFailure";
 import { parseScoring } from "@/lib/engines/scoring";
 import { pointsByGameweek, readDefcon, splitPoints } from "@/lib/engines/playerSeason";
 import { PointsByGameweek, PointsSources, DefconByMatch } from "@/components/gaffer/player/PlayerCharts";
+import { StatPercentiles } from "@/components/gaffer/player/StatPercentiles";
+import { buildPercentiles } from "@/lib/engines/playerPercentiles";
+import { defaultMinutesFloor } from "@/lib/engines/performance";
 import type { Pos } from "@/lib/engines/types";
 import { Badge } from "@/components/primitives/Badge";
 import { Meter } from "@/components/charts/Meter";
@@ -66,6 +69,20 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
     .slice()
     .sort((a, b) => a.round - b.round)
     .map((h) => ({ gw: h.round, defcon: h.defensive_contribution, minutes: h.minutes }));
+
+  /*
+   * Every figure ranked against the same position. The bootstrap already holds
+   * every player in the game, so the cohort costs nothing — no extra request,
+   * no per-player summary fetches.
+   */
+  const allPlayers = Object.values(boot.elements);
+  const percentiles = buildPercentiles({
+    player: el,
+    all: allPlayers,
+    /* Scales with how much football has been played, so gameweek one is not
+       blank and a late-season page is not ranking against one-cameo names. */
+    minMinutes: defaultMinutesFloor(allPlayers),
+  });
 
   /* FPL's own values, not ours: the defensive lane did not exist two seasons
      ago and clean sheets have moved, so a hardcoded table would rot. */
@@ -190,6 +207,10 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
         )}
 
       </section>
+
+      {/* A number is only readable beside the players it should be judged
+          against — see StatPercentiles. */}
+      <StatPercentiles read={percentiles} pos={el.element_type} />
 
       {/* The three reads the season totals cannot give: the shape of his
           returns, what they were made of, and whether the defensive lane is

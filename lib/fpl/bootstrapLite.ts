@@ -66,6 +66,17 @@ export interface ElementLite {
   recoveries: number;
   /** Clearances, blocks and interceptions. */
   cbi: number;
+
+  /*
+   * FPL's own indices. They are the closest thing the public API has to the
+   * chance-creation and shot-volume columns other sites buy from Opta —
+   * creativity is built from chances created and passes into the box, threat
+   * from shot volume and quality. Not the same numbers, and never presented as
+   * them, but they answer the same question from data everybody can check.
+   */
+  influence: number;
+  creativity: number;
+  threat: number;
 }
 
 export interface BootstrapLite {
@@ -128,6 +139,9 @@ export const getBootstrapLite = () =>
         transfersOutEvent: el.transfers_out_event,
         costChangeEvent: el.cost_change_event,
         costChangeStart: el.cost_change_start,
+        influence: el.influence,
+        creativity: el.creativity,
+        threat: el.threat,
         xgTotal: el.expected_goals,
         xaTotal: el.expected_assists,
         xgcTotal: el.expected_goals_conceded,

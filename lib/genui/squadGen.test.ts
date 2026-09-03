@@ -52,6 +52,9 @@ function el(id: number, pos: number, cost: number, ep: number, team: number, own
     tackles: 0,
     recoveries: 0,
     cbi: 0,
+    influence: 0,
+    creativity: 0,
+    threat: 0,
   };
 }
 
