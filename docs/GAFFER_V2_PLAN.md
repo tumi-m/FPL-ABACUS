@@ -79,7 +79,7 @@ v4 scope (`GAFFER_V4_SCREEN_SPECS.md`).
 - **Commits:** one per phase, conventional messages, push to main immediately (Vercel deploys).
 - **Nav:** switch to 5 items (`Matchday · Field · Board · Leagues · Ask`) during Phase C;
   Board → redirect to `/planner` until Phase E replaces it; Ask hidden until F ships.
-- **AI stack:** hosted Ollama gateway via env vars `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`.
+- **AI stack:** hosted Ollama gateway via env vars `OLLAMA_BASE_URL` / `OLLAMA_API_KEY` / `OLLAMA_MODEL`.
   Router-first genUI; model selects components only, never emits numbers.
   ⚠ The pasted API key was shared in chat — rotate before real traffic.
 - **News source:** BBC/Guardian/FFScout RSS + r/FantasyPL JSON. No Twitter API (paid).
@@ -90,7 +90,7 @@ v4 scope (`GAFFER_V4_SCREEN_SPECS.md`).
 |---|---|---|
 | Vercel | `DATABASE_URL` `UPSTASH_REDIS_REST_URL/TOKEN` `CRON_SECRET` | ✅ set (user) |
 | GitHub repo | `PROD_URL` `CRON_SECRET` | ✅ set (user) |
-| Vercel + GitHub | `LLM_BASE_URL` `LLM_API_KEY` (rotate!) `LLM_MODEL` | ⬜ add before Phase F |
+| Vercel + GitHub | `OLLAMA_BASE_URL` `OLLAMA_API_KEY` (rotate!) `OLLAMA_MODEL` | ✅ set (user) |
 
 ## Phases
 

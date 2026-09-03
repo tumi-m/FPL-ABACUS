@@ -26,17 +26,22 @@
 
 Features can't ship on a broken migration chain. Smallest possible unblocker.
 
-1. Fix drizzle journal gap: inspect `drizzle/meta/_journal.json` + `drizzle/meta/*snapshot.json`;
-   either regenerate the missing `0006_*.sql` via `pnpm db:generate` from current
-   `lib/db/schema.ts`, or squash/rename 0007→0006 if 0006 was never applied to prod.
-   Decide by checking prod `__drizzle_migrations` table first — never guess.
-2. Run `pnpm db:migrate` against staging, then prod (0005 + 0006/0007). Verify twin card
-   and gate name-search return rows instead of honest-null.
-3. Rotate the leaked Ollama key (`GAFFER_V2_PLAN.md` locked-decisions warning) and
-   unify env naming: code uses `OLLAMA_*` (`lib/ai/client.ts`), spec says `LLM_*`.
-   Pick one set, support the other as deprecated alias with a startup warning, update
-   `.env.example`, Vercel, and GitHub secrets.
-4. Gates: migrate clean on fresh pg16 + prod; `pnpm build` ok.
+1. **VERIFIED 2026-09-03 — no repair needed.** The 0006 gap is a squash, not
+   corruption: `0007_purple_justin_hammer.sql` is self-contained (ADD COLUMN +
+   backfill + composite PK). Proven against scratch pg16: fresh `db:migrate` ✅,
+   re-run no-op ✅, `drizzle-kit check` ✅, `generate` reports no drift ✅, all 10
+   tables + composite PK ✅. Verdict recorded in `docs/NOTES.md`. The real blocker
+   is operational: prod has **no schema at all** (db-check fails `no-schema`) —
+   owner action: add `DATABASE_URL` repo secret → run `db-migrate` workflow.
+2. ~~Run migrate against staging/prod from here~~ — owner action via the `db-migrate`
+   workflow (safe to re-run; its verify step asserts all 10 tables). Then the twin
+   card and gate name-search return rows instead of honest-null.
+3. Rotate the leaked Ollama key — **owner action** in Vercel + GitHub
+   (`GAFFER_V2_PLAN.md` warning stands). Code side done: canonical `OLLAMA_*` kept
+   (matches deployed config), `LLM_*` accepted as deprecated alias with a one-time
+   startup warning (`resolveAiEnv` in `lib/ai/client.ts`, unit-tested); stale `LLM_*`
+   names in the spec table corrected; `.env.example` notes the alias.
+4. Gates: migrate clean on fresh pg16 ✅ (scratch container) · `pnpm build` ok.
 
 ## Phase F1 — V2 weekday gaps (highest acquisition value, ~2 days)
 

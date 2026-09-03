@@ -37,6 +37,14 @@ Both fixed in `lib/fpl/schemas.ts`. This is exactly why fixtures are recorded ag
 ## Postgres wiring (phase C, landed)
 
 - Drizzle client over `postgres.js` (`lib/db/index.ts`) — Neon TCP and Supabase pooler safe (`prepare: false`). Migration `drizzle/0000_*.sql` validated against a real pg16: snapshot upsert idempotency, composite PKs, quoted reserved columns.
+- **The 0006 gap is intentional — do not "repair" it.** `drizzle/meta/_journal.json`
+  jumps 0005→0007 and only an orphan `0006_snapshot.json` remains, because the twin
+  `match_id` change was squashed into `0007_purple_justin_hammer.sql` (ADD COLUMN +
+  backfill + composite PK in one file). Verified 2026-09-03 against scratch pg16:
+  `db:migrate` succeeds fresh, re-run is a no-op exit 0, `drizzle-kit check` clean,
+  `generate` reports no drift, all 10 tables land with the composite
+  `(snapshot_id, entry, match_id)` PK. Reconstructing a 0006 SQL file would BREAK
+  migrate (0007 line 1 re-adds the column).
 - Cohort builder (`lib/server/cohortBuilder.ts`): log-spaced league-314 sweep → reservoir sample (target 2000) → bounded picks fan-out (6 concurrent) → `cohort_snapshot` upsert + ownership replace. Lock/fresh-marker fast paths keep the */10 cron cheap.
 - Real EO path: `getCohortEO(gw)` feeds `composeMatchdayModel`; `leverage.eoSource` becomes `"cohort"` and LeverageBoard shows n + binomial MOE. Without DB the estimated prior remains, labelled.
 - Price cron persists hourly snapshots + changes; finalise archives fixtures/live/status into `raw_archive` + a `score_distribution` sample row.
