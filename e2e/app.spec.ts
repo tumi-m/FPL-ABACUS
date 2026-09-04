@@ -451,6 +451,65 @@ test.describe("authenticated routes", () => {
     await expect(page).toHaveURL(/\/players\/\d+/, { timeout: 15_000 });
   });
 
+  test("the three honest states render as designed (v10 A4)", async ({ page }) => {
+    await asTeam(page);
+
+    // EMPTY — a side cleared of its seeded picks says what to do, not "Nobody yet."
+    await page.goto("/field/combos");
+    const duel = page.locator('section[aria-label="Head to head"]');
+    await expect(duel.getByText("No picks added yet.")).toBeHidden({ timeout: 15_000 });
+    // clear Side A (two seeded players) and Side B (one)
+    const removeA = duel.getByRole("button", { name: /Take .* off Side A/ });
+    while ((await removeA.count()) > 0) {
+      await removeA.first().click({ force: true });
+      await page.waitForTimeout(150);
+    }
+    const removeB = duel.getByRole("button", { name: /Take .* off Side B/ });
+    while ((await removeB.count()) > 0) {
+      await removeB.first().click({ force: true });
+      await page.waitForTimeout(150);
+    }
+    await expect(duel.getByText(/Put at least one player on each side/)).toBeVisible();
+    await expect(duel.getByText("No picks added yet.").first()).toBeVisible();
+    await expect(duel.getByText(/Tap players on the combination board/).first()).toBeVisible();
+
+    // EMPTY — the market panel names its fix when filters match nothing.
+    await page.goto("/planner");
+    const search = page.getByLabel("Search by player or club");
+    await expect(search).toBeVisible();
+    await search.fill("zzzzno such player");
+    await expect(page.getByText(/Nothing matches those filters/)).toBeVisible();
+
+    // EMPTY — a player whose element-summary carries no rows gets the
+    // action-shaped sentence, not the bare old one. Whether anyone qualifies
+    // depends on the season's progress, so find one by asking the summary
+    // endpoint directly; when everybody has rows (late season), the populated
+    // table is the honest check instead.
+    const bootRes = await page.request.get("/api/fpl/bootstrap-lite");
+    const boot = (await bootRes.json()) as { elements: Record<string, { id: number; minutes: number }> };
+    const candidates = Object.values(boot.elements ?? {})
+      .filter((e) => e.minutes === 0)
+      .slice(0, 8)
+      .map((e) => e.id);
+    let emptyId: number | null = null;
+    for (const id of candidates) {
+      const s = await page.request.get(`/api/fpl/element-summary/${id}`);
+      if (s.ok()) {
+        const data = (await s.json()) as { history: unknown[] };
+        if (data.history.length === 0) {
+          emptyId = id;
+          break;
+        }
+      }
+    }
+    await page.goto(`/players/${emptyId ?? 1}`);
+    if (emptyId != null) {
+      await expect(page.getByText(/has not played a match yet this season/)).toBeVisible();
+    } else {
+      await expect(page.getByRole("table").first()).toBeVisible();
+    }
+  });
+
   test("combinations prices two sides at the same spend", async ({ page }) => {
     await asTeam(page);
     await page.goto("/field/combos");

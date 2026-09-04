@@ -102,7 +102,8 @@ export function PlannerSuggestions({
 
       {squad.length === 0 ? (
         <p className="rounded-md bg-surface-1 px-3 py-5 text-center text-2xs text-ink-lo">
-          Your picks are not visible yet, so there is nothing to swap out of.
+          Your picks are not visible yet, so there is nothing to swap out of. Sign in on the FPL
+          site and reload — the market table below works regardless.
         </p>
       ) : rows.length === 0 ? (
         <p className="rounded-md bg-surface-1 px-3 py-5 text-center text-2xs text-ink-lo">
