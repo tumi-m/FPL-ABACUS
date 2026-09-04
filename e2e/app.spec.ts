@@ -1414,14 +1414,10 @@ test("home renders the briefing strip only when there is something to say (v10 B
   await asTeam(page);
   await page.goto("/live");
   // The strip renders nothing at all with no triggers — silence is the
-  // contract. When it does render, every line carries the gaffer's mark.
-  const strip = page.getByLabel("The gaffer's briefing");
-  const count = await strip.count();
-  if (count > 0) {
-    await expect(strip.locator("li")).toHaveCount(await strip.locator("li").count());
+  // contract. When it does render, it carries real lines.
+  const strip = page.locator("section[aria-label=\"The gaffer's briefing\"]");
+  if ((await strip.count()) > 0) {
     expect(await strip.locator("li").count()).toBeGreaterThan(0);
-  } else {
-    expect(await page.locator("section[aria-label='The gaffer\\'s briefing']").count()).toBe(0);
   }
 });
 
