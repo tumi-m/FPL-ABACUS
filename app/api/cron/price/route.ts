@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cronGuard } from "@/lib/server/cronGuard";
+import { cronWriteGuard } from "@/lib/server/cronGuard";
 import { hasDb } from "@/lib/env";
 import { db, explainDbError, isMissingSchema } from "@/lib/db";
 import { priceChange, priceSnapshot } from "@/lib/db/schema";
 import { getBootstrap } from "@/lib/fpl/endpoints";
 import { cacheStore } from "@/lib/cache/store";
+
+export const maxDuration = 60;
 
 interface CompactSnapshot {
   [elementId: number]: { c: number };
@@ -15,7 +17,7 @@ const CHUNK = 400;
 /** Hourly price job: diffs against the previous snapshot, records changes,
  *  persists the full snapshot (and any changes) to Postgres when configured. */
 export async function GET(req: NextRequest) {
-  const denied = cronGuard(req);
+  const denied = cronWriteGuard(req);
   if (denied) return denied;
 
   try {

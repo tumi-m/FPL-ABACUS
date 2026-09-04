@@ -9,6 +9,17 @@ interface CompactStat {
   a: [number, number][];
 }
 
+/** Parse the event list, or discard it when corrupt — a feed is re-warmable;
+ *  a 500 on this endpoint is not recoverable by the caller. */
+function safeParseList(raw: string): RawEvent[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as RawEvent[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 function snapshot(fixtures: Fixture[]): Record<number, CompactStat[]> {
   const out: Record<number, CompactStat[]> = {};
   for (const f of fixtures) {
@@ -68,7 +79,9 @@ export async function collectEvents(gw: number, fixtures: Fixture[]): Promise<Ra
 
   if (events.length > 0) {
     const rawList = await store.get(listKey);
-    let list: RawEvent[] = rawList ? JSON.parse(rawList) : [];
+    // A corrupt list resets the feed rather than taking the endpoint down —
+    // the snapshot parse above already follows this contract.
+    let list: RawEvent[] = rawList ? safeParseList(rawList) : [];
     const seen = new Set(list.map((e) => `${e.fixture}:${e.element}:${e.identifier}:${e.value}`));
     const fresh = events.filter((e) => !seen.has(`${e.fixture}:${e.element}:${e.identifier}:${e.value}`));
     list = [...fresh, ...list].slice(0, 300);
@@ -76,5 +89,5 @@ export async function collectEvents(gw: number, fixtures: Fixture[]): Promise<Ra
   }
 
   const rawList = await store.get(listKey);
-  return rawList ? (JSON.parse(rawList) as RawEvent[]) : [];
+  return rawList ? safeParseList(rawList) : [];
 }

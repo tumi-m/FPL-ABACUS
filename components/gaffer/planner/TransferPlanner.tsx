@@ -26,6 +26,7 @@ import {
 import {
   HIT_COST,
   POS_LABEL,
+  PROJECTION_METHOD,
   applyMoves,
   checkSwap,
   stageMove,
@@ -44,9 +45,6 @@ const MODES: { key: PitchMode; label: string; weeks: number }[] = [
 ];
 
 type Tab = "squad" | "ticker" | "prices";
-
-const PROJECTION_METHOD =
-  "Projected points: FPL's own next-gameweek expectation blended with recent form, then scaled per gameweek by the opponent's attack and defence rates and the venue. Doubles stack, blanks score zero.";
 
 /**
  * The transfer planner.

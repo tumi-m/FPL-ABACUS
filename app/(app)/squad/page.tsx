@@ -48,10 +48,10 @@ export default async function SquadPage() {
     );
   }
 
-  const [entry] = await Promise.all([getEntry(teamId)]);
-  const bank = entry.last_deadline_bank ?? 0;
-  const value = entry.last_deadline_value ?? 0;
-  const totalTransfers = entry.last_deadline_total_transfers ?? 0;
+  const entry = await getEntry(teamId).catch(() => null);
+  const bank = entry?.last_deadline_bank ?? 0;
+  const value = entry?.last_deadline_value ?? 0;
+  const totalTransfers = entry?.last_deadline_total_transfers ?? 0;
 
   const squadTeamIds = [
     ...new Set(

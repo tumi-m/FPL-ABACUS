@@ -386,7 +386,7 @@ export function Availability({ rows, rival }: { rows: SquadRow[]; rival?: RivalS
               {seg.n > 0 && (
                 <text
                   x={x0 + w / 2} y={y + 20} textAnchor="middle" fontSize="13" fontWeight="800"
-                  fill={seg.key === "pre" ? "var(--ink-mid)" : "#fff"}
+                  fill={seg.key === "pre" ? "var(--ink-mid)" : "var(--on-accent)"}
                   style={{ fontVariationSettings: '"wdth" 110' }}
                 >
                   {seg.n}

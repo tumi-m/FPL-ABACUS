@@ -15,8 +15,6 @@ export function getGwPhase(
   return days.length > 0 && days.every((d) => d.bonus_added) ? "bonus_added" : "provisional";
 }
 
-export const isPolling = (p: GwPhase) => p === "live" || p === "provisional";
-
 export function bonusAddedDays(status: EventStatus, gw: number): Set<string> {
   return new Set(status.status.filter((s) => s.event === gw && s.bonus_added).map((s) => s.date));
 }

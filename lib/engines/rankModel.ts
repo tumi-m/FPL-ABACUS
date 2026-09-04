@@ -8,16 +8,6 @@ export interface RankCurve {
   population: number;
 }
 
-/** Log-spaced sample across the whole population. */
-export function samplePages(totalPlayers: number, count = 120): number[] {
-  const maxPage = Math.max(1, Math.ceil(totalPlayers / 50));
-  const pages = new Set<number>();
-  for (let i = 1; i <= count; i++) {
-    pages.add(Math.min(maxPage, Math.max(1, Math.round(Math.pow(maxPage, i / count)))));
-  }
-  return [...pages].sort((a, b) => a - b);
-}
-
 export function buildRankCurve(samples: { rank: number; total: number }[]): RankCurve {
   const points = samples
     .filter((s) => Number.isFinite(s.rank) && Number.isFinite(s.total) && s.total >= 0)
@@ -49,21 +39,6 @@ export function rankForTotal(curve: RankCurve, total: number): number {
     }
   }
   return pts[pts.length - 1].rank;
-}
-
-export function totalForRank(curve: RankCurve, rank: number): number {
-  const pts = curve.points;
-  if (pts.length === 0) return 0;
-  if (rank <= pts[0].rank) return pts[0].total;
-  for (let i = 1; i < pts.length; i++) {
-    const hi = pts[i];
-    const lo = pts[i - 1];
-    if (rank <= hi.rank) {
-      const t = (log(rank) - log(hi.rank)) / (log(lo.rank) - log(hi.rank));
-      return Math.round(hi.total + t * (lo.total - hi.total));
-    }
-  }
-  return pts[pts.length - 1].total;
 }
 
 /** Ranks gained per extra point at this total — central difference over ±2, floored at 1. */

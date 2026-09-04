@@ -27,7 +27,8 @@ export async function buildMatchday(entryId: number, gw?: number): Promise<Build
     if (typeof err === "object" && err !== null && "status" in err && (err as { status: number }).status === 404) {
       return { ok: false, reason: "picks-not-set" };
     }
-    return { ok: false, reason: "compose-failed", message: String(err) };
+    console.error(`[buildMatchday] entry ${entryId} picks failed`, err);
+    return { ok: false, reason: "compose-failed" };
   }
 
   // Everything below depends only on the entry and the gameweek, so it goes

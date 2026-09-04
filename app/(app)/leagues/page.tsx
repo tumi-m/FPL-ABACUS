@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { getEntry } from "@/lib/fpl/endpoints";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Leagues" };
+export const metadata = { title: "Leagues",
+  description: "Your leagues and the cohort: standings, month form and the gw view." };
 
 export default async function LeaguesPage() {
   const store = await cookies();

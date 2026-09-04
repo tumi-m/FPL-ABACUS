@@ -4,8 +4,10 @@ import {
   bankAfter,
   buildTicker,
   checkSwap,
-  fdrHeatStep,
-  runScore,
+  fixtureRun,
+  runCuts,
+  runHeat,
+  sumRuns,
   filterMarket,
   heatCuts,
   heatIndex,
@@ -278,27 +280,62 @@ describe("buildTicker", () => {
   });
 });
 
-describe("runScore", () => {
-  it("adds five-minus-difficulty across a gameweek, so doubles count twice", () => {
-    expect(runScore([{ opp: "AVL", oppId: 2, home: true, fdr: 2 }])).toBe(4);
-    expect(
-      runScore([
-        { opp: "AVL", oppId: 2, home: true, fdr: 2 },
-        { opp: "BOU", oppId: 3, home: false, fdr: 3 },
-      ]),
-    ).toBe(7);
+describe("fixtureRun / sumRuns / runCuts / runHeat — the two-number run", () => {
+  // Mean attack/defence 1.0, no venue effect — so the ratio maths is
+  // transparent: xgFor = mine × oppDefence, xgAgainst = oppAttack × myDefence.
+  const rates = {
+    attack90Of: (id: number) => ({ 1: 2.0, 2: 1.0, 3: 0.5 }[id] ?? 1.0),
+    defence90Of: (id: number) => ({ 1: 0.5, 2: 1.0, 3: 2.0 }[id] ?? 1.0),
+    homeFactor: 1,
+    awayFactor: 1,
+    meanDefence90: 1,
+    meanAttack90: 1,
+  };
+
+  it("scores a fixture as expected goals for and Poisson clean sheets", () => {
+    // Club 1 (attack 2.0) home to club 2 (defence 1.0): xgFor = 2.0.
+    // Club 1 concedes at 0.5 × opp attack 1.0 = 0.5 → e^-0.5 ≈ 0.6065.
+    const run = fixtureRun({ opp: "AVL", oppId: 2, home: true, fdr: 2 }, 1, rates);
+    expect(run.attack).toBeCloseTo(2.0, 5);
+    expect(run.defence).toBeCloseTo(Math.exp(-0.5), 5);
   });
 
-  it("scores a blank as nothing", () => {
-    expect(runScore([])).toBe(0);
+  it("is position-aware in aggregate: the same fixture, two different attacking values", () => {
+    // Club 3 (attack 0.5) at club 1 (defence 0.5): xgFor = 0.5 × 0.5 = 0.25,
+    // while club 1 hosting club 3 scores 2.0 × 2.0 = 4.0. A single FDR
+    // number cannot say this.
+    const atBou = fixtureRun({ opp: "ARS", oppId: 1, home: false, fdr: 5 }, 3, rates);
+    const atArs = fixtureRun({ opp: "BOU", oppId: 3, home: true, fdr: 2 }, 1, rates);
+    expect(atBou.attack).toBeCloseTo(0.25, 5);
+    expect(atArs.attack).toBeCloseTo(4.0, 5);
   });
-});
 
-describe("fdrHeatStep", () => {
-  it("puts the easiest fixture at the hot end of the ramp", () => {
-    expect(fdrHeatStep(1)).toBe(6);
-    expect(fdrHeatStep(5)).toBe(1);
-    expect(fdrHeatStep(1)).toBeGreaterThan(fdrHeatStep(3));
-    expect(fdrHeatStep(3)).toBeGreaterThan(fdrHeatStep(5));
+  it("doubles stack and blanks score nothing", () => {
+    const dbl = sumRuns([
+      fixtureRun({ opp: "AVL", oppId: 2, home: true, fdr: 2 }, 1, rates),
+      fixtureRun({ opp: "AVL", oppId: 2, home: false, fdr: 2 }, 1, rates),
+    ]);
+    const single = fixtureRun({ opp: "AVL", oppId: 2, home: true, fdr: 2 }, 1, rates);
+    expect(dbl.attack).toBeCloseTo(single.attack * 2, 2);
+    expect(dbl.defence).toBeCloseTo(single.defence * 2, 2);
+    expect(sumRuns([])).toEqual({ attack: 0, defence: 0 });
+  });
+
+  it("venue factors lift the home side", () => {
+    const venue = { ...rates, homeFactor: 1.1, awayFactor: 0.9 };
+    const home = fixtureRun({ opp: "AVL", oppId: 2, home: true, fdr: 2 }, 1, venue);
+    // Club 2 (attack 1.0) away to club 1 (defence 0.5): 1.0 × 0.5 × 0.9.
+    const away = fixtureRun({ opp: "ARS", oppId: 1, home: false, fdr: 2 }, 2, venue);
+    expect(home.attack).toBeCloseTo(2.2, 5);
+    expect(away.attack).toBeCloseTo(0.45, 5);
+  });
+
+  it("cuts exclude zero so a blank cannot drag the ramp, and heat maps onto 1..6", () => {
+    const cuts = runCuts([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(runHeat(0, cuts)).toBe(0);
+    expect(runHeat(1, cuts)).toBe(1);
+    expect(runHeat(11, cuts)).toBe(6);
+    expect(runHeat(6, cuts)).toBeLessThanOrEqual(runHeat(7, cuts));
+    expect(runCuts([])).toEqual([]);
   });
 });

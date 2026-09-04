@@ -36,5 +36,13 @@ export const COPY = {
     title: "Nothing at this address",
     body: "The page moved, or never existed.",
   },
+  unexpected: {
+    title: "That screen didn't load",
+    body: "Something went wrong on our side — the fault is logged. Going home keeps everything else working.",
+  },
+  global: {
+    title: "GAFFER hit a fault it couldn't recover from",
+    body: "Reload to come back. Your team ID and preferences are stored on this device and survive it.",
+  },
   teamIdInvalid: "No team with that ID. Check the number on your FPL Points page.",
 } as const;

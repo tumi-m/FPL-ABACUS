@@ -1,4 +1,4 @@
-import type { Multiplier, Pick } from "@/lib/engines/types";
+import type { Pick } from "@/lib/engines/types";
 
 /** EO = mean multiplier across a cohort, as a percentage. */
 export function computeEO(cohortPicks: Pick[][], elementIds: number[]): Map<number, number> {
@@ -42,8 +42,4 @@ export function fallbackEO(input: FallbackEoInput): number {
     eo += ownedPct * 0.5;
   }
   return Math.round(eo * 10) / 10;
-}
-
-export function eoFromMultiplier(multiplier: Multiplier): number {
-  return multiplier > 0 ? 100 : 0;
 }

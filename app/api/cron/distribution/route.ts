@@ -4,6 +4,8 @@ import { getRankCurveBundle } from "@/lib/server/rankCurveServer";
 import { cacheStore } from "@/lib/cache/store";
 import { explainDbError, isMissingSchema } from "@/lib/db";
 
+export const maxDuration = 60;
+
 /** Rebuilds the rank curve. Idempotent; cheap once cached. */
 export async function GET(req: NextRequest) {
   const denied = cronGuard(req);

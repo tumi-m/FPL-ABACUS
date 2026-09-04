@@ -4,8 +4,9 @@ import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { ClubFlag } from "@/components/gaffer/ClubCrest";
-import { POS_LABEL, POS_NAME, priceOutlook, windowPoints, type PlannerPlayer } from "@/lib/engines/planner";
+import { POS_LABEL, POS_NAME, PROJECTION_METHOD, priceOutlook, windowPoints, type PlannerPlayer } from "@/lib/engines/planner";
 import type { TickerCell } from "@/lib/engines/planner";
+import { Est } from "@/components/gaffer/Est";
 
 export type PitchMode = "gw" | "run" | "price";
 
@@ -222,6 +223,7 @@ function PitchTile({
       {slot.isCaptain && (
         <span
           title="Captain"
+          aria-label="Captain"
           className="absolute -top-1 right-1 z-10 grid h-4 w-4 place-items-center rounded-full bg-volt text-[9px] font-bold text-on-accent"
         >
           C
@@ -260,7 +262,7 @@ function PitchTile({
             : { color: `color-mix(in oklab, var(--ink-hi) ${30 + Math.round(heat * 70)}%, var(--ink-lo))` }
         }
       >
-        {figure}
+        {mode === "price" ? figure : <Est method={PROJECTION_METHOD}>{figure}</Est>}
       </span>
 
       <span className="mt-0.5 block w-full truncate text-[9px] leading-tight text-ink-lo num-tabular">

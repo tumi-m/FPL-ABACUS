@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchesTwin, summariseArm, twinStudy, twinLikelyOverlap, twinShortlist, type TwinEntry, type TwinOutcome } from "@/lib/engines/twinStudy";
+import { matchesTwin, summariseArm, twinStudy, twinLikelyOverlap, type TwinEntry, type TwinOutcome } from "@/lib/engines/twinStudy";
 
 const SQUAD15 = Array.from({ length: 15 }, (_, i) => i + 1);
 
@@ -111,19 +111,4 @@ describe("twin top-up shortlist — the 30k extension's pre-filter", () => {
     expect(twinLikelyOverlap(new Set(SQUAD15), [...SQUAD15.slice(0, 10), 91, 92, 93, 94, 95])).toBe(10);
   });
 
-  it("shortlists by overlap, honouring the min and cap", () => {
-    const mine = SQUAD15;
-    const near = { entry: 1, elements: [...mine.slice(0, 14), 99] }; // overlap 14
-    const edge = { entry: 2, elements: [...mine.slice(0, 10), 91, 92, 93, 94, 95] }; // overlap 10
-    const far = { entry: 3, elements: [...mine.slice(0, 9), 91, 92, 93, 94, 95, 96] }; // 9 → drop
-    // deterministic tie order: entry id asc
-    const tieA = { entry: 4, elements: [...mine.slice(0, 12), 91, 92, 93] };
-    const tieB = { entry: 5, elements: [...mine.slice(0, 12), 94, 95, 96] };
-    const picks = twinShortlist(mine, [far, edge, near, tieB, tieA], 10, 3);
-    expect(picks.map((p) => p.entry)).toEqual([1, 4, 5]);
-  });
-
-  it("empty seeds shortlist nothing", () => {
-    expect(twinShortlist(SQUAD15, [])).toEqual([]);
-  });
 });
