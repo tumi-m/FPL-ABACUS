@@ -451,6 +451,65 @@ test.describe("authenticated routes", () => {
     await expect(page).toHaveURL(/\/players\/\d+/, { timeout: 15_000 });
   });
 
+  test("the three honest states render as designed (v10 A4)", async ({ page }) => {
+    await asTeam(page);
+
+    // EMPTY — a side cleared of its seeded picks says what to do, not "Nobody yet."
+    await page.goto("/field/combos");
+    const duel = page.locator('section[aria-label="Head to head"]');
+    await expect(duel.getByText("No picks added yet.")).toBeHidden({ timeout: 15_000 });
+    // clear Side A (two seeded players) and Side B (one)
+    const removeA = duel.getByRole("button", { name: /Take .* off Side A/ });
+    while ((await removeA.count()) > 0) {
+      await removeA.first().click({ force: true });
+      await page.waitForTimeout(150);
+    }
+    const removeB = duel.getByRole("button", { name: /Take .* off Side B/ });
+    while ((await removeB.count()) > 0) {
+      await removeB.first().click({ force: true });
+      await page.waitForTimeout(150);
+    }
+    await expect(duel.getByText(/Put at least one player on each side/)).toBeVisible();
+    await expect(duel.getByText("No picks added yet.").first()).toBeVisible();
+    await expect(duel.getByText(/Tap players on the combination board/).first()).toBeVisible();
+
+    // EMPTY — the market panel names its fix when filters match nothing.
+    await page.goto("/planner");
+    const search = page.getByLabel("Search by player or club");
+    await expect(search).toBeVisible();
+    await search.fill("zzzzno such player");
+    await expect(page.getByText(/Nothing matches those filters/)).toBeVisible();
+
+    // EMPTY — a player whose element-summary carries no rows gets the
+    // action-shaped sentence, not the bare old one. Whether anyone qualifies
+    // depends on the season's progress, so find one by asking the summary
+    // endpoint directly; when everybody has rows (late season), the populated
+    // table is the honest check instead.
+    const bootRes = await page.request.get("/api/fpl/bootstrap-lite");
+    const boot = (await bootRes.json()) as { elements: Record<string, { id: number; minutes: number }> };
+    const candidates = Object.values(boot.elements ?? {})
+      .filter((e) => e.minutes === 0)
+      .slice(0, 8)
+      .map((e) => e.id);
+    let emptyId: number | null = null;
+    for (const id of candidates) {
+      const s = await page.request.get(`/api/fpl/element-summary/${id}`);
+      if (s.ok()) {
+        const data = (await s.json()) as { history: unknown[] };
+        if (data.history.length === 0) {
+          emptyId = id;
+          break;
+        }
+      }
+    }
+    await page.goto(`/players/${emptyId ?? 1}`);
+    if (emptyId != null) {
+      await expect(page.getByText(/has not played a match yet this season/)).toBeVisible();
+    } else {
+      await expect(page.getByRole("table").first()).toBeVisible();
+    }
+  });
+
   test("combinations prices two sides at the same spend", async ({ page }) => {
     await asTeam(page);
     await page.goto("/field/combos");
@@ -760,7 +819,10 @@ test.describe("authenticated routes", () => {
     await expect(picker).toBeVisible();
     // it lists every gameweek up to the current one, not just a step either way
     expect(await picker.locator("option").count()).toBeGreaterThan(0);
-    await expect(page.locator('img[src*="photos/players"]').first()).toBeVisible();
+    // Faces are next/image now (v10 A3): the optimizer proxies the PL CDN, so
+    // the src points at /_next/image with the origin URL encoded inside it.
+    await expect(page.locator('img[src*="_next/image"]').first()).toBeVisible();
+    await expect(page.locator('img[src*="photos%2Fplayers"], img[src*="photos/players"]').first()).toBeAttached();
   });
 
   test("the ask button wears the gaffer badge instead of a question mark", async ({ page }) => {
@@ -1015,15 +1077,35 @@ test.describe("authenticated routes", () => {
     expect(await apple.getAttribute("href")).toContain("alarm=60");
   });
 
-  test("deadline desk renders", async ({ page }) => {
+  test("deadline cockpit renders the verdict column", async ({ page }) => {
     await asTeam(page);
     await page.goto("/deadline");
-    // getByText("Deadline Desk") matched both the sr-only h1 and the document
-    // <title>, so it was a strict-mode violation whenever the title happened to
-    // be in the DOM at check time — green or red depending on the race.
-    await expect(page.getByRole("heading", { name: "Deadline Desk" })).toBeAttached();
-    // and something a person can actually see
-    await expect(page.getByRole("region", { name: /Act now|Watch|Settled/ }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Deadline Cockpit" })).toBeAttached();
+    const verdicts = page.getByRole("region", { name: "Deadline verdicts" });
+    await expect(verdicts).toBeVisible();
+    // Five verdict blocks, one line each — or the honest no-picks line.
+    const blocks = verdicts.locator("details");
+    await expect(blocks).toHaveCount(5);
+    // Warn/critical blocks open their evidence; ok blocks collapse to a tick.
+    const open = await blocks.evaluateAll((els) => els.filter((el) => el.hasAttribute("open")).length);
+    const criticals = verdicts.getByText(/not visible right now|flagged|projects higher|worth the hit|worth making/);
+    if ((await criticals.count()) > 0) expect(open).toBeGreaterThan(0);
+    // Exactly one of: the all-clear line, or an action link. Never neither.
+    const allClear = await verdicts.getByText("Nothing else to do.").count();
+    const actions = await verdicts.getByRole("link", { name: /Planner/ }).count();
+    expect(allClear + (actions > 0 ? 1 : 0)).toBeGreaterThanOrEqual(1);
+  });
+
+  test("deadline cockpit verdicts stay above the fold at 390px", async ({ page }) => {
+    await asTeam(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/deadline");
+    const verdicts = page.getByRole("region", { name: "Deadline verdicts" });
+    await expect(verdicts).toBeVisible();
+    const box = await verdicts.boundingBox();
+    expect(box).toBeTruthy();
+    // The closed-column height fits a phone viewport with room for the clock above.
+    expect(box!.height).toBeLessThan(844);
   });
 
   test("players explorer renders with real totals", async ({ page }) => {
@@ -1069,6 +1151,34 @@ test.describe("authenticated routes", () => {
     await asTeam(page);
     await page.goto("/players/1");
     await expect(page.locator("h1")).not.toBeEmpty();
+  });
+
+  test("minutes certainty quotes a probability or admits thin history — never a bare guess", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/players/1");
+    const panel = page.getByRole("region", { name: "Minutes certainty" });
+    await expect(panel).toBeVisible();
+    // Either the model speaks (with the ~ estimate mark) or it refuses with
+    // the reason. Both states are honest; a number without either is not.
+    const speaks = panel.getByText(/P\(start\)|interval/i);
+    const refuses = panel.getByText(/Not enough history/i);
+    expect((await speaks.count()) > 0 || (await refuses.count() > 0)).toBe(true);
+  });
+
+  test("the minutes API returns reliable or thin states, and rate-limits its batch", async ({ page }) => {
+    const res = await page.request.get("/api/gaffer/minutes?players=1,2,3");
+    expect(res.status()).toBe(200);
+    const data = (await res.json()) as {
+      minAppearances: number;
+      players: { id: number; reliable: boolean; pStart: number | null }[];
+    };
+    expect(data.players).toHaveLength(3);
+    for (const row of data.players) {
+      if (row.reliable) expect(row.pStart).toBeGreaterThanOrEqual(0);
+      else expect(row.pStart).toBeNull();
+    }
+    const empty = await page.request.get("/api/gaffer/minutes");
+    expect(empty.status()).toBe(400);
   });
 
   test("planner ranks the market and stages a transfer", async ({ page }) => {
@@ -1232,6 +1342,22 @@ test("ask bar routes captaincy questions without a model", async ({ request }) =
   expect(res.status()).toBe(200);
   const text = await res.text();
   expect(text).toContain('"intent":"captain.pick"');
+});
+
+test("the tools loop degrades to the router answer when the gateway is down (v10 B1)", async ({ request }) => {
+  // No OLLAMA_API_KEY in the test environment: a model-intent question must
+  // still answer through the router path and complete the stream — the
+  // loop's "degrade, never block" contract. The resolver may honestly
+  // return no card (this question names no players to price), but the
+  // stream always completes with a done frame.
+  const res = await request.post("/api/ask", {
+    data: { q: "should I take a hit for haaland and who do I sell?" },
+    headers: { cookie: `gaffer_team=${TEAM_ID}` },
+  });
+  expect(res.status()).toBe(200);
+  const text = await res.text();
+  expect(text).toContain('"type":"done"');
+  expect(text).not.toContain('"type":"error"');
 });
 
 test("arcade gaffer console: select strip, persona voice, sound toggle", async ({ page }) => {

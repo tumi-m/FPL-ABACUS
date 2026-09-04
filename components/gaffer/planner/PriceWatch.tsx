@@ -158,8 +158,8 @@ export function PriceWatch({
       {visible.length === 0 ? (
         <p className="py-6 text-center text-xs text-ink-lo">
           {lens === "mine"
-            ? "None of your fifteen are near a move right now."
-            : "No player is moving that way at the moment."}
+            ? "None of your fifteen are near a move right now — that is the quiet news, not a missing feed."
+            : "No player is moving that way at the moment. Try the other direction, or check back after the overnight window."}
         </p>
       ) : (
         <div className="overflow-x-auto">
