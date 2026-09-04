@@ -8,6 +8,9 @@ import { cn } from "@/lib/ui/cn";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
 import { spendLabel, suggestTransfers } from "@/lib/engines/suggest";
 import { defaultMinutesFloor } from "@/lib/engines/performance";
+import { POSTURES, applyPosture, fixtureEaseOf, type PosturePlayer } from "@/lib/ai/posture";
+import { useGafferPersona } from "@/components/gaffer/ask/GafferStrip";
+import { personaById } from "@/lib/ai/personas";
 import type { PlannerPlayer } from "@/lib/engines/planner";
 
 const METHOD =
@@ -52,21 +55,41 @@ export function PlannerSuggestions({
   onStage: (outId: number, inId: number) => void;
 }) {
   const [avatar] = useAvatarMode();
+  const [personaId] = useGafferPersona();
+  const persona = personaById(personaId);
+  const posture = POSTURES[persona.id];
 
   const rows = React.useMemo(() => {
     if (squad.length === 0) return [];
-    return suggestTransfers({
+    const desk = suggestTransfers({
       squad,
       market,
       bankTenths,
       sellPriceOf,
       weeks,
-      limit: 5,
+      // One extra so a posture that demotes the desk's top can still fill five.
+      limit: 8,
       // Scaled to how much football has been played, so the opening weeks are
       // not blank and a late-season board is not full of one-appearance names.
       minMinutes: defaultMinutesFloor(market),
     });
-  }, [squad, market, bankTenths, sellPriceOf, weeks]);
+    // The persona's judgement, applied by the engine rather than the prompt:
+    // the same legal moves, ranked through this gaffer's weights. The reason
+    // a posture gives must name its own weighting — the card shows why.
+    const marketBase =
+      market.length > 0
+        ? market.reduce((a, p) => a + (p.horizon?.[0] ?? 0), 0) / market.length
+        : 0;
+    const postureOf = (id: number): PosturePlayer | undefined => {
+      const p = byIdRef(id);
+      if (!p) return undefined;
+      return { ...p, fixtureEase: fixtureEaseOf(p.horizon, weeks, marketBase) };
+    };
+    function byIdRef(id: number): PlannerPlayer | undefined {
+      return market.find((p) => p.id === id) ?? squad.find((p) => p.id === id);
+    }
+    return applyPosture(desk, postureOf, posture).slice(0, 5);
+  }, [squad, market, bankTenths, sellPriceOf, weeks, posture]);
 
   const byId = React.useMemo(() => {
     const m = new Map<number, PlannerPlayer>();
@@ -95,9 +118,9 @@ export function PlannerSuggestions({
         </p>
       </div>
       <p className="text-2xs leading-relaxed text-ink-lo">
-        Every legal one-for-one swap over the next {weeks} gameweeks, best first — position, budget
-        and the three-per-club cap already checked. Each name appears once, so these are moves you
-        could make together rather than alternatives.
+        Every legal one-for-one swap over the next {weeks} gameweeks — position, budget and the
+        three-per-club cap already checked — ranked the way{" "}
+        <span className="font-semibold text-ink-2">{persona.name}</span> reads them: {posture.reason}
       </p>
 
       {squad.length === 0 ? (
@@ -137,7 +160,7 @@ export function PlannerSuggestions({
                       <Est method={METHOD}>{`${net > 0 ? "+" : ""}${net.toFixed(1)}`}</Est>
                     </span>
                     <span className="mt-0.5 block text-[10px] leading-none text-ink-lo num-tabular">
-                      {spendLabel(s.spend)}
+                      {spendLabel(s.spend ?? 0)}
                     </span>
                   </span>
                 </div>
