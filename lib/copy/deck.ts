@@ -31,7 +31,7 @@ export const COPY = {
     body: "Picks appear once FPL has them for this gameweek.",
   },
   picksUnavailable: "Couldn't load that entry's picks.",
-  noMatchHistory: "No match history yet this season.",
+  noMatchHistory: "He has not played a match yet this season. The charts and the match table fill in from his first whistle.",
   notFound: {
     title: "Nothing at this address",
     body: "The page moved, or never existed.",
