@@ -11,7 +11,7 @@ import "server-only";
  * says so honestly ("stored hourly snapshots have not covered this player
  * yet") rather than the caller seeing a Postgres error.
  */
-import { desc, gte, sql } from "drizzle-orm";
+import { desc, gte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { dbRead } from "@/lib/db/read";
 import { priceChange, priceSnapshot } from "@/lib/db/schema";
@@ -91,14 +91,5 @@ export async function loadChangeLedger(
       byDay.set(day, entry);
     }
     return { lastByElement, byDay };
-  });
-}
-
-/** Row count guard for the desk — how deep our history actually is. */
-export async function priceCoverage(): Promise<{ snapshots: number; changes: number } | null> {
-  return dbRead("price coverage", () => null, async () => {
-    const [snap] = await db().select({ n: sql<number>`count(*)::int` }).from(priceSnapshot);
-    const [chg] = await db().select({ n: sql<number>`count(*)::int` }).from(priceChange);
-    return { snapshots: snap?.n ?? 0, changes: chg?.n ?? 0 };
   });
 }

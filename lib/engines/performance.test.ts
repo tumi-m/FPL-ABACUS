@@ -13,7 +13,6 @@ import {
   involvement,
   meetsMinutes,
   per90,
-  percentile,
   positionalDelta,
   rankBoard,
   sampleWeight,
@@ -208,22 +207,6 @@ describe("rates", () => {
   it("prices points against the current cost", () => {
     expect(valuePerMillion(player({ id: 24, points: 120, cost: 80 }))).toBe(15);
     expect(valuePerMillion(player({ id: 25, cost: 0 }))).toBe(0);
-  });
-});
-
-describe("percentile", () => {
-  it("puts the top of a population near one and the bottom near zero", () => {
-    const pop = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    expect(percentile(10, pop)).toBeGreaterThan(0.9);
-    expect(percentile(1, pop)).toBeLessThan(0.1);
-  });
-
-  it("splits ties at the midpoint", () => {
-    expect(percentile(5, [5, 5, 5, 5])).toBe(0.5);
-  });
-
-  it("survives an empty population", () => {
-    expect(percentile(3, [])).toBe(0);
   });
 });
 

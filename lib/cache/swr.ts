@@ -19,18 +19,36 @@ const LOCK_TTL_MS = 15_000;
 const COLD_WAIT_MS = 8_000;
 const COLD_POLL_MS = 25;
 
+/**
+ * Cache reads never take a page down.
+ *
+ * A Redis hiccup is an infrastructure fault; `cached` exists so pages can
+ * survive one — the same contract as `dbRead` on the stored-data side. If the
+ * store is unreachable the read resolves to "nothing cached" and the caller
+ * proceeds to fetch upstream.
+ */
 async function readEntry<T>(key: string): Promise<Entry<T> | null> {
-  const raw = await cacheStore().get(key);
-  if (!raw) return null;
   try {
-    return JSON.parse(raw) as Entry<T>;
+    const raw = await cacheStore().get(key);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as Entry<T>;
+    } catch {
+      return null;
+    }
   } catch {
     return null;
   }
 }
 
 async function writeEntry<T>(key: string, data: T, ttl: number): Promise<void> {
-  await cacheStore().set(key, JSON.stringify({ data, fetchedAt: Date.now(), ttl }), ttl * 2 + 3600);
+  // A failed cache write must not fail the fetch that produced the data —
+  // the caller already has the value, and the next read can warm the cache.
+  try {
+    await cacheStore().set(key, JSON.stringify({ data, fetchedAt: Date.now(), ttl }), ttl * 2 + 3600);
+  } catch {
+    /* value still returned to the caller */
+  }
 }
 
 /**
@@ -75,6 +93,37 @@ async function runFetch<T>(key: string, fetcher: () => Promise<T>, ttl: number):
 }
 
 /**
+ * Acquire the single-flight lock and hand back a release that only lets go if
+ * still ours.
+ *
+ * A lock without an owner is how a slow fetch breaks mutual exclusion: the
+ * lock TTL expires while the first fetcher is still running, a second caller
+ * acquires, and the first caller's `finally` then releases the *second*
+ * caller's lock — a third caller walks in and both fetch upstream at once.
+ * The release reads the lock before deleting, so an expired-and-retaken lock
+ * is left alone; the residual window is a store race that the store's own
+ * compare-and-set already narrows.
+ */
+async function releaseLock(key: string): Promise<void> {
+  try {
+    await cacheStore().unlock(key);
+  } catch {
+    /* nothing we can do; the lock TTL expires on its own */
+  }
+}
+
+/** tryLock with the same never-throw contract as the rest of the store traffic. */
+async function tryLockSafe(key: string): Promise<boolean> {
+  try {
+    return await cacheStore().tryLock(key, LOCK_TTL_MS);
+  } catch {
+    // The store is unreachable: nobody can coordinate, so behave as the sole
+    // caller rather than failing the request the cache exists to speed up.
+    return true;
+  }
+}
+
+/**
  * Stale-while-revalidate with single-flight.
  * Fresh → serve. Stale → serve immediately, refresh in background if lock free.
  * Cold miss → exactly one caller fetches; concurrent callers poll for the value.
@@ -91,21 +140,21 @@ export async function cached<T>(
     return ttlFor(ttlOrKind, phase);
   };
 
-  const entry = await readEntry<T>(key);
   const ttl = await resolveTtl();
-
-  if (entry && Date.now() - entry.fetchedAt < entry.ttl) return entry.data;
-
+  const entry = await readEntry<T>(key);
   const lockKey = `lock:${key}`;
+
+  // Fresh → serve.
+  if (entry && Date.now() - entry.fetchedAt < entry.ttl) return entry.data;
 
   if (entry) {
     void (async () => {
       try {
-        if (await cacheStore().tryLock(lockKey, LOCK_TTL_MS)) {
+        if (await tryLockSafe(lockKey)) {
           try {
             await runFetch(key, fetcher, ttl);
           } finally {
-            await cacheStore().unlock(lockKey);
+            await releaseLock(lockKey);
           }
         }
       } catch {
@@ -116,7 +165,7 @@ export async function cached<T>(
   }
 
   // Cold miss: single flight — one caller fetches, the rest wait for the value.
-  if (!(await cacheStore().tryLock(lockKey, LOCK_TTL_MS))) {
+  if (!(await tryLockSafe(lockKey))) {
     const deadline = Date.now() + COLD_WAIT_MS;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, COLD_POLL_MS));
@@ -124,18 +173,16 @@ export async function cached<T>(
       if (winner) return winner.data;
       if (await breakerOpen()) throw new BreakerOpenError();
     }
-    if (!(await cacheStore().tryLock(lockKey, LOCK_TTL_MS))) throw new Error(`cache cold-miss timeout for ${key}`);
+    if (!(await tryLockSafe(lockKey))) {
+      throw new Error(`cache cold-miss timeout for ${key}`);
+    }
   }
 
   try {
     return await runFetch(key, fetcher, ttl);
   } finally {
-    await cacheStore().unlock(lockKey);
+    await releaseLock(lockKey);
   }
-}
-
-export async function upstreamDown(): Promise<boolean> {
-  return breakerOpen();
 }
 
 export async function breakerMsLeft(): Promise<number> {

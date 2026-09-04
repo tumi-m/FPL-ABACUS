@@ -46,7 +46,7 @@ export function SeasonFingerprint({
 
     // Read computed tokens so theme switches stay correct after redraw.
     const styles = getComputedStyle(document.documentElement);
-    const token = (name: string) => styles.getPropertyValue(name).trim() || "#36597D";
+    const token = (name: string) => styles.getPropertyValue(name).trim() || "var(--line-hi)";
 
     const cx = cssW / 2;
     const cy = cssH / 2;

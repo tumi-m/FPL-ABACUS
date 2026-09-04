@@ -16,6 +16,7 @@ import { crowding } from "@/lib/quant/crowding";
 import { wpaPaired } from "@/lib/quant/wpa";
 import { twinStudy } from "@/lib/engines/twinStudy";
 import { db } from "@/lib/db";
+import { dbRead } from "@/lib/db/read";
 import { cohortEntry, cohortSnapshot } from "@/lib/db/schema";
 import { and, eq, or } from "drizzle-orm";
 import { hasDb } from "@/lib/env";
@@ -828,32 +829,54 @@ async function twinStudyCard(params: Record<string, unknown>, ctx: ResolveContex
   const named = typeof params.playerName === "string" ? findElement(boot, params.playerName) : null;
   const target = named && squadIds.includes(named.id) ? named.id : squadIds[squadIds.length - 1];
 
-  // cohort rows for the settled GW
-  const snapRows = await db()
-    .select({ id: cohortSnapshot.id })
-    .from(cohortSnapshot)
-    .where(eq(cohortSnapshot.event, ctx.currentGw))
-    .limit(1);
+  // Cohort rows for the settled GW. Stored-data reads degrade, they do not
+  // throw (V9-G): `hasDb` says a database is configured, not that the schema
+  // was ever applied, so both selects go through dbRead with an honest empty.
+  const snapRows = await dbRead(
+    "ask:twinStudy:snapshot",
+    () => [] as { id: number }[],
+    () =>
+      db()
+        .select({ id: cohortSnapshot.id })
+        .from(cohortSnapshot)
+        .where(eq(cohortSnapshot.event, ctx.currentGw))
+        .limit(1),
+  );
   if (!snapRows.length) return null;
   // EO rows (matchId 0) plus twins matched to this squad by the 30k top-up.
-  const rows = await db()
-    .select({
-      entry: cohortEntry.entry,
-      elements: cohortEntry.elements,
-      counts: cohortEntry.counts,
-      squadCostTenths: cohortEntry.squadCostTenths,
-      bankTenths: cohortEntry.bankTenths,
-      eventTransfers: cohortEntry.eventTransfers,
-      gwPoints: cohortEntry.gwPoints,
-      arm: cohortEntry.arm,
-    })
-    .from(cohortEntry)
-    .where(
-      and(
-        eq(cohortEntry.snapshotId, snapRows[0].id),
-        or(eq(cohortEntry.matchId, 0), eq(cohortEntry.matchId, ctx.teamId)),
-      ),
-    );
+  const rows = await dbRead(
+    "ask:twinStudy:entries",
+    () => [] as {
+      entry: number;
+      elements: number[];
+      counts: [number, number, number];
+      squadCostTenths: number;
+      bankTenths: number;
+      eventTransfers: number | null;
+      gwPoints: number | null;
+      arm: string | null;
+    }[],
+    () =>
+      db()
+        .select({
+          entry: cohortEntry.entry,
+          elements: cohortEntry.elements,
+          counts: cohortEntry.counts,
+          squadCostTenths: cohortEntry.squadCostTenths,
+          bankTenths: cohortEntry.bankTenths,
+          eventTransfers: cohortEntry.eventTransfers,
+          gwPoints: cohortEntry.gwPoints,
+          arm: cohortEntry.arm,
+        })
+        .from(cohortEntry)
+        .where(
+          and(
+            eq(cohortEntry.snapshotId, snapRows[0].id),
+            // The teamId gate above has already narrowed this; assert for drizzle.
+            or(eq(cohortEntry.matchId, 0), eq(cohortEntry.matchId, ctx.teamId as number)),
+          ),
+        ),
+  );
   if (!rows.length) return null;
 
   const settled = rows.filter((r) => r.gwPoints != null && r.arm != null) as {

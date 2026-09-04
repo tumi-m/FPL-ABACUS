@@ -8,12 +8,9 @@ import "server-only";
  * it, and how many free transfers you actually have. They live here so the two
  * screens can never disagree.
  */
-import { getHistory } from "@/lib/fpl/endpoints";
 import type { Fixture } from "@/lib/fpl/schemas";
 import { buildFixtureModel } from "@/lib/engines/fixtureModel";
 import { availabilityOf, blendBase, projectHorizon } from "@/lib/engines/solverLite";
-import { ranksPerPoint as ranksPerPointAt } from "@/lib/engines/rankModel";
-import { getRankCurveBundle } from "@/lib/server/rankCurveServer";
 
 /** Next-three fixture run label for a club, e.g. "lei(H) mun(A) —" (Board casing: the venue side is uppercase). */
 export function fixtureRun(
@@ -34,11 +31,6 @@ export function fixtureRun(
     labels.push(`${home ? opp.toLowerCase() : opp.toUpperCase()}${home ? "(H)" : "(A)"}`);
   }
   return labels.join(" ");
-}
-
-export interface GwMarker {
-  kind: "double" | "blank";
-  detail: string;
 }
 
 export interface GwProfile {
@@ -72,31 +64,6 @@ export function computeGwProfiles(
     }
     return { id: gw, fixtures: fixtureCount, doubles, byes: Math.max(0, teamCount - apps.size) };
   });
-}
-
-export function gwMarker(p: GwProfile): GwMarker | null {
-  if (p.doubles > 0) {
-    return {
-      kind: "double",
-      detail: `Double gameweek — ${p.doubles} club${p.doubles === 1 ? "" : "s"} play twice`,
-    };
-  }
-  if (p.byes > 0) {
-    return {
-      kind: "blank",
-      detail: `Blank gameweek — ${p.byes} club${p.byes === 1 ? "" : "s"} without a fixture`,
-    };
-  }
-  return null;
-}
-
-export function markerMap(profiles: GwProfile[]): Record<number, GwMarker> {
-  const markers: Record<number, GwMarker> = {};
-  for (const p of profiles) {
-    const m = gwMarker(p);
-    if (m) markers[p.id] = m;
-  }
-  return markers;
 }
 
 /**
@@ -142,21 +109,6 @@ export function buildSolverContext(
         (teamId, gw) => lookup.get(`${teamId}-${gw}`) ?? [],
       ),
   };
-}
-
-/** Ranks gained per extra point at the hero's season total — null without a curve. */
-export async function rankPrice(teamId: number, currentGw: number): Promise<number | null> {
-  try {
-    const [bundle, history] = await Promise.all([
-      getRankCurveBundle(currentGw),
-      getHistory(teamId),
-    ]);
-    const total = history.current[history.current.length - 1]?.total_points;
-    if (!bundle.curve || total == null) return null;
-    return ranksPerPointAt(bundle.curve, total);
-  } catch {
-    return null;
-  }
 }
 
 /**

@@ -58,7 +58,7 @@ export function SquadTable({ model, settled }: { model: MatchdayModel; settled?:
                     <span className="font-medium text-ink-1">{r.webName}</span>
                   </span>
                   <span className="ml-3 text-xs text-ink-3">{POSITION_SHORT[r.pos]}</span>
-                  {r.isCaptain && r.multiplier >= 2 && <span title="Captain" className="ml-1 inline-grid h-4 w-4 place-items-center rounded-full bg-brand align-[1px] text-[9px] font-bold text-brand-ink">C</span>}
+                  {r.isCaptain && r.multiplier >= 2 && <span title="Captain" aria-label="Captain" className="ml-1 inline-grid h-4 w-4 place-items-center rounded-full bg-brand align-[1px] text-[9px] font-bold text-brand-ink">C</span>}
                   {r.subbedInFor !== null && <span className="ml-1 text-xs text-brand">⇅</span>}
                   {r.onBench && <span className="ml-1.5 text-2xs uppercase tracking-wide text-ink-3">bench</span>}
                 </td>

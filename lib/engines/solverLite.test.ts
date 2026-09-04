@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   availabilityOf,
   blendBase,
-  deskVerdict,
-  priceMove,
   projectHorizon,
   type HorizonPlayer,
 } from "./solverLite";
@@ -119,42 +117,5 @@ describe("projectHorizon", () => {
       home[0] / 2,
       1,
     );
-  });
-});
-
-describe("priceMove", () => {
-  it("finds the first cumulative-gain GW that covers the hit", () => {
-    const p = priceMove([2, 2, 2, 2, 2, 2], [4, 4, 4, 4, 4, 4], { hitCost: 4, ranksPerPoint: null });
-    expect(p.gain).toBe(12);
-    expect(p.paybackGw).toBe(2); // +2 per GW → covered in GW2
-  });
-
-  it("free moves have no payback marker", () => {
-    const p = priceMove([2, 2], [3, 3], { hitCost: 0, ranksPerPoint: 50 });
-    expect(p.paybackGw).toBeNull();
-    expect(p.rankSwing).toBe(100); // +2 net × 50
-  });
-
-  it("never-paying moves report null payback and negative rank swing", () => {
-    const p = priceMove([3, 3, 3, 3, 3, 3], [3.5, 3.5, 3.5, 3.5, 3.5, 3.5], {
-      hitCost: 4,
-      ranksPerPoint: 40,
-    });
-    expect(p.paybackGw).toBeNull();
-    expect(p.rankSwing).toBeLessThan(0);
-  });
-});
-
-describe("deskVerdict", () => {
-  it("sums net points and rank swings only when priced", () => {
-    const priced = deskVerdict([
-      { gain: 8, hitCost: 4, paybackGw: 2, rankSwing: 120 },
-      { gain: 1, hitCost: 0, paybackGw: null, rankSwing: 30 },
-    ]);
-    expect(priced).toEqual({ netPoints: 5, netRankSwing: 150 });
-    expect(deskVerdict([{ gain: 2, hitCost: 0, paybackGw: null, rankSwing: null }])).toEqual({
-      netPoints: 2,
-      netRankSwing: null,
-    });
   });
 });

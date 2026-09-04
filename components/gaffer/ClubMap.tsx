@@ -78,7 +78,8 @@ export function ClubMap() {
             }}
           />
           <div
-            className="absolute inset-0 bg-[linear-gradient(170deg,#0d2c1d,#071c14)] opacity-80"
+            className="absolute inset-0 opacity-80"
+            style={{ background: "linear-gradient(170deg, var(--map-a), var(--map-b))" }}
             aria-hidden
           />
           <svg
@@ -87,7 +88,7 @@ export function ClubMap() {
             aria-hidden
             className="absolute inset-0 h-full w-full"
           >
-            <path d={ENGLAND_COAST_PATH} fill="#1d5c3a" stroke="#2a8355" strokeWidth="0.5" />
+            <path d={ENGLAND_COAST_PATH} fill="var(--map-land)" stroke="var(--map-coast)" strokeWidth="0.5" />
           </svg>
           <ul className="relative aspect-[100/110] w-full">
             {clubs.map((club) => {

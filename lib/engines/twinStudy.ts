@@ -62,22 +62,6 @@ export function twinLikelyOverlap(myElements: ReadonlySet<number>, candidate: nu
   return overlap;
 }
 
-/** Shortlist candidates ranked by overlap with the requesting squad. */
-export function twinShortlist<T extends { entry: number; elements: number[] }>(
-  myElements: number[],
-  candidates: T[],
-  minOverlap = 10,
-  cap = 240,
-): T[] {
-  const mine = new Set(myElements);
-  return candidates
-    .map((c) => ({ c, overlap: twinLikelyOverlap(mine, c.elements) }))
-    .filter((x) => x.overlap >= minOverlap)
-    .sort((a, b) => b.overlap - a.overlap || a.c.entry - b.c.entry)
-    .slice(0, cap)
-    .map((x) => x.c);
-}
-
 /** One side of the pairing question: near-identical to you at deadline. */
 export function matchesTwin(
   myElements: Set<number>,

@@ -22,7 +22,7 @@ function overlayClass() {
  * the blur invisible and the glass indistinguishable from a flat card.
  */
 const contentBase =
-  "fixed z-50 glass-lift text-ink-1 focus:outline-none transition-transform dur-base ease-out-quint";
+  "fixed z-50 glass-lift text-ink-1 focus:outline-none focus-visible:outline-2 focus-visible:outline-volt transition-transform dur-base ease-out-quint";
 
 const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,

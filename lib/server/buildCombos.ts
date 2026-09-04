@@ -15,7 +15,6 @@ import "server-only";
  */
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getPicks } from "@/lib/fpl/endpoints";
-import { clubOf } from "@/config/clubs";
 import { defaultMinutesFloor } from "@/lib/engines/performance";
 import {
   allPairs,
@@ -134,9 +133,4 @@ export async function buildComboBoard(teamId: number | null): Promise<ComboBoard
 async function ownedIds(teamId: number, gw: number): Promise<number[]> {
   const picks = await getPicks(teamId, gw, true);
   return picks.picks.map((p) => p.element);
-}
-
-/** Club identity for a shortlist row, resolved once on the server. */
-export function clubCode(teamId: number): string {
-  return clubOf(teamId).code;
 }

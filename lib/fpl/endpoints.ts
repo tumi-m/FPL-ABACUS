@@ -22,10 +22,20 @@ import {
 import { fplFetch } from "@/lib/fpl/client";
 import { cached } from "@/lib/cache/swr";
 import { ttlFor, ttlForPicks } from "@/lib/cache/ttl";
+import { currentPhase } from "@/lib/fpl/phase";
 import type { GwPhase } from "@/lib/fpl/schemas";
 
+/**
+ * The phase provider, defaulted.
+ *
+ * The TTL table has an off-week column nobody ever reached because no caller
+ * passed a provider — every key polled at live rates all week. Call sites may
+ * still pass their own provider; the rest fall back to the phase the last
+ * real page render computed (`lib/fpl/phase.ts`), which is exactly the signal
+ * the table was written for and costs nothing.
+ */
 function phaseOpts(phase?: () => GwPhase | Promise<GwPhase>) {
-  return phase ? { phase } : {};
+  return { phase: phase ?? currentPhase };
 }
 
 export const getBootstrap = (phase?: () => GwPhase) =>

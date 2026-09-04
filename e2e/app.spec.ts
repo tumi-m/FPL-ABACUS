@@ -406,6 +406,9 @@ test.describe("authenticated routes", () => {
     expect(boardCalls).toHaveLength(0);
 
     const figure = page.locator('figure:has-text("Creating, against everything he does")');
+    // the scatter is a dynamic block: the loading skeleton is swapped for the
+    // real figure, so wait until the settled node is on screen before scrolling
+    await expect(figure).toBeVisible({ timeout: 15_000 });
     await figure.scrollIntoViewIfNeeded();
     await expect.poll(() => boardCalls.length, { timeout: 15_000 }).toBeGreaterThan(0);
 
@@ -418,7 +421,13 @@ test.describe("authenticated routes", () => {
   test("the league scatter names its leaders and opens their pages", async ({ page }) => {
     await asTeam(page);
     await page.goto("/field");
+    // the scatter is a dynamic block now — attached, then stable, then scroll
+    await expect(page.getByText("Creating, against everything he does")).toBeAttached({
+      timeout: 15_000,
+    });
     const figure = page.locator('figure:has-text("Creating, against everything he does")');
+    // same dynamic-block contract: settle before scrolling
+    await expect(figure).toBeVisible({ timeout: 15_000 });
     await figure.scrollIntoViewIfNeeded();
 
     // it opens on the top fifteen, and every one of them is named and tappable

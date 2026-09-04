@@ -3,8 +3,6 @@ import {
   computeFreeTransfers,
   computeGwProfiles,
   fixtureRun,
-  gwMarker,
-  markerMap,
 } from "./buildBoardDesk";
 
 type Fx = { event: number | null; team_h: number; team_a: number };
@@ -40,37 +38,6 @@ describe("computeGwProfiles", () => {
   it("ignores fixtures outside the requested gameweeks", () => {
     const p = computeGwProfiles([{ event: 23, team_h: 1, team_a: 2 }], [24]);
     expect(p[0]).toEqual({ id: 24, fixtures: 0, doubles: 0, byes: 20 });
-  });
-});
-
-describe("gwMarker", () => {
-  it("prioritises the double when a week is both doubled and blanked", () => {
-    const m = gwMarker({ id: 24, fixtures: 12, doubles: 2, byes: 4 });
-    expect(m?.kind).toBe("double");
-    expect(m?.detail).toContain("2 clubs play twice");
-  });
-
-  it("labels blanks with the club count", () => {
-    const m = gwMarker({ id: 25, fixtures: 8, doubles: 0, byes: 4 });
-    expect(m?.kind).toBe("blank");
-    expect(m?.detail).toContain("4 clubs without a fixture");
-  });
-
-  it("is null on a full slate", () => {
-    expect(gwMarker({ id: 26, fixtures: 20, doubles: 0, byes: 0 })).toBeNull();
-  });
-
-  it("markerMap keeps only marked weeks", () => {
-    const profiles = computeGwProfiles(
-      [
-        ...fullSlate.slice(0, 8),
-        ...Array.from({ length: 10 }, (_, i) => ({ event: 25, team_h: i + 1, team_a: i + 11 })),
-      ],
-      [24, 25],
-    );
-    const map = markerMap(profiles);
-    expect(Object.keys(map)).toEqual(["24"]);
-    expect(map[24].kind).toBe("blank");
   });
 });
 

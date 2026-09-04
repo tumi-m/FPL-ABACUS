@@ -54,8 +54,10 @@ export async function settleCohortOutcomes(gw: number): Promise<TwinSettleResult
   const doneKey = `gaffer:twin:settled:${gw}`;
   if (await store.get(doneKey)) return { ok: true, gw, skipped: "already-settled" };
   const lockKey = `gaffer:twin:lock:${gw}`;
-  if (await store.get(lockKey)) return { ok: true, gw, skipped: "lock-held" };
-  await store.set(lockKey, String(t0), 60 * 20);
+  // SET NX, not get-then-set: two overlapping ticks must not both proceed.
+  if (!(await store.tryLock(lockKey, 20 * 60 * 1000))) {
+    return { ok: true, gw, skipped: "lock-held" };
+  }
 
   try {
     const rows = await db()

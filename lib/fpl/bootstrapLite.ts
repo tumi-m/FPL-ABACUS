@@ -1,5 +1,6 @@
 import { getBootstrap } from "@/lib/fpl/endpoints";
 import { cached } from "@/lib/cache/swr";
+import { sampleWeight } from "@/lib/engines/performance";
 import type { Bootstrap } from "@/lib/fpl/schemas";
 import type { FplElement, FplTeam, FplElementType, FplEvent } from "@/lib/fpl/schemas";
 
@@ -95,11 +96,20 @@ function bestOrder(a: number | null | undefined, b: number | null | undefined): 
   return orders.length ? Math.min(...orders) : null;
 }
 
-function shrink(x: number | null, nMinutes: number, prior: number, k = 180): number | null {
+/**
+ * Per-90 with the canonical shrinkage (lib/engines/performance.ts).
+ *
+ * The rate boards and the Field's season lines must rank the same players by
+ * the same maths, so the shrinkage half-weight is the one constant:
+ * `SHRINK_HALF_MINUTES`. A per-90 with no observed minutes falls to the prior
+ * scaled by the zero-minute weight (zero) — a player who has not played has
+ * no rate.
+ */
+function shrink(x: number | null, nMinutes: number, prior: number): number | null {
   if (x === null || !Number.isFinite(x)) return null;
-  if (nMinutes <= 0) return prior;
+  if (nMinutes <= 0) return prior * sampleWeight(0);
   const per90 = (x / nMinutes) * 90;
-  return (nMinutes * per90 + k * prior) / (nMinutes + k);
+  return per90 * sampleWeight(nMinutes) + prior * (1 - sampleWeight(nMinutes));
 }
 
 export const getBootstrapLite = () =>

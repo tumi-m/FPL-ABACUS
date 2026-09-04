@@ -9,7 +9,8 @@ import { PageHeader } from "@/components/gaffer/PageHeader";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Points attribution" };
+export const metadata = { title: "Points attribution",
+  description: "The full gameweek points breakdown: the waterfall, every player, the multiplier shown." };
 
 /** Sub-page of the Field: the waterfall behind your gameweek score. */
 export default async function FieldPointsPage() {

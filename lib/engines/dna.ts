@@ -38,8 +38,6 @@ export interface ManagerDna {
   consistency: { sd: number; floor: number; ceiling: number };
 }
 
-const TRANSFER_ATTRIBUTION_WINDOW_GWS = 5;
-
 export function computeTransferPnl(transfers: TransferRow[]): {
   net: number;
   hitsPaid: number;
@@ -115,6 +113,5 @@ export function computeDna(input: DnaInput): ManagerDna {
   };
 }
 
-export { TRANSFER_ATTRIBUTION_WINDOW_GWS };
 
 const round = (v: number, dp: number) => Math.round(v * 10 ** dp) / 10 ** dp;

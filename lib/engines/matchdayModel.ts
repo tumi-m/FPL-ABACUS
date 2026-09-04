@@ -351,9 +351,14 @@ export function composeMatchdayModel(deps: {
   const multOf = (elementId: number): number => squadState.multipliers.get(elementId) ?? 0;
   const swingRowsRaw = rawEvents
     .filter((e) => e.identifier !== "bps")
-    .map((e) =>
-      swingForEvent(e, eventPoints(e.identifier), (multOf(e.element) ?? 0) as 0 | 1 | 2 | 3, eoOf(e.element), rppAtScore),
-    );
+    .map((e) => {
+      // The points are the scorer's, so the value follows the scorer's
+      // position through the published scoring config — a keeper's goal is
+      // not a forward's goal.
+      const pos = boot.elements[e.element]?.element_type;
+      const pts = pos ? eventPoints(e.identifier, pos as Pos, scoring) : 0;
+      return swingForEvent(e, pts, (multOf(e.element) ?? 0) as 0 | 1 | 2 | 3, eoOf(e.element), rppAtScore);
+    });
 
   let swingSummary = { reconciled: false, scale: null as number | null, residual: 0, observedDelta: rankDelta };
   let swingRows = swingRowsRaw;
