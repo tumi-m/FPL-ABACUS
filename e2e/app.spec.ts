@@ -1077,6 +1077,21 @@ test.describe("authenticated routes", () => {
     expect(await apple.getAttribute("href")).toContain("alarm=60");
   });
 
+  test("the blank and double calendar reads the squad honestly (v10 D7)", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/deadline");
+    const cal = page.getByRole("region", { name: "Blank and double calendar" });
+    await expect(cal).toBeVisible();
+    // One row per gameweek in the horizon, GW-labelled.
+    const rows = cal.getByRole("listitem");
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(4);
+    // The headline number is always an estimate — wrapped in <Est>.
+    await expect(cal.locator("role=note").first()).toBeVisible();
+    // The honesty line names the cup-round caveat for possible weeks.
+    await expect(cal.getByText(/cup round|fixture list FPL has published|your own calendar/i)).toBeVisible();
+  });
+
   test("deadline cockpit renders the verdict column", async ({ page }) => {
     await asTeam(page);
     await page.goto("/deadline");
