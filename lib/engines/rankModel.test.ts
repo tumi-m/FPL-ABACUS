@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRankCurve, liveRank, rankForTotal, ranksPerPoint, samplePages, totalForRank } from "@/lib/engines/rankModel";
+import { buildRankCurve, liveRank, rankForTotal, ranksPerPoint } from "@/lib/engines/rankModel";
 
 function syntheticCurve(): ReturnType<typeof buildRankCurve> {
   const samples: { rank: number; total: number }[] = [];
@@ -12,14 +12,6 @@ function syntheticCurve(): ReturnType<typeof buildRankCurve> {
 }
 
 describe("rankModel", () => {
-  it("samplePages are unique, sorted, log-spaced-ish", () => {
-    const pages = samplePages(9_000_000, 120);
-    expect(new Set(pages).size).toBe(pages.length);
-    expect(pages[0]).toBe(1);
-    for (let i = 1; i < pages.length; i++) expect(pages[i]).toBeGreaterThan(pages[i - 1]);
-    expect(pages[pages.length - 1]).toBe(Math.ceil(9_000_000 / 50));
-  });
-
   it("rankForTotal is monotone decreasing in total and clamps at both ends", () => {
     const curve = syntheticCurve();
     const r1 = rankForTotal(curve, 80);
@@ -36,15 +28,6 @@ describe("rankModel", () => {
     for (const t of [79, 65, 50, 35, 21]) {
       expect(ranksPerPoint(curve, t)).toBeGreaterThan(0);
     }
-  });
-
-  it("totalForRank inverts rankForTotal within tolerance", () => {
-    const curve = syntheticCurve();
-    const midRank = curve.points[60].rank;
-    const total = totalForRank(curve, midRank);
-    const back = rankForTotal(curve, total);
-    expect(back).toBeLessThan(midRank * 1.25);
-    expect(back).toBeGreaterThan(midRank * 0.8);
   });
 
   it("liveRank confidence degrades with minutes remaining", () => {

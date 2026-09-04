@@ -20,15 +20,15 @@ export async function GET(req: NextRequest) {
       if (result.reason === "picks-not-set") {
         return NextResponse.json({ error: "picks-not-set" }, { status: 200 });
       }
+      // result.message already carries no secrets (buildMatchday scrubs it),
+      // but the catch below is the one that must never echo raw text.
       return NextResponse.json({ error: result.reason, message: result.message }, { status: 502 });
     }
     return NextResponse.json(result.model, {
       headers: { "Cache-Control": "private, max-age=0, must-revalidate" },
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: "compose-failed", message: err instanceof Error ? err.message : String(err) },
-      { status: 502 },
-    );
+    console.error("[api/gaffer/live] compose failed", err);
+    return NextResponse.json({ error: "compose-failed" }, { status: 502 });
   }
 }

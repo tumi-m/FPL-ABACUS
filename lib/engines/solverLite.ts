@@ -1,11 +1,8 @@
 /**
- * solver-lite — prices staged transfers across the full horizon in rank
- * equity, not next-week ep deltas. Per-GW projections come from the Board's
- * fixture model, keyed to position (Gabriel ≠ Watkins): attackers care about
- * blunt opposition defences, defenders about blunt opposition attacks. The
- * payback marker is the first horizon GW where cumulative gain covers the
- * hit; the rank price converts net points into rank swing at the hero's
- * position on the season curve. Pure functions — composition on the server.
+ * solver-lite — projects players across the horizon with the Board's fixture
+ * model, keyed to position (Gabriel ≠ Watkins): attackers care about blunt
+ * opposition defences, defenders about blunt opposition attacks. Pure
+ * functions — composition on the server.
  */
 import type { FixtureModel } from "@/lib/engines/fixtureModel";
 
@@ -75,58 +72,4 @@ export function projectHorizon(
     }
     return Math.round(total * 100) / 100;
   });
-}
-
-export interface MovePrice {
-  /** Σ projected(in) − Σ projected(out) across the horizon. */
-  gain: number;
-  hitCost: number;
-  /** First horizon GW (1-based count) where cumulative gain covers the hit. */
-  paybackGw: number | null;
-  /** (gain − hitCost) × ranks-per-point at the hero's total; null without a curve. */
-  rankSwing: number | null;
-}
-
-export function priceMove(
-  outHorizon: number[],
-  inHorizon: number[],
-  opts: { hitCost: number; ranksPerPoint: number | null },
-): MovePrice {
-  const n = Math.min(outHorizon.length, inHorizon.length);
-  let gain = 0;
-  let paybackGw: number | null = null;
-  for (let i = 0; i < n; i++) {
-    gain += inHorizon[i] - outHorizon[i];
-    if (paybackGw == null && opts.hitCost > 0 && gain >= opts.hitCost) paybackGw = i + 1;
-  }
-  gain = Math.round(gain * 100) / 100;
-  return {
-    gain,
-    hitCost: opts.hitCost,
-    paybackGw,
-    rankSwing:
-      opts.ranksPerPoint != null
-        ? Math.round((gain - opts.hitCost) * opts.ranksPerPoint)
-        : null,
-  };
-}
-
-/** Desk-level verdict: net horizon points and net rank swing across all staged moves. */
-export function deskVerdict(
-  prices: MovePrice[],
-): { netPoints: number; netRankSwing: number | null } {
-  let netPoints = 0;
-  let rankSum = 0;
-  let anyRank = false;
-  for (const p of prices) {
-    netPoints += p.gain - p.hitCost;
-    if (p.rankSwing != null) {
-      rankSum += p.rankSwing;
-      anyRank = true;
-    }
-  }
-  return {
-    netPoints: Math.round(netPoints * 100) / 100,
-    netRankSwing: anyRank ? Math.round(rankSum) : null,
-  };
 }

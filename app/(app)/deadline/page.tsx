@@ -9,7 +9,8 @@ import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
 import { CalendarSubscribe } from "@/components/gaffer/deadline/CalendarSubscribe";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Deadline Desk" };
+export const metadata = { title: "Deadline Desk",
+  description: "The week to the deadline: what changed, what the market did, what the model expects next." };
 
 export default async function DeadlinePage() {
   const store = await cookies();
@@ -65,8 +66,7 @@ export default async function DeadlinePage() {
       <CalendarSubscribe origin={origin} />
 
       <p className="text-xs leading-relaxed text-ink-3">
-        Transfer simulator with xP + variance deltas, template drift ring and price-pressure gauges land with the
-        projection engine wiring. Squad statuses above are live from FPL.
+        Squad statuses above are live from FPL.
       </p>
     </div>
   );

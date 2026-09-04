@@ -6,7 +6,8 @@ import { buildTeamStatsPage } from "@/lib/server/buildTeamStats";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Club numbers" };
+export const metadata = { title: "Club numbers",
+  description: "Every club through the model: attack and defence as the model sees them, per gameweek and per season." };
 
 /**
  * Sub-page of the Field: the twenty clubs, six ways.

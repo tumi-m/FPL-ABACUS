@@ -3,8 +3,10 @@
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
+import { Est } from "@/components/gaffer/Est";
 import {
   POS_LABEL,
+  PROJECTION_METHOD,
   SORTS,
   filterMarket,
   heatCuts,
@@ -384,13 +386,15 @@ function MarketRow({
                 color: fxs.length === 0 ? "var(--ink-lo)" : "var(--ink-hi)",
               }}
             >
-              {fxs.length === 0 ? "—" : v.toFixed(1)}
+              {fxs.length === 0 ? "—" : <Est method={PROJECTION_METHOD}>{v.toFixed(1)}</Est>}
             </span>
           </td>
         );
       })}
       <td className="pl-1 py-1.5 text-right">
-        <span className="fig-num text-sm text-ink-hi">{total.toFixed(1)}</span>
+        <span className="fig-num text-sm text-ink-hi">
+          <Est method={PROJECTION_METHOD}>{total.toFixed(1)}</Est>
+        </span>
       </td>
     </tr>
   );

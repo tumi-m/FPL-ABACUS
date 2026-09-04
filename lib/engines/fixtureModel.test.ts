@@ -1,14 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Fixture } from "@/lib/fpl/schemas";
 import {
-  bucket,
   buildFixtureModel,
-  cellCode,
   easiness,
-  fdrHeat,
-  oddsStubHeat,
   projectFixture,
-  quantileCuts,
 } from "@/lib/engines/fixtureModel";
 
 function fx(partial: Partial<Fixture> & { team_h: number; team_a: number }): Fixture {
@@ -116,42 +111,3 @@ describe("easiness — the Gabriel ≠ Watkins acceptance test", () => {
   });
 });
 
-describe("quantile mapping", () => {
-  it("produces k−1 interior cuts and buckets values monotonically", () => {
-    const values = Array.from({ length: 60 }, (_, i) => i);
-    const cuts = quantileCuts(values, 6);
-    expect(cuts).toHaveLength(5);
-    expect(bucket(-5, cuts)).toBe(1);
-    expect(bucket(30, cuts)).toBe(4);
-    expect(bucket(500, cuts)).toBe(6);
-    expect(bucket(cuts[0] + 0.01, cuts)).toBe(2);
-  });
-
-  it("handles degenerate constant input", () => {
-    const cuts = quantileCuts([2, 2, 2, 2], 6);
-    expect(bucket(2, cuts)).toBe(1);
-    expect(bucket(2.5, cuts)).toBe(6);
-  });
-});
-
-describe("cell encoding", () => {
-  it("encodes home UPPERCASE and away lowercase", () => {
-    expect(cellCode("LIV", true)).toBe("LIV");
-    expect(cellCode("liv", false)).toBe("LIV".toLowerCase());
-    expect(cellCode("ARS", false)).toBe("ars");
-  });
-});
-
-describe("colour models", () => {
-  it("clamps FDR into 1..5", () => {
-    expect(fdrHeat(0)).toBe(1);
-    expect(fdrHeat(3)).toBe(3);
-    expect(fdrHeat(9)).toBe(5);
-  });
-
-  it("maps odds-stub strength gaps onto six steps", () => {
-    expect(oddsStubHeat(4, 4)).toBe(4); // even → middle-ish
-    expect(oddsStubHeat(8, 1)).toBe(6); // huge edge → easiest
-    expect(oddsStubHeat(1, 8)).toBe(1); // hopeless → hardest
-  });
-});

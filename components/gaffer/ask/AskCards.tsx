@@ -125,7 +125,11 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
               {rows.map((r) => (
                 <tr key={r.name} className="border-b border-hairline last:border-0">
                   <td className="py-1.5 text-ink-hi">{r.name}</td>
-                  <td className="py-1.5 text-right fig-num">{r.epNext}</td>
+                  <td className="py-1.5 text-right fig-num">
+                    <Est method="FPL's published next-gameweek expectation — an estimate">
+                      {String(r.epNext)}
+                    </Est>
+                  </td>
                   <td className="w-24 py-1.5 pl-3">
                     <span className="fig-num text-xs text-ink-lo">{r.eo.toFixed(0)}%</span>
                   </td>
@@ -238,7 +242,13 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
                   {p.flagged && <span className="ml-2 text-2xs uppercase-label text-flare">flagged</span>}
                 </span>
                 <span className="num-tabular text-xs text-ink-lo">
-                  {p.epNext ?? "—"} pts · £{(p.cost / 10).toFixed(1)}m
+                  {p.epNext != null ? (
+                    <Est method="FPL's published next-gameweek expectation — an estimate">
+                      {`${p.epNext} pts`}
+                    </Est>
+                  ) : (
+                    "—"
+                  )}{" "}· £{(p.cost / 10).toFixed(1)}m
                 </span>
               </li>
             ))}

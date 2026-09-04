@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ArcadeClient } from "@/components/gaffer/arcade/ArcadeClient";
 import { PageHeader } from "@/components/gaffer/PageHeader";
 
-export const metadata = { title: "The Arcade" };
+export const metadata = { title: "The Arcade",
+  description: "Pick which gaffer talks to you — and change team." };
 
 export default function ArcadePage() {
   return (

@@ -113,7 +113,7 @@ export function PointsWaterfall({
                 <text
                   x={cx} y={top + height / 2 + 6}
                   textAnchor="middle" fontSize="16" fontWeight="800"
-                  fill="#fff" opacity={0.97}
+                  fill="var(--on-accent)" opacity={0.97}
                   style={{ fontVariationSettings: '"wdth" 110' }}
                 >
                   {b.pts}

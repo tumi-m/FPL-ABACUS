@@ -397,7 +397,7 @@ function SelectedGafferHero({
         className="absolute inset-x-0 bottom-0 h-16 rounded-b-xl"
         style={{
           background:
-            "linear-gradient(180deg, transparent, color-mix(in oklab, #123B27 82%, transparent)), repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 36px, transparent 36px 72px)",
+            "linear-gradient(180deg, transparent, color-mix(in oklab, var(--landing-a) 82%, transparent)), repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 36px, transparent 36px 72px)",
         }}
       />
       <span className="relative z-10 pt-4 md:pt-6">

@@ -44,12 +44,79 @@ export interface PlannerPlayer {
    The pitch, the market table and the ticker all read these, so they live
    beside the rules rather than inside a server-only module. */
 
+/**
+ * What a club's fixtures are worth, read as quantities rather than an index.
+ *
+ * The old single `runScore` collapsed a run into Σ(6 − FDR) — exactly the
+ * one-number compromise the style guide forbids: the same fixture is not the
+ * same fixture for a defender and a forward. The Board's ticker reads two
+ * numbers (`lib/engines/fixtureTicker.ts`); the planner now reads the same
+ * model, computed from the same calendar the market table is coloured by.
+ */
+export interface TickerRun {
+  /** Goals the model expects the club to score across the window. */
+  attack: number;
+  /** Clean sheets it expects to keep — e^(−xGA) summed over the matches. */
+  defence: number;
+}
+
+export interface RunRates {
+  /** Club id → its attack rate per 90 (shrunk, venue-neutral). */
+  attack90Of: (clubId: number) => number;
+  /** Club id → its defence rate per 90 (goals conceded, shrunk). */
+  defence90Of: (clubId: number) => number;
+  /** Multiplicative venue factors from the same window as the rates. */
+  homeFactor: number;
+  awayFactor: number;
+  /** League mean defence per 90 — the pivot the ratios move against. */
+  meanDefence90: number;
+  /** League mean attack per 90 — the pivot the attack ratios move against. */
+  meanAttack90: number;
+}
+
+/**
+ * The two-number value of ONE fixture: attacking value as the goals a club of
+ * that attack rate expects against this opponent's defence, defensive value as
+ * the Poisson shutout chance at the opponent's attack — the same quantities
+ * the Board's ticker renders (`lib/engines/fixtureTicker.ts`), so a club
+ * cannot look easy to attack into on one screen and hard on the other.
+ */
+export function fixtureRun(cell: TickerCell, clubId: number, r: RunRates): TickerRun {
+  const oppAttack = r.attack90Of(cell.oppId);
+  const oppDefence = r.defence90Of(cell.oppId);
+  const mine = r.attack90Of(clubId);
+  const myDefence = r.defence90Of(clubId);
+  const venueMine = cell.home ? r.homeFactor : r.awayFactor;
+  const venueTheirs = cell.home ? r.awayFactor : r.homeFactor;
+  const xgFor = mine * (oppDefence / r.meanDefence90) * venueMine;
+  const xgAgainst = oppAttack * (myDefence / r.meanDefence90) * venueTheirs;
+  return { attack: xgFor, defence: Math.exp(-xgAgainst) };
+}
+
+/** Sum a club's fixture runs across gameweeks — doubles stack, blanks nothing. */
+export function sumRuns(runs: TickerRun[]): TickerRun {
+  let attack = 0;
+  let defence = 0;
+  for (const r of runs) {
+    attack += r.attack;
+    defence += r.defence;
+  }
+  return { attack: Math.round(attack * 100) / 100, defence: Math.round(defence * 100) / 100 };
+}
+
 /** One club-gameweek: who they play, where, and how hard FPL rates it. */
 export interface TickerCell {
   opp: string;
   oppId: number;
   home: boolean;
   fdr: number;
+  /**
+   * The two-number projection for this fixture (expected goals for, expected
+   * clean sheets), attached server-side from the same fixture model the
+   * market's projections read. Optional only because `buildTicker` is pure —
+   * the server decorates the grid before it crosses the wire.
+   */
+  run?: TickerRun;
 }
 
 export interface PlannerClub {
@@ -120,27 +187,30 @@ export function buildTicker(
   return ticker;
 }
 
-/** Easiness score for a club-gameweek: doubles add up, blanks score nothing. */
-export function runScore(cells: TickerCell[]): number {
-  let total = 0;
-  for (const c of cells) total += 6 - c.fdr;
-  return total;
+/**
+ * Quantile cut points for run scores, blanks excluded on purpose: a grid
+ * third full of zeros would drag the ramp down and paint ordinary weeks hot.
+ * Same contract as `tickerCuts` on the Board.
+ */
+export function runCuts(scores: number[], steps = 6): number[] {
+  const sorted = scores.filter((v) => Number.isFinite(v) && v > 0).sort((a, b) => a - b);
+  if (sorted.length === 0) return [];
+  const cuts: number[] = [];
+  for (let i = 1; i < steps; i++) {
+    const at = (sorted.length - 1) * (i / steps);
+    const lo = Math.floor(at);
+    const hi = Math.ceil(at);
+    cuts.push(sorted[lo] + (sorted[hi] - sorted[lo]) * (at - lo));
+  }
+  return cuts;
 }
 
-/** FPL difficulty 1..5 → the six-step heat ramp, easiest fixture hottest. */
-export function fdrHeatStep(fdr: number): number {
-  switch (fdr) {
-    case 1:
-      return 6;
-    case 2:
-      return 5;
-    case 3:
-      return 3;
-    case 4:
-      return 2;
-    default:
-      return 1;
-  }
+/** A run score onto the 1..6 heat. Zero (blank week) sits outside the ramp. */
+export function runHeat(score: number, cuts: number[]): number {
+  if (!Number.isFinite(score) || score <= 0) return 0;
+  let step = 1;
+  for (const c of cuts) if (score > c) step++;
+  return step;
 }
 
 export interface PlanMove {
@@ -295,6 +365,14 @@ export function summarisePlan(
     ),
   };
 }
+
+/**
+ * The one sentence describing how a projected figure on this desk was made.
+ * Every estimated number the planner prints wraps in <Est> with this as its
+ * method — one desk, one honest caveat.
+ */
+export const PROJECTION_METHOD =
+  "Projected points: FPL's own next-gameweek expectation blended with recent form, then scaled per gameweek by the opponent's attack and defence rates and the venue. Doubles stack, blanks score zero.";
 
 export type SortKey =
   | "projected"
