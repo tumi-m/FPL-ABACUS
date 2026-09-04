@@ -7,7 +7,8 @@ import { SeasonFingerprint } from "@/components/generative/SeasonFingerprint";
 import { PageHeader } from "@/components/gaffer/PageHeader";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Manager DNA" };
+export const metadata = { title: "Manager DNA",
+  description: "Your transfer record under the lens: what each move cost and earned." };
 
 export default async function DnaPage() {
   const store = await cookies();
@@ -15,32 +16,28 @@ export default async function DnaPage() {
   const teamId = raw && /^\d+$/.test(raw) ? Number(raw) : null;
   if (!teamId) redirect("/");
 
-  const [entry, history] = await Promise.all([getEntry(teamId), getHistory(teamId)]);
-  let transfers: Awaited<ReturnType<typeof getTransfers>> = [];
-  try {
-    transfers = await getTransfers(teamId);
-  } catch {
-    transfers = [];
-  }
+  // One wave — transfers is independent of entry/history, so it rode three
+  // serial round trips for no reason.
+  const [entry, history, transfers] = await Promise.all([
+    getEntry(teamId),
+    getHistory(teamId),
+    getTransfers(teamId).catch(() => [] as Awaited<ReturnType<typeof getTransfers>>),
+  ]);
 
-  const transferRows = transfers.slice(-60).map((t) => {
-    let inPts = 0;
-    let outPts = 0;
-    for (let g = t.event; g < t.event + 5; g++) {
-      inPts += 0;
-      outPts += 0;
-    }
-    return {
-      event: t.event,
-      elementIn: t.element_in,
-      elementOut: t.element_out,
-      hitShare: 0,
-      inPointsNext5: inPts as number | null,
-      outPointsNext5: outPts as number | null,
-      outPointsAfterSale: outPts as number | null,
-      roseBeforeBuy: null as boolean | null,
-    };
-  });
+  const transferRows = transfers.slice(-60).map((t) => ({
+    event: t.event,
+    elementIn: t.element_in,
+    elementOut: t.element_out,
+    hitShare: 0,
+    // Per-transfer P&L needs the points each player scored in the five weeks
+    // after the move — data the page does not fetch yet. Null keeps the
+    // computeTransferPnl filter honest (the lane shows nothing scored rather
+    // than zeros that read as "broke even").
+    inPointsNext5: null as number | null,
+    outPointsNext5: null as number | null,
+    outPointsAfterSale: null as number | null,
+    roseBeforeBuy: null as boolean | null,
+  }));
 
 
   const input: DnaInput = {

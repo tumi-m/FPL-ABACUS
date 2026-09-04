@@ -4,6 +4,8 @@ import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getFixtures, getFixturesAll, getLive } from "@/lib/fpl/endpoints";
 import { getRankCurveBundle } from "@/lib/server/rankCurveServer";
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   const denied = cronGuard(req);
   if (denied) return denied;
@@ -13,17 +15,14 @@ export async function GET(req: NextRequest) {
     const boot = await getBootstrapLite();
     const gw = boot.events.find((e) => e.is_current)?.id ?? boot.events[0]?.id ?? 1;
 
-    // The rank curve samples two dozen standings pages, so it is by far the
-    // most expensive thing any page can ask for. Pages now refuse to wait on
-    // it, which means it is only ever fast if something else has filled the
-    // cache first — that is this job. Its failure must not fail the warm.
+    // One wave: the rank curve samples standings pages and the season fixture
+    // list is independent of the GW reads — they used to go out in sequence.
     const [, , curve] = await Promise.all([
       getFixtures(gw),
       getLive(gw),
       getRankCurveBundle(gw).catch(() => null),
+      getFixturesAll().catch(() => []),
     ]);
-    // The season fixture list feeds the Board, the planner and the fixture model.
-    await getFixturesAll().catch(() => []);
 
     return NextResponse.json({
       ok: true,
@@ -38,6 +37,7 @@ export async function GET(req: NextRequest) {
       ms: Date.now() - started,
     });
   } catch (err) {
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 502 });
+    console.error("[api/cron/warm] warm failed", err);
+    return NextResponse.json({ ok: false, error: "warm-failed" }, { status: 502 });
   }
 }

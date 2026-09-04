@@ -5,7 +5,8 @@ import { GwSigil } from "@/components/generative/GwSigil";
 import { Aurora } from "@/components/generative/Aurora";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "The Film" };
+export const metadata = { title: "The Film",
+  description: "Player film: the gameweek, play by play." };
 
 /**
  * The Film — your season as an archive. The sigil is deterministic art seeded

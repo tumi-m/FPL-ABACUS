@@ -17,7 +17,11 @@ type Params = { params: Promise<{ path?: string[] }> };
 
 function errResponse(err: unknown, path: string) {
   const status = typeof err === "object" && err !== null && "status" in err ? Number((err as { status: number }).status) : 502;
-  return NextResponse.json({ error: path, message: String(err instanceof Error ? err.message : err) }, { status });
+  // The cause goes to the server log; the client gets the path and a status,
+  // never the upstream message (V9-G: Postgres text, connection strings and
+  // upstream URLs stop leaking through this proxy).
+  console.error(`[api/fpl] ${path} failed`, err);
+  return NextResponse.json({ error: path }, { status });
 }
 
 export async function GET(_req: NextRequest, ctx: Params): Promise<NextResponse> {

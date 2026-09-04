@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cronGuard } from "@/lib/server/cronGuard";
+import { cronWriteGuard } from "@/lib/server/cronGuard";
 import { hasDb } from "@/lib/env";
 import { db, explainDbError, isMissingSchema } from "@/lib/db";
 import { rawArchive, scoreDistribution } from "@/lib/db/schema";
 import { loadGwContext } from "@/lib/server/gw";
 import { getRankCurveBundle } from "@/lib/server/rankCurveServer";
 
+export const maxDuration = 60;
+
 /** Runs after the 09:00 UK lockdown (data_checked flips true). Archives the GW:
  *  raw payloads into raw_archive + the sampled score distribution snapshot. */
 export async function GET(req: NextRequest) {
-  const denied = cronGuard(req);
+  const denied = cronWriteGuard(req);
   if (denied) return denied;
 
   try {

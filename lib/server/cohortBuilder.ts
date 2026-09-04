@@ -122,8 +122,11 @@ export async function buildCohortSnapshot(gw: number): Promise<CohortBuildResult
   if (await store.get(freshMarker)) return { ok: true, gw, cohort: COHORT_ID, skipped: "fresh" };
 
   const lockKey = `gaffer:cohort:lock:${gw}`;
-  if (await store.get(lockKey)) return { ok: true, gw, cohort: COHORT_ID, skipped: "lock-held" };
-  await store.set(lockKey, String(t0), 60 * 15);
+  // SET NX, not get-then-set: two overlapping ticks must not both proceed
+  // (the get/set pair was a check-then-act race).
+  if (!(await store.tryLock(lockKey, 15 * 60 * 1000))) {
+    return { ok: true, gw, cohort: COHORT_ID, skipped: "lock-held" };
+  }
 
   try {
     const stateKey = `gaffer:cohort:run:${gw}`;

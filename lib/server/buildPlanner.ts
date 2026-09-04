@@ -12,7 +12,8 @@ import "server-only";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getFixturesAll, getHistory, getPicks } from "@/lib/fpl/endpoints";
 import { buildSolverContext, computeFreeTransfers } from "@/lib/server/buildBoardDesk";
-import { buildTicker } from "@/lib/engines/planner";
+import { buildTicker, fixtureRun, sumRuns, type TickerRun, type RunRates } from "@/lib/engines/planner";
+import { buildFixtureModel } from "@/lib/engines/fixtureModel";
 import type { ValuePoint } from "@/lib/engines/teamValue";
 import type {
   PlannerClub,
@@ -28,6 +29,7 @@ export type {
   PlannerSquadSlot,
   Ticker,
   TickerCell,
+  TickerRun,
 } from "@/lib/engines/planner";
 
 export interface PlannerChip {
@@ -52,6 +54,12 @@ export interface PlannerData {
   squad: PlannerSquadSlot[];
   /** club id → gw id → fixtures that week (empty array = blank). */
   ticker: Ticker;
+  /**
+   * Each club's run over the window, as the two quantities the style guide
+   * demands — expected goals for and expected clean sheets — rather than a
+   * single FDR-style index. The ticker ranks on either side.
+   */
+  runs: Record<number, TickerRun>;
   bankTenths: number;
   squadValueTenths: number;
   /**
@@ -113,6 +121,32 @@ export async function buildPlanner(teamId: number, weeks = HORIZON): Promise<Pla
 
   // Every club, every horizon gameweek — doubles kept as separate cells.
   const ticker = buildTicker(fixtures, clubs, gwIds);
+
+  // The same fixture model the projections read drives the two-number run
+  // scores, so the ticker and the market table can never disagree about how
+  // hard a run is. Runs ship per fixture so the client can re-sum for any
+  // window or side without another request.
+  const runModel = buildFixtureModel(fixtures, { upToGw: gwIds[gwIds.length - 1] ?? currentGw });
+  const rateOf = (id: number) => runModel.teams.get(id);
+  const rates: RunRates = {
+    attack90Of: (id) => rateOf(id)?.attack90 ?? runModel.league.meanAttack90,
+    defence90Of: (id) => rateOf(id)?.defence90 ?? runModel.league.meanDefence90,
+    homeFactor: runModel.league.homeFactor,
+    awayFactor: runModel.league.awayFactor,
+    meanDefence90: runModel.league.meanDefence90,
+    meanAttack90: runModel.league.meanAttack90,
+  };
+  const runs: Record<number, TickerRun> = {};
+  for (const club of clubs) {
+    const per = Object.values(ticker[club.id]).map((cells) =>
+      cells.map((cell) => {
+        const run = fixtureRun(cell, club.id, rates);
+        cell.run = run; // decorated in place — the grid crosses the wire with it
+        return run;
+      }),
+    );
+    runs[club.id] = sumRuns(per.flat());
+  }
 
   const gws: PlannerGw[] = gwIds.map((id) => {
     const event = boot.events.find((e) => e.id === id);
@@ -232,6 +266,7 @@ export async function buildPlanner(teamId: number, weeks = HORIZON): Promise<Pla
     players,
     squad,
     ticker,
+    runs,
     bankTenths,
     squadValueTenths,
     valueSeries,

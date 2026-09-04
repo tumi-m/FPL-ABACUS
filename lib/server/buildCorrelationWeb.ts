@@ -3,6 +3,7 @@ import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getFixturesAll, getPicks } from "@/lib/fpl/endpoints";
 import { fitDixonColes, type DcMatch } from "@/lib/quant/strength";
 import { marginalRisk, simulateWeb, type WebPlayer } from "@/lib/quant/correlationWeb";
+import { defconThreshold } from "@/lib/engines/performance";
 
 /**
  * v4 Field modes 5+6 — the correlation web for one entry's XI, shared by the
@@ -77,14 +78,25 @@ export async function buildWebContext(teamId: number, gw?: number): Promise<WebC
     const fx = fixtures.find((f) => f.event === currentGw && (f.team_h === el.team || f.team_a === el.team));
     if (!fx) continue;
     const shareBase = Math.max(1e-6, el.xg90 ?? 0.12);
+    // Measured, not invented: minutes probability is FPL's own published
+    // chance when there is one, and the defcon rate is the player's actual
+    // contribution rate per start against the threshold his position must
+    // clear — the same definition `lib/engines/performance.ts` uses. No
+    // hardcoded 0.9 / 0.3 / 0.05 constants.
+    const defconPerStart = el.starts > 0 ? el.defcon / el.starts : 0;
+    const threshold = defconThreshold(el.element_type);
     webPlayers.push({
       elementId: id,
       teamId: el.team,
       pos: el.element_type as WebPlayer["pos"],
       goalShare: shareBase,
       assistShare: Math.max(1e-6, el.xa90 ?? 0.08),
-      minutesProb: el.chance_of_playing_this_round != null ? el.chance_of_playing_this_round / 100 : 0.9,
-      defconRate: el.element_type === 2 ? 0.3 : 0.05,
+      minutesProb:
+        el.chance_of_playing_this_round != null ? el.chance_of_playing_this_round / 100 : 1,
+      defconRate:
+        threshold < 99
+          ? Math.max(0, Math.min(1, defconPerStart / threshold))
+          : 0,
     });
     webFixtures.push({ elementId: id, homeTeam: fx.team_h, awayTeam: fx.team_a, isHome: fx.team_h === el.team });
   }

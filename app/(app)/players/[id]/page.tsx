@@ -22,13 +22,47 @@ export const dynamic = "force-dynamic";
 const round1 = (v: number) => Math.round(v * 10) / 10;
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
+/** The most-shared page in the app gets a real title and description. */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id: rawId } = await params;
+  const id = Number(rawId);
+  if (!Number.isFinite(id)) return { title: "Player" };
+  try {
+    const boot = await getBootstrapLite();
+    const el = boot.elements[id];
+    if (!el) return { title: "Player" };
+    const club = boot.teams.find((t) => t.id === el.team)?.short_name ?? "";
+    return {
+      title: `${el.web_name} (${club}) — season, form and fixtures`,
+      description: `${el.web_name}, ${POSITION_SHORT[el.element_type]} for ${club}: ${el.total_points} points, form ${el.form}, £${(el.now_cost / 10).toFixed(1)}m — match-by-match, defensive work and what is next.`,
+    };
+  } catch {
+    return { title: "Player" };
+  }
+}
+
 export default async function PlayerProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id: rawId } = await params;
   const id = Number(rawId);
-  const boot = await getBootstrapLite();
-  const el = boot.elements[id];
-  if (!el || !Number.isFinite(id)) notFound();
+  if (!Number.isFinite(id)) notFound();
+  // Bootstrap and element summary share nothing — one wave, not two trips.
+  const [boot, summaryRes] = await Promise.allSettled([getBootstrapLite(), getElementSummary(id)]);
+  if (boot.status !== "fulfilled") {
+    console.error(`[player] bootstrap failed for ${id}`);
+    notFound();
+  }
+  const el = boot.value.elements[id];
+  if (!el) notFound();
 
+  /*
+   * "No match history yet this season" used to be printed for two different
+   * things: a player who genuinely has not played, and a fetch of ours that
+   * failed. The second is far commoner and the sentence is a statement about
+   * the player, so a fault entirely on our side was reported as a fact about
+   * him — on a page whose own header said he had points and a form figure,
+   * which is the reader's proof it is wrong. The failure is now its own state
+   * and says whose it is.
+   */
   /*
    * "No match history yet this season" used to be printed for two different
    * things: a player who genuinely has not played, and a fetch of ours that
@@ -41,16 +75,16 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
   let history: Awaited<ReturnType<typeof getElementSummary>>["history"] = [];
   let fixtures: Awaited<ReturnType<typeof getElementSummary>>["fixtures"] = [];
   let summaryError: string | null = null;
-  try {
-    const summary = await getElementSummary(id);
+  if (summaryRes.status === "fulfilled") {
+    const summary = summaryRes.value;
     history = [...summary.history].sort((a, b) => a.round - b.round);
     fixtures = summary.fixtures.filter((f) => !f.finished && f.event != null).slice(0, 5);
-  } catch (err) {
-    summaryError = describeFailure(err);
+  } else {
+    summaryError = describeFailure(summaryRes.reason);
   }
 
-  const team = boot.teams.find((t) => t.id === el.team);
-  const teamName = (tid: number) => boot.teams.find((t) => t.id === tid)?.short_name ?? "—";
+  const team = boot.value.teams.find((t) => t.id === el.team);
+  const teamName = (tid: number) => boot.value.teams.find((t) => t.id === tid)?.short_name ?? "—";
 
   const recent = history.slice(-12).reverse();
   const per90 = el.minutes >= 90 ? (v: number) => round2((v / el.minutes) * 90) : () => null;
@@ -75,7 +109,7 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
    * every player in the game, so the cohort costs nothing — no extra request,
    * no per-player summary fetches.
    */
-  const allPlayers = Object.values(boot.elements);
+  const allPlayers = Object.values(boot.value.elements);
   const percentiles = buildPercentiles({
     player: el,
     all: allPlayers,
@@ -88,7 +122,7 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
      ago and clean sheets have moved, so a hardcoded table would rot. */
   let split: ReturnType<typeof splitPoints> | null = null;
   try {
-    split = splitPoints(history, pos, parseScoring(boot.scoring));
+    split = splitPoints(history, pos, parseScoring(boot.value.scoring));
   } catch {
     split = null;
   }

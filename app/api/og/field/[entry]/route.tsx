@@ -5,36 +5,32 @@ import { buildMatchday } from "@/lib/server/buildMatchday";
 const size = { width: 1200, height: 630 };
 
 /** Per-entry share card: /api/og/field/{entryId}. Degrades to name-only when
- *  picks or upstream are unavailable — never errors the share. */
+ *  picks or upstream are unavailable — never errors the share.
+ *
+ *  Cacheable for ten minutes: a crawler share is cold anyway, and without a
+ *  header every bot hit re-ran a full buildMatchday. */
 export async function GET(_req: Request, { params }: { params: Promise<{ entry: string }> }) {
   const { entry: entryParam } = await params;
   const entryId = Number(entryParam);
   if (!Number.isFinite(entryId) || entryId <= 0) {
     return new Response("bad entry", { status: 400 });
   }
+  const cacheHeaders = { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1800" };
 
   let teamName = `Team ${entryId}`;
   let gw: number | null = null;
   let points: number | null = null;
   let rank: number | null = null;
 
-  try {
-    const entry = await getEntry(entryId);
-    if (entry.name) teamName = entry.name;
-  } catch {
-    /* name stays the fallback */
-  }
-  try {
-    const result = await buildMatchday(entryId);
-    if (result.ok) {
-      gw = result.model.event.id;
-      points = Math.round(
-        result.model.squad.filter((s) => !s.onBench).reduce((sum, s) => sum + s.livePoints, 0),
-      );
-      rank = result.model.hero.officialLiveRank ?? null;
-    }
-  } catch {
-    /* card renders without the live figures */
+  // One wave: the name and the matchday share nothing.
+  const [entryRes, matchRes] = await Promise.allSettled([getEntry(entryId), buildMatchday(entryId)]);
+  if (entryRes.status === "fulfilled" && entryRes.value.name) teamName = entryRes.value.name;
+  if (matchRes.status === "fulfilled" && matchRes.value.ok) {
+    gw = matchRes.value.model.event.id;
+    points = Math.round(
+      matchRes.value.model.squad.filter((s) => !s.onBench).reduce((sum, s) => sum + s.livePoints, 0),
+    );
+    rank = matchRes.value.model.hero.officialLiveRank ?? null;
   }
 
   return new ImageResponse(
@@ -112,6 +108,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ entry: 
         />
       </div>
     ),
-    size,
+    { ...size, headers: cacheHeaders },
   );
 }

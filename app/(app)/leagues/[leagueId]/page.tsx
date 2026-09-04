@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getStandings, getHistory } from "@/lib/fpl/endpoints";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
+import { mapPool } from "@/lib/server/mapPool";
 import { ClubFlag } from "@/components/gaffer/ClubCrest";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/primitives/Table";
 import { LeagueFilters } from "./LeagueFilters";
@@ -15,6 +16,8 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "League" };
 
 const PAGE_SIZE = 50;
+/** The rank curve's politeness contract, shared: never this many FPL reads in flight. */
+const UPSTREAM_CONCURRENCY = 4;
 
 type StandingRow = {
   event_total: number;
@@ -82,10 +85,16 @@ export default async function LeagueDetail({
   const firstPromise = getStandings(id, 1)
     .then((s) => ({ ok: true as const, value: s }))
     .catch((err: unknown) => ({ ok: false as const, err }));
-  const restPromises = Array.from({ length: requested - 1 }, (_, i) =>
-    getStandings(id, i + 2)
-      .then((s) => ({ results: s.standings.results as StandingRow[], hasMore: s.standings.has_next }))
-      .catch(() => ({ results: [] as StandingRow[], hasMore: false })),
+  // Bounded pool, not a naked Promise.all: "load more" multiplies pages, and
+  // fifty concurrent standings reads is a rate-limit ticket.
+  const restPages = await mapPool(
+    Array.from({ length: requested - 1 }, (_, i) => i + 2),
+    UPSTREAM_CONCURRENCY,
+    (page) =>
+      getStandings(id, page).then(
+        (s) => ({ results: s.standings.results as StandingRow[], hasMore: s.standings.has_next }),
+      ),
+    () => ({ results: [] as StandingRow[], hasMore: false }),
   );
 
   const [boot, firstResult] = await Promise.all([bootPromise, firstPromise]);
@@ -109,7 +118,7 @@ export default async function LeagueDetail({
     );
   }
   const first = firstResult.value;
-  const rest = await Promise.all(restPromises);
+  const rest = restPages;
 
   const leagueName = first.league.name;
   const memberCount = first.league.max_entries;
@@ -133,12 +142,14 @@ export default async function LeagueDetail({
   const historicGw = view === "gw" && gwParam != null && gwParam !== currentGw ? gwParam : null;
   const gwPts = new Map<number, number>();
   if (historicGw != null) {
-    const points = await Promise.all(
-      rows.slice(0, PAGE_SIZE).map((r) =>
+    const points = await mapPool(
+      rows.slice(0, PAGE_SIZE),
+      UPSTREAM_CONCURRENCY,
+      (r) =>
         getHistory(r.entry)
           .then((h) => h.current.find((g) => g.event === historicGw)?.points ?? null)
           .catch(() => null),
-      ),
+      () => null,
     );
     rows.slice(0, PAGE_SIZE).forEach((r, i) => {
       if (points[i] != null) gwPts.set(r.entry, points[i]!);
@@ -155,12 +166,14 @@ export default async function LeagueDetail({
     const monthGwIds = new Set(
       boot.events.filter((e) => e.deadline_time?.startsWith(ym) && (e.finished || e.is_current)).map((e) => e.id),
     );
-    const histories = await Promise.all(
-      rows.map((r) =>
+    const histories = await mapPool(
+      rows,
+      UPSTREAM_CONCURRENCY,
+      (r) =>
         getHistory(r.entry)
           .then((h) => h.current.filter((g) => monthGwIds.has(g.event)).reduce((s, g) => s + g.points, 0))
           .catch(() => null),
-      ),
+      () => null,
     );
     rows.forEach((r, i) => {
       if (histories[i] != null) monthPts.set(r.entry, histories[i]);

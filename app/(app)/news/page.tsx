@@ -7,7 +7,8 @@ import { recentItems, type StoredNewsRow } from "@/lib/news/store";
 import { Est } from "@/components/gaffer/Est";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Newsdesk" };
+export const metadata = { title: "Newsdesk",
+  description: "The news desk: injuries, suspensions and price moves, ranked against your squad." };
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -38,26 +39,20 @@ export default async function NewsPage({
   const filter = parseFilter(params.f);
 
   const boot = await getBootstrapLite();
+  // The news store is independent of the squad read — one wave, not two.
+  const currentGw =
+    boot.events.find((e) => e.is_current)?.id ??
+    Math.max(1, (boot.events.find((e) => e.is_next)?.id ?? 2) - 1);
+  const [squadPicks, newsResult] = await Promise.allSettled([
+    teamId ? getPicks(teamId, currentGw, true) : Promise.reject(new Error("no team")),
+    recentItems(120),
+  ]);
   let squadIds: number[] = [];
-  if (teamId) {
-    try {
-      const currentGw =
-        boot.events.find((e) => e.is_current)?.id ??
-        Math.max(1, (boot.events.find((e) => e.is_next)?.id ?? 2) - 1);
-      squadIds = (await getPicks(teamId, currentGw, true)).picks.map((p) => p.element);
-    } catch {
-      squadIds = [];
-    }
-  }
+  if (squadPicks.status === "fulfilled") squadIds = squadPicks.value.picks.map((p) => p.element);
+  const items: StoredNewsRow[] = newsResult.status === "fulfilled" ? newsResult.value : [];
+
   const squadSet = new Set(squadIds);
   const squadTeamIds = new Set(squadIds.map((id) => boot.elements[id]?.team).filter((t): t is number => t != null));
-
-  let items: StoredNewsRow[] = [];
-  try {
-    items = await recentItems(120);
-  } catch {
-    items = [];
-  }
 
   // Squad-specific ranking on top of ingest-time relevance.
   const scored = items.map((i) => {

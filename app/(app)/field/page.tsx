@@ -7,7 +7,8 @@ import { COPY } from "@/lib/copy/deck";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Field" };
+export const metadata = { title: "Field",
+  description: "Your fifteen on the pitch: live points, bonus, ownership, risk, and the season under the gameweek." };
 
 export default async function FieldPage({
   searchParams,

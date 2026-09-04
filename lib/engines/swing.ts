@@ -1,5 +1,6 @@
 import type { Fixture } from "@/lib/fpl/schemas";
-import type { Multiplier } from "@/lib/engines/types";
+import type { Multiplier, Pos, ScoringConfig } from "@/lib/engines/types";
+import { pointsForOutcome } from "@/lib/engines/scoring";
 
 export type StatIdentifier = Fixture["stats"][number]["identifier"];
 
@@ -53,11 +54,22 @@ export function diffFixtures(prev: Fixture[], next: Fixture[]): RawEvent[] {
   return events;
 }
 
-/** Points a scoring event is worth to the player. Position-specific values come
- * from ScoringConfig at the call site. */
-export function eventPoints(identifier: StatIdentifier, posPoints = 5): number {
-  if (identifier === "goals_scored") return posPoints;
-  if (identifier === "assists") return 3;
+/**
+ * Points a scoring event is worth to the player who earned it.
+ *
+ * The value is the scorer's, so it has to know the scorer's position: a
+ * keeper's goal is worth what the published scoring config says a keeper's
+ * goal is worth, not a forward's. The config comes from
+ * `parseScoring(bootstrap.game_config.scoring)` at the call site — never
+ * hardcoded here.
+ */
+export function eventPoints(
+  identifier: StatIdentifier,
+  pos: Pos,
+  scoring: ScoringConfig,
+): number {
+  if (identifier === "goals_scored") return pointsForOutcome("goal", pos, scoring);
+  if (identifier === "assists") return pointsForOutcome("assist", pos, scoring);
   return 0;
 }
 

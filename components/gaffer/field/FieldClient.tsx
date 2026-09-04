@@ -7,22 +7,8 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
-import { EOScatter } from "@/components/charts/EOScatter";
-import { PositionContribution, Availability, BonusLeaders, CaptainShare } from "@/components/gaffer/field/FieldCharts";
-import {
-  ExpectedVsActual,
-  MinutesSecurity,
-  OverUnder,
-  ValueForMoney,
-} from "@/components/gaffer/field/SquadCharts";
-import { CreationScatter } from "@/components/gaffer/field/CreationScatter";
-import {
-  Crossover,
-  DecisionLedger,
-  Delivery,
-  ProcessVsOutcome,
-  RankAtRisk,
-} from "@/components/gaffer/field/DecisionCharts";
+
+
 
 import { AnimatedNumber } from "@/components/gaffer/useAnimatedNumber";
 import { Est } from "@/components/gaffer/Est";
@@ -69,6 +55,40 @@ const BonusBoard = dynamic(
 const DefconBoard = dynamic(
   () => import("@/components/gaffer/boards/DefconBoard").then((m) => m.DefconBoard),
   { loading: () => <BoardSkeleton /> },
+);
+
+/**
+ * The below-fold chart blocks, split the same way the boards are — but one
+ * chunk per *block*, not per chart: V9-L measured per-chart splits
+ * duplicating shared chart code across nine chunks and reverted them. One
+ * chunk per block lets the framework's split-chunk pass share the d3 modules.
+ *
+ * Client-only on purpose (`ssr: false`): these all sit below the pitch, and a
+ * server-rendered figure that hydration immediately swaps for the loading
+ * skeleton — then swaps back when the chunk lands — is a visible flash and a
+ * detach/reattach cycle under every scrolled-to interaction. The skeleton
+ * covers the chunk load instead, and the /field HTML stops carrying
+ * server-rendered d3 SVGs for charts nobody has scrolled to.
+ */
+const EOScatter = dynamic(
+  () => import("@/components/charts/EOScatter").then((m) => m.EOScatter),
+  { loading: () => <BoardSkeleton />, ssr: false },
+);
+const SquadSeasonBlock = dynamic(
+  () => import("@/components/gaffer/field/SquadSeasonBlock").then((m) => m.SquadSeasonBlock),
+  { loading: () => <BoardSkeleton />, ssr: false },
+);
+const CreationScatter = dynamic(
+  () => import("@/components/gaffer/field/CreationScatter").then((m) => m.CreationScatter),
+  { loading: () => <BoardSkeleton />, ssr: false },
+);
+const DecisionBoardBlock = dynamic(
+  () => import("@/components/gaffer/field/DecisionBoardBlock").then((m) => m.DecisionBoardBlock),
+  { loading: () => <BoardSkeleton />, ssr: false },
+);
+const SquadWeekBlock = dynamic(
+  () => import("@/components/gaffer/field/SquadWeekBlock").then((m) => m.SquadWeekBlock),
+  { loading: () => <BoardSkeleton />, ssr: false },
 );
 
 const POLL_LIVE_MS = 20_000;
@@ -839,8 +859,8 @@ export function FieldClient({
           className="on-turf relative overflow-hidden rounded-lg px-2 py-4 md:px-6"
           style={{
             background:
-              "radial-gradient(120% 90% at 50% -10%, rgba(210,255,235,.16), transparent 55%), repeating-linear-gradient(90deg, rgba(6,32,20,.35) 0 64px, rgba(12,52,32,.18) 64px 128px), linear-gradient(178deg, #0B3B24, #062415 82%)",
-            boxShadow: "inset 0 -48px 80px -48px rgba(0,0,0,.75), inset 0 1px 0 rgba(230,248,255,.10)",
+              "radial-gradient(120% 90% at 50% -10%, var(--turf-wash), transparent 55%), repeating-linear-gradient(90deg, var(--turf-stripe-a) 0 64px, var(--turf-stripe-b) 64px 128px), linear-gradient(178deg, var(--turf-a), var(--turf-b) 82%)",
+            boxShadow: "inset 0 -48px 80px -48px var(--turf-shadow), inset 0 1px 0 var(--turf-gloss)",
           }}
         >
           {/*
@@ -861,14 +881,14 @@ export function FieldClient({
            * viewBox is an ellipse pretending otherwise.
            */}
           <svg aria-hidden className="pointer-events-none absolute inset-0 h-full w-full opacity-55" preserveAspectRatio="none" viewBox="0 0 100 100">
-            <g fill="none" stroke="rgba(240,250,245,.9)" strokeWidth="0.35" strokeLinecap="square">
+            <g fill="none" stroke="var(--turf-chalk)" strokeWidth="0.35" strokeLinecap="square">
               <rect x="2" y="2" width="96" height="96" />
               {/* goal, six-yard box, eighteen-yard box — the keeper's furniture */}
               <rect x="43" y="0.7" width="14" height="1.3" />
               <rect x="36" y="2" width="28" height="8" />
               <rect x="24" y="2" width="52" height="22" />
               <path d="M 40 24 Q 50 30 60 24" />
-              <circle cx="50" cy="15" r="0.6" fill="rgba(240,250,245,.9)" stroke="none" />
+              <circle cx="50" cy="15" r="0.6" fill="var(--turf-chalk)" stroke="none" />
               {/* halfway, and the arc of the centre circle rising off it */}
               <line x1="2" y1="98" x2="98" y2="98" />
               <path d="M 30 98 Q 50 84 70 98" />
@@ -1039,31 +1059,20 @@ export function FieldClient({
             Simulation and attribution — every figure here is an estimate, and says so.
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ProcessVsOutcome
-            rows={model.squad}
-            fieldAvg={model.rankContext.fieldAvg}
-            gwPoints={model.hero.gwPoints}
+        {decisionWeb ? (
+          <DecisionBoardBlock
+            model={model}
+            web={decisionWeb}
+            expectedByElement={expectedByElement}
+            pointsBehind={pointsBehind}
           />
-          <Delivery rows={model.squad} expectedByElement={expectedByElement} />
-          {decisionWeb ? (
-            <>
-              <RankAtRisk
-                web={decisionWeb}
-                estimatedRank={model.hero.estimatedLiveRank ?? model.hero.officialLiveRank}
-                ranksPerPoint={model.rankContext.ranksPerPoint}
-              />
-              <Crossover rows={model.squad} web={decisionWeb} pointsBehind={pointsBehind} />
-            </>
-          ) : (
-            <p className="rounded-lg bg-surface-1 card-ring p-6 text-center text-sm text-ink-lo lg:col-span-2">
-              {decisionWebLoading
-                ? "Simulating the gameweek — 800 Monte Carlo draws…"
-                : "The simulation needs your picks and some finished fixtures to lean on."}
-            </p>
-          )}
-          <DecisionLedger multiverse={model.multiverse} />
-        </div>
+        ) : (
+          <p className="rounded-lg bg-surface-1 card-ring p-6 text-center text-sm text-ink-lo">
+            {decisionWebLoading
+              ? "Simulating the gameweek — 800 Monte Carlo draws…"
+              : "The simulation needs your picks and some finished fixtures to lean on."}
+          </p>
+        )}
       </section>
 
       {/* The squad-shape charts. With a rival loaded they stop being a report
@@ -1086,12 +1095,7 @@ export function FieldClient({
             </p>
           </div>
         )}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <PositionContribution rows={model.squad} rival={rivalSeries} />
-          <Availability rows={model.squad} rival={rivalSeries} />
-          <BonusLeaders rows={model.squad} rival={rivalSeries} />
-          <CaptainShare rows={model.squad} rival={rivalSeries} />
-        </div>
+        <SquadWeekBlock rows={model.squad} rival={rivalSeries} />
       </section>
 
       {/* the season underneath the gameweek — are the players any good */}
@@ -1109,12 +1113,7 @@ export function FieldClient({
               : "Season totals, not projections — what they have actually done."}
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ExpectedVsActual rows={model.squad} />
-          <OverUnder rows={model.squad} />
-          <MinutesSecurity rows={model.squad} currentGw={model.event.id} />
-          <ValueForMoney rows={model.squad} />
-        </div>
+        <SquadSeasonBlock rows={model.squad} currentGw={model.event.id} />
       </section>
 
       {/* Everything above this line is your fifteen. This one is the league

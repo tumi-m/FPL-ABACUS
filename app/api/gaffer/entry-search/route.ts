@@ -20,9 +20,8 @@ export async function GET(req: NextRequest) {
     const results = await searchEntries(q, mode);
     return NextResponse.json({ ok: true, results });
   } catch (err) {
-    return NextResponse.json(
-      { ok: false, reason: "search-failed", message: String(err instanceof Error ? err.message : err) },
-      { status: 502 },
-    );
+    // Postgres failure text can carry connection details — log, never echo.
+    console.error("[api/gaffer/entry-search] search failed", err);
+    return NextResponse.json({ ok: false, reason: "search-failed" }, { status: 502 });
   }
 }

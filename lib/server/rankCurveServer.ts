@@ -3,7 +3,9 @@ import { cached } from "@/lib/cache/swr";
 import { getStandings } from "@/lib/fpl/endpoints";
 import { buildRankCurve, type RankCurve } from "@/lib/engines/rankModel";
 
-const LEAGUE_314 = 314;
+/** The cohort mini-league — one constant; the rival-name resolver reads it too. */
+export const COHORT_LEAGUE_ID = 314;
+const LEAGUE_314 = COHORT_LEAGUE_ID;
 /** Kept modest to stay a good citizen; log-spacing keeps coverage across the field. */
 const PAGE_BUDGET = 24;
 /**

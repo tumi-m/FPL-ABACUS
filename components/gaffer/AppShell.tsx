@@ -17,6 +17,10 @@ import { cn } from "@/lib/ui/cn";
 // was reachable only from a link inside the Planner header, which is to say
 // not reachable at all. It takes the desktop nav, where there is room, and
 // the Planner carries it on a phone.
+//
+// Newsdesk, Film and Manager DNA are reading, not doing: no thumb slot either,
+// desktop only. They had no inbound link anywhere — typed-URL pages — which is
+// the same failure Combinations had.
 const NAV = [
   { href: "/live", label: "Home", short: "Home", thumb: true },
   { href: "/field", label: "Field", short: "Field", thumb: true },
@@ -24,6 +28,9 @@ const NAV = [
   { href: "/field/combos", label: "Combinations", short: "Pairs", thumb: false },
   { href: "/board", label: "Board", short: "Board", thumb: true },
   { href: "/leagues", label: "Leagues", short: "Mini", thumb: true },
+  { href: "/news", label: "Newsdesk", short: "News", thumb: false },
+  { href: "/film", label: "Film", short: "Film", thumb: false },
+  { href: "/dna", label: "Manager DNA", short: "DNA", thumb: false },
 ] as const;
 
 const THUMB = NAV.filter((item) => item.thumb);

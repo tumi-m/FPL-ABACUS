@@ -30,7 +30,7 @@ export function ChartFrame({
   const [showTable, setShowTable] = React.useState(false);
 
   return (
-    <figure className={cn("rounded-lg bg-surface-1 has-gloss card-lift p-4 md:p-5", className)}>
+    <figure className={cn("rounded-lg bg-surface-1 card-lift p-4 md:p-5", className)}>
       {(eyebrow || title || table) && (
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>

@@ -3,6 +3,7 @@ import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { getEventStatus, getFixtures, getFixturesAll, getLive } from "@/lib/fpl/endpoints";
 import { getGwPhase, bonusAddedDays } from "@/lib/engines/matchState";
 import { weekMoment } from "@/lib/engines/weekPhase";
+import { notePhase } from "@/lib/fpl/phase";
 import type { EventStatus, Fixture, FplEvent, GwPhase, Live } from "@/lib/fpl/schemas";
 import type { BootstrapLite } from "@/lib/fpl/bootstrapLite";
 import type { LiveBarData } from "@/lib/ui/types";
@@ -34,6 +35,10 @@ export async function loadGwContext(gw?: number): Promise<GwContext> {
     getLive(event.id),
   ]);
   const phase = getGwPhase(event, fixtures, status);
+  // Publish the computed phase to the TTL layer — it is the cheap source the
+  // phase-aware cache buckets fall back to, so the off-week column in the TTL
+  // table finally applies between gameweeks.
+  notePhase(phase);
   return {
     boot,
     event,

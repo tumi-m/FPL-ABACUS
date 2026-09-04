@@ -220,22 +220,7 @@ export function valuePerMillion(p: PerfPlayer): number {
   return round2(p.points / (p.cost / 10));
 }
 
-/**
- * Percentile of `value` within `population`, 0..1.
- *
- * Ties share the midpoint so a population of identical values sits at 0.5
- * rather than everyone claiming the top.
- */
-export function percentile(value: number, population: number[]): number {
-  if (population.length === 0) return 0;
-  let below = 0;
-  let equal = 0;
-  for (const v of population) {
-    if (v < value) below++;
-    else if (v === value) equal++;
-  }
-  return (below + equal / 2) / population.length;
-}
+
 
 /**
  * A sensible starting minutes floor for a population.

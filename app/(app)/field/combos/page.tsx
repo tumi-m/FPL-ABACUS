@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import nextDynamic from "next/dynamic";
 import { PageHeader } from "@/components/gaffer/PageHeader";
-import { ComboBoards } from "@/components/gaffer/combos/ComboBoards";
 import { buildComboBoard } from "@/lib/server/buildCombos";
+
+/**
+ * The pairing boards are all d3 and tables a visitor reads after scrolling —
+ * their chunk fetches beside the data instead of riding the route's own.
+ */
+const ComboBoards = nextDynamic(
+  () => import("@/components/gaffer/combos/ComboBoards").then((m) => m.ComboBoards),
+);
 
 export const dynamic = "force-dynamic";
 
