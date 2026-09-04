@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
@@ -9,11 +10,89 @@ import { Est } from "@/components/gaffer/Est";
 import { X } from "@/components/primitives/icons";
 import { clubOf } from "@/config/clubs";
 import { POSITION_SHORT, formatSignedRank } from "@/lib/ui/format";
+import { MINUTES_METHOD } from "@/lib/engines/minutes";
 import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 type SwingRow = MatchdayModel["swings"][number];
 type LevRow = MatchdayModel["leverage"]["yours"][number];
+
+/**
+ * Minutes certainty (v10 D2) — P(start)/P(60+) fetched per player when the
+ * sheet opens. Thin histories render the greyed dash, never a guess.
+ */
+function MinutesCertainty({ element, status }: { element: number; status: string }) {
+  const [est, setEst] = React.useState<MinutesApiRow | null>(null);
+  const [failed, setFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    let alive = true;
+    setEst(null);
+    setFailed(false);
+    fetch(`/api/gaffer/minutes?players=${element}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((data: MinutesApiData) => {
+        if (alive && data.players[0]) setEst(data.players[0]);
+      })
+      .catch(() => {
+        if (alive) setFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [element]);
+
+  return (
+    <div className="mt-4 rounded-md bg-surface-1 px-3 py-3">
+      <p className="upper-label mb-1.5 text-2xs text-ink-lo">Will he start?</p>
+      {failed ? (
+        <p className="text-xs text-ink-lo">The history feed did not answer — nothing modelled to show.</p>
+      ) : est == null ? (
+        <p className="text-xs text-ink-lo">Reading his match history…</p>
+      ) : est.reliable && est.pStart != null ? (
+        <div className="flex items-center gap-4 text-sm num-tabular">
+          <span className="text-ink-hi">
+            <Est method={MINUTES_METHOD}>{`P(start) ${Math.round(est.pStart * 100)}%`}</Est>
+          </span>
+          {est.p60 != null && (
+            <span className="text-ink-hi">
+              <Est method={`${MINUTES_METHOD} Conditioned on starting.`}>{`P(60+) ${Math.round(est.p60 * 100)}%`}</Est>
+            </span>
+          )}
+          {est.expectedMinutes != null && (
+            <span className="text-ink-lo">
+              <Est method={`${MINUTES_METHOD} Blended over a bench cameo.`}>{`~${est.expectedMinutes}′`}</Est>
+            </span>
+          )}
+        </div>
+      ) : (
+        <p className="text-xs text-ink-lo">— Not enough history · {est.note}</p>
+      )}
+      {status !== "fit" && (
+        <p className="mt-1 text-2xs text-ink-lo">FPL has flagged him — the model reads history, not the flag.</p>
+      )}
+    </div>
+  );
+}
+
+interface MinutesApiRow {
+  id: number;
+  pStart: number | null;
+  p60: number | null;
+  expectedMinutes: number | null;
+  interval: [number, number] | null;
+  appearances: number;
+  reliable: boolean;
+  note: string;
+  status: string;
+  chanceOfPlaying: number | null;
+}
+
+interface MinutesApiData {
+  currentGw: number;
+  minAppearances: number;
+  players: MinutesApiRow[];
+}
 
 /**
  * Peek (v4 spec) — ONE shared sheet for token taps: the player mini-card.
@@ -226,6 +305,10 @@ export function PeekSheet({
               </p>
             </div>
           )}
+
+          {/* Will he start? (v10 D2) — fetched for this player when the sheet
+              opens, never shipped with the pitch. */}
+          <MinutesCertainty element={row.element} status={row.availability.kind} />
 
           {/*
            * The season, under the gameweek.
