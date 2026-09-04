@@ -154,10 +154,27 @@ export function isValidComponent(key: unknown): key is keyof typeof REGISTRY & s
   return typeof key === "string" && key in REGISTRY;
 }
 
-/** Validate model-supplied params against the registry; strips unknown keys. */
+/** Validate model-supplied params against the registry; strips unknown keys.
+ *
+ * Per-component `params` comes in two shapes: whole-object schemas
+ * (z.object({...})) and single-value schemas like `playerName.optional()`
+ * — which describe the value itself, so safeParse({}) on those fails and
+ * every model-selected card carrying a player name silently 404'd to null.
+ * Value-shaped schemas are wrapped as {playerName} here so both shapes
+ * validate against the params bag the model is taught to send. */
 export function coerceParams(key: string, raw: unknown): Record<string, unknown> | null {
   const def = REGISTRY[key];
   if (!def?.params) return {};
-  const parsed = def.params.safeParse(raw);
+  const schema = def.params;
+  // Value-shaped = the schema accepts undefined (an .optional() chain) but
+  // rejects an object. Object schemas (rivalEntry, out/in, squad-generator)
+  // accept undefined as a whole too, but they ACCEPT an object, so the
+  // "rejects an object" half is what tells the two apart.
+  const acceptsUndefined = schema.safeParse(undefined).success;
+  const acceptsObject = schema.safeParse({}).success;
+  const effective = acceptsUndefined && !acceptsObject
+    ? z.object({ playerName: ParamSchemas.playerName.optional() })
+    : schema;
+  const parsed = effective.safeParse(raw ?? {});
   return parsed.success ? (parsed.data as Record<string, unknown>) : null;
 }

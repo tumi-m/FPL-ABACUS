@@ -74,6 +74,16 @@ export function PlannerSuggestions({
     return m;
   }, [market, squad]);
 
+  // Minutes certainty for the OUT side (v10 D2): selling a player who starts
+  // every week is a different decision from selling one who rotates, and the
+  // projection alone does not say which. One batched fetch for the players
+  // the suggestions name.
+  const outIds = React.useMemo(
+    () => [...new Set(rows.map((s) => s.outId))].join(","),
+    [rows],
+  );
+  const minutesByPlayer = useMinutesCertainty(outIds);
+
   const free = Math.max(0, freeTransfers - staged);
 
   return (
@@ -92,7 +102,8 @@ export function PlannerSuggestions({
 
       {squad.length === 0 ? (
         <p className="rounded-md bg-surface-1 px-3 py-5 text-center text-2xs text-ink-lo">
-          Your picks are not visible yet, so there is nothing to swap out of.
+          Your picks are not visible yet, so there is nothing to swap out of. Sign in on the FPL
+          site and reload — the market table below works regardless.
         </p>
       ) : rows.length === 0 ? (
         <p className="rounded-md bg-surface-1 px-3 py-5 text-center text-2xs text-ink-lo">
@@ -134,6 +145,9 @@ export function PlannerSuggestions({
                   <span className="text-[10px] text-ink-lo num-tabular">
                     {s.outPoints.toFixed(1)} → {s.inPoints.toFixed(1)} pts
                     {costsHit ? " · after a −4 hit" : ""}
+                    {minutesByPlayer.get(s.outId)?.reliable && minutesByPlayer.get(s.outId)?.pStart != null
+                      ? ` · sells at P(start) ${Math.round(minutesByPlayer.get(s.outId)!.pStart! * 100)}%`
+                      : ""}
                   </span>
                   <button
                     type="button"
@@ -177,4 +191,46 @@ function Face({
       </span>
     </span>
   );
+}
+
+interface MinutesApiRow {
+  id: number;
+  pStart: number | null;
+  p60: number | null;
+  expectedMinutes: number | null;
+  interval: [number, number] | null;
+  appearances: number;
+  reliable: boolean;
+  note: string;
+}
+
+/**
+ * Batched minutes-certainty fetch for the named players (v10 D2). Empty map
+ * while loading or when ids are blank — the rows render without the chip,
+ * never with a placeholder number.
+ */
+function useMinutesCertainty(idsCsv: string): Map<number, MinutesApiRow> {
+  const [map, setMap] = React.useState<Map<number, MinutesApiRow>>(new Map());
+  React.useEffect(() => {
+    if (!idsCsv) {
+      setMap(new Map());
+      return;
+    }
+    let alive = true;
+    fetch(`/api/gaffer/minutes?players=${idsCsv}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((data: { players: MinutesApiRow[] }) => {
+        if (!alive) return;
+        const next = new Map<number, MinutesApiRow>();
+        for (const row of data.players) next.set(row.id, row);
+        setMap(next);
+      })
+      .catch(() => {
+        if (alive) setMap(new Map());
+      });
+    return () => {
+      alive = false;
+    };
+  }, [idsCsv]);
+  return map;
 }

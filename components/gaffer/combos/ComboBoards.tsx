@@ -148,8 +148,12 @@ function Duel({
           </p>
         </div>
       ) : (
-        <p className="rounded-lg bg-surface-1 card-ring p-8 text-center text-sm text-ink-lo">
+        <p className="rounded-lg bg-surface-1 card-ring p-8 text-center text-sm text-ink-2">
           Put at least one player on each side.
+          <span className="mt-1 block text-2xs leading-relaxed text-ink-lo">
+            Use the Add a player dropdown on either column, or remove everyone to start from an
+            empty side.
+          </span>
         </p>
       )}
     </section>
@@ -219,7 +223,12 @@ function Side({
             </li>
           );
         })}
-        {ids.length === 0 && <li className="py-1.5 text-xs text-ink-lo">Nobody yet.</li>}
+        {ids.length === 0 && (
+          <li className="py-4 text-center text-xs text-ink-lo">
+            <span className="block text-ink-2">No picks added yet.</span>
+            <span className="mt-0.5 block text-2xs text-ink-lo">Tap players on the combination board to compare their price points.</span>
+          </li>
+        )}
       </ul>
 
       {ids.length < 3 && (
