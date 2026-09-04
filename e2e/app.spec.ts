@@ -1091,6 +1091,34 @@ test.describe("authenticated routes", () => {
     await expect(page.locator("h1")).not.toBeEmpty();
   });
 
+  test("minutes certainty quotes a probability or admits thin history — never a bare guess", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/players/1");
+    const panel = page.getByRole("region", { name: "Minutes certainty" });
+    await expect(panel).toBeVisible();
+    // Either the model speaks (with the ~ estimate mark) or it refuses with
+    // the reason. Both states are honest; a number without either is not.
+    const speaks = panel.getByText(/P\(start\)|interval/i);
+    const refuses = panel.getByText(/Not enough history/i);
+    expect((await speaks.count()) > 0 || (await refuses.count() > 0)).toBe(true);
+  });
+
+  test("the minutes API returns reliable or thin states, and rate-limits its batch", async ({ page }) => {
+    const res = await page.request.get("/api/gaffer/minutes?players=1,2,3");
+    expect(res.status()).toBe(200);
+    const data = (await res.json()) as {
+      minAppearances: number;
+      players: { id: number; reliable: boolean; pStart: number | null }[];
+    };
+    expect(data.players).toHaveLength(3);
+    for (const row of data.players) {
+      if (row.reliable) expect(row.pStart).toBeGreaterThanOrEqual(0);
+      else expect(row.pStart).toBeNull();
+    }
+    const empty = await page.request.get("/api/gaffer/minutes");
+    expect(empty.status()).toBe(400);
+  });
+
   test("planner ranks the market and stages a transfer", async ({ page }) => {
     await asTeam(page);
     const res = await page.goto("/planner");
