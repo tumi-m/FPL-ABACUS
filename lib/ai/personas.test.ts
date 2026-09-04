@@ -45,17 +45,25 @@ describe("persona registry — the four arcade gaffers", () => {
   });
 });
 
-describe("GAFFER_CONSTRAINTS — the strict numbers rule holds", () => {
-  it("caps the reply at 40 words", () => {
-    expect(GAFFER_CONSTRAINTS).toMatch(/40 words/);
+describe("GAFFER_CONSTRAINTS — no invented figures", () => {
+  it("caps the reply length", () => {
+    expect(GAFFER_CONSTRAINTS).toMatch(/at most \d+ words/);
   });
 
-  it("forbids the persona from stating any figures", () => {
-    expect(GAFFER_CONSTRAINTS).toMatch(/Never state numbers/);
+  it("permits quoting the facts and forbids going beyond them", () => {
+    // The rule used to be "never state numbers", which bought safety by
+    // making the gaffer useless beside a table of real ones. The guarantee is
+    // the same — nothing invented — and is enforced by verifyFigures.
+    expect(GAFFER_CONSTRAINTS).toMatch(/ONLY ones that appear verbatim in the FACTS/);
+    expect(GAFFER_CONSTRAINTS).toMatch(/Never estimate, extrapolate or round/);
   });
 
-  it("grounds statements in resolved facts", () => {
-    expect(GAFFER_CONSTRAINTS).toMatch(/facts provided/);
+  it("asks for one figure per sentence, because a sentence is what the check drops", () => {
+    expect(GAFFER_CONSTRAINTS).toMatch(/at most one figure in a sentence/i);
+  });
+
+  it("still tells it to say what to watch when the facts are thin", () => {
+    expect(GAFFER_CONSTRAINTS).toMatch(/instead of inventing detail/);
   });
 });
 
@@ -63,9 +71,18 @@ describe("personaPrompt composes voice + constraints + facts", () => {
   it("carries the persona's voice, the constraints and the injected context", () => {
     const p = personaPrompt(personaById("kofi"), "captaincy: template is Salah");
     expect(p).toContain("differential hunter");
-    expect(p).toContain("40 words");
-    expect(p).toContain("Never state numbers");
+    expect(p).toContain("ONLY ones that appear verbatim");
     expect(p).toContain("captaincy: template is Salah");
+  });
+
+  it("carries prior turns when given, and marks them as not a source of figures", () => {
+    const p = personaPrompt(personaById("kofi"), "facts", "user: who do I captain?");
+    expect(p).toContain("who do I captain?");
+    expect(p).toMatch(/never a source of figures/);
+  });
+
+  it("leaves the history block out entirely on a first question", () => {
+    expect(personaPrompt(personaById("kofi"), "facts")).not.toContain("EARLIER IN THIS CONVERSATION");
   });
 });
 

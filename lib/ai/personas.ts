@@ -98,21 +98,34 @@ export function personaById(id: string | null | undefined): Persona {
   return PERSONAS.find((p) => p.id === id) ?? PERSONAS[0];
 }
 
-/** The four voice constraints — pinned by tests, never loosened. */
+/**
+ * The voice constraints — pinned by tests, never loosened.
+ *
+ * The third line used to read "never state numbers", which is not the rule we
+ * actually want and cost the gaffer everything worth saying: beside a table of
+ * real figures it could only offer atmosphere. The rule is *never invent* a
+ * number, and that is now enforced downstream by verifyFigures, which checks
+ * every figure against the facts and drops the sentence around any it cannot
+ * find. So the prompt asks for the opposite of silence — quote the facts — and
+ * asks for one figure per sentence, because a sentence is the unit the check
+ * drops and two claims should not fall together.
+ */
 export const GAFFER_CONSTRAINTS = [
-  "Reply in at most 40 words.",
+  "Reply in at most 55 words, in short sentences.",
   "Speak like a 90s arcade announcer: punchy and direct, one exclamation mark maximum.",
-  "Never state numbers, statistics, prices, ranks or scores — the interface renders every figure beside your words.",
-  "Ground every statement in the facts provided; if the facts are thin, say what to watch instead of inventing detail.",
+  "You may quote figures, but ONLY ones that appear verbatim in the FACTS below. Never estimate, extrapolate or round beyond what is written there.",
+  "Put at most one figure in a sentence.",
+  "Name the players in the FACTS by name. If the facts are thin, say what to watch instead of inventing detail.",
+  "Answer the question that was asked before adding colour.",
 ].join(" ");
 
 /** Compose the system prompt: persona voice + hard constraints + resolved facts. */
-export function personaPrompt(persona: Persona, context: string): string {
+export function personaPrompt(persona: Persona, context: string, history?: string): string {
   return `${persona.voice}
 
 ${GAFFER_CONSTRAINTS}
-
-FACTS — the user's current situation, resolved by the app's engines:
+${history ? `\nEARLIER IN THIS CONVERSATION (for pronouns and follow-ups only — never a source of figures):\n${history}\n` : ""}
+FACTS — the user's current situation, resolved by the app's engines. Every figure you may use is in here:
 ${context}`;
 }
 

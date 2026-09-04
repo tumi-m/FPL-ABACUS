@@ -22,6 +22,8 @@ type StreamEvent =
   | { type: "meta"; intent: string; source: string }
   | { type: "prose"; text: string }
   | { type: "gaffer"; persona: string; text: string }
+  | { type: "gaffer-delta"; text: string }
+  | { type: "follow"; items: string[] }
   | CardEvent
   | { type: "sources"; items: { title: string; url: string; source: string }[] }
   | { type: "done" }
@@ -91,6 +93,10 @@ export function AskBar() {
   const [gaffers, setGaffers] = React.useState<GafferLine[]>([]);
   const [cards, setCards] = React.useState<ChartCard[]>([]);
   const [sources, setSources] = React.useState<{ title: string; url: string; source: string }[]>([]);
+  const [follow, setFollow] = React.useState<string[]>([]);
+  /* The turns the desk gets to see. Kept in the tab: a conversation about one
+     gameweek has no business outliving the session. */
+  const [history, setHistory] = React.useState<{ role: "user" | "gaffer"; content: string }[]>([]);
   const [personaId, choosePersona] = useGafferPersona();
   const [blipsMuted, setBlipsMuted] = React.useState(true);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -153,12 +159,14 @@ export function AskBar() {
     setGaffers([]);
     setCards([]);
     setSources([]);
+    setFollow([]);
     setQ(question);
+    const priorTurns = history;
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ q: question, persona: personaId }),
+        body: JSON.stringify({ q: question, persona: personaId, history: priorTurns }),
       });
       if (!res.body) throw new Error("no stream");
       const reader = res.body.getReader();
@@ -178,8 +186,21 @@ export function AskBar() {
           } catch {
             continue;
           }
-          if (ev.type === "gaffer") {
-            setGaffers((g) => [...g, { kind: "gaffer", personaId: ev.persona, text: ev.text }]);
+          if (ev.type === "gaffer-delta") {
+            /* Verified sentences arriving one at a time. The first opens the
+               bubble; the rest extend it, so the line is written rather than
+               dropped in complete after a long pause. */
+            setGaffers((g) => {
+              if (g.length === 0) return [{ kind: "gaffer", personaId, text: ev.text }];
+              const last = g[g.length - 1];
+              return [...g.slice(0, -1), { ...last, text: last.text + ev.text }];
+            });
+          } else if (ev.type === "gaffer") {
+            // The final, whole line — replaces the streamed one so a fallback
+            // that arrived after a failed stream does not append to a stub.
+            setGaffers([{ kind: "gaffer", personaId: ev.persona, text: ev.text }]);
+          } else if (ev.type === "follow") {
+            setFollow(ev.items);
           } else if (ev.type === "prose") {
             setProse((p) => [...p, ev.text]);
           } else if (ev.type === "card") {
@@ -198,6 +219,7 @@ export function AskBar() {
       setBusy(false);
       requestAnimationFrame(() => resultsRef.current?.scrollTo({ top: 0 }));
     }
+    setHistory((h) => [...h, { role: "user" as const, content: question }].slice(-8));
   }
 
   return (
@@ -339,6 +361,31 @@ export function AskBar() {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {/*
+             * Where to go next, once there is an answer to go on from. The
+             * desk understands a vocabulary the reader cannot see, so a
+             * one-shot answer ends the conversation at exactly the moment
+             * somebody has a second question. Every chip routes — there is a
+             * test that walks all of them through the router.
+             */}
+            {!busy && follow.length > 0 && (
+              <div>
+                <p className="upper-label mb-1.5 text-2xs text-ink-lo">Ask next</p>
+                <div className="flex flex-wrap gap-2">
+                  {follow.map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => void ask(f)}
+                      className="rounded-full glass-edge px-3 py-1.5 text-xs text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
