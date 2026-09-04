@@ -59,3 +59,8 @@ export const Command = (p: IconProps) => (
 export const SwapArrows = (p: IconProps) => (
   <svg {...base(p)}><path d="m17 3 4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13" /></svg>
 );
+export const Star = ({ filled = false, ...p }: IconProps & { filled?: boolean }) => (
+  <svg {...base(p)} fill={filled ? "currentColor" : "none"}>
+    <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.8-5.4 2.8 1-6L3.2 9.4l6.1-.9Z" />
+  </svg>
+);

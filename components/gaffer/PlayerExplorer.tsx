@@ -6,7 +6,10 @@ import { useSearchParams } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/primitives/Table";
 import { Input } from "@/components/primitives/Input";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
+import { Star } from "@/components/primitives/icons";
 import { cn } from "@/lib/ui/cn";
+import { WatchStar } from "@/components/gaffer/watch/WatchStar";
+import { useWatchlist } from "@/components/gaffer/watch/useWatchlist";
 
 export interface ExplorerRow {
   id: number;
@@ -40,6 +43,8 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
   const [q, setQ] = React.useState("");
   const [posFilter, setPosFilter] = React.useState<number | null>(null);
   const [sort, setSort] = React.useState<{ key: SortKey; dir: 1 | -1 }>({ key: "form", dir: -1 });
+  const [watchedOnly, setWatchedOnly] = React.useState(false);
+  const { ids: watched } = useWatchlist();
 
   // ?club=<id> — where the fixture ticker sends you. A club with a run worth
   // buying into is only useful if you can see who plays for it, so the ticker's
@@ -57,6 +62,7 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
     .filter((r) => r.status !== "n")
     .filter((r) => (posFilter ? r.pos === posFilter : true))
     .filter((r) => (club ? r.teamId === club : true))
+    .filter((r) => (watchedOnly ? watched.includes(r.id) : true))
     .filter((r) => {
       const needle = q.toLowerCase().trim();
       if (!needle) return true;
@@ -121,12 +127,28 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => setWatchedOnly((v) => !v)}
+          aria-pressed={watchedOnly}
+          className={cn(
+            "inline-flex h-8 items-center gap-1.5 rounded-full glass-edge px-3 text-xs font-medium transition-colors dur-instant",
+            watchedOnly ? "text-amber" : "text-ink-3 hover:text-ink-1",
+          )}
+        >
+          <Star filled={watchedOnly} width={13} height={13} />
+          Watching
+          <span className="tabular-nums text-ink-3">{watched.length}</span>
+        </button>
       </div>
 
       <div className="rounded-lg bg-surface-1 card-ring p-2 md:p-3">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-11">
+                <span className="sr-only">Watchlist</span>
+              </TableHead>
               {th("webName", "Player", false)}
               <TableHead>Team</TableHead>
               {th("price", "Price")}
@@ -142,6 +164,9 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
           <TableBody>
             {filtered.map((r) => (
               <TableRow key={r.id}>
+                <TableCell className="py-0 pr-0">
+                  <WatchStar id={r.id} name={r.webName} />
+                </TableCell>
                 <TableCell>
                   <Link href={`/players/${r.id}`} className="font-medium text-ink-1 hover:text-brand">
                     {r.webName}
@@ -166,7 +191,14 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
           </TableBody>
         </Table>
       </div>
-      <p className="text-xs text-ink-3">Showing top {filtered.length} of {rows.length.toLocaleString()} · presets: {Object.keys(PRESETS).join(" / ")}</p>
+      {watchedOnly && watched.length === 0 ? (
+        <p className="text-xs text-ink-3">
+          Nothing starred yet. Tap a star to keep a player in view — the list lives in this browser, so it
+          stays private and does not follow you to another device.
+        </p>
+      ) : (
+        <p className="text-xs text-ink-3">Showing top {filtered.length} of {rows.length.toLocaleString()} · presets: {Object.keys(PRESETS).join(" / ")}</p>
+      )}
     </div>
   );
 }

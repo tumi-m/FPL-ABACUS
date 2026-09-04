@@ -7,6 +7,7 @@ import { Countdown } from "@/components/gaffer/Countdown";
 import { Badge } from "@/components/primitives/Badge";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
 import { CalendarSubscribe } from "@/components/gaffer/deadline/CalendarSubscribe";
+import { WatchlistBoard } from "@/components/gaffer/watch/WatchlistBoard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Deadline Desk",
@@ -63,6 +64,7 @@ export default async function DeadlinePage() {
           </div>
         </div>
       </div>
+      <WatchlistBoard />
       <CalendarSubscribe origin={origin} />
 
       <p className="text-xs leading-relaxed text-ink-3">
