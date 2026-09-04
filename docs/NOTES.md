@@ -90,3 +90,36 @@ Design branches on observed behaviour, with safe fallbacks where unproven.
   emits `data: {...}` SSE frames instead. Decision: when streaming from the
   gateway is introduced, add a second SSE parser beside the NDJSON one —
   do not rewrite `chat()`; detect the `data:` prefix per chunk.
+
+## v10 C1 — cold-load baselines (2026-09-04, `pnpm perf`)
+
+Production build, `pnpm start`, fresh browser context per route (cold
+cache), throttled 4G (~1.6 Mbps down / 750 Kbps up / 150 ms RTT),
+390×844 viewport, team cookie 1851681, live upstream FPL. Script:
+`scripts/perf.mjs` (`pnpm perf`; the server must already be running).
+
+| route | nav ms | TTFB ms | LCP ms | CLS | transfer kB | JS kB | reqs |
+|---|---|---|---|---|---|---|---|
+| /live | 5491 | 71 | 3748 | 0.03 | 1204 | 1021 | 34 |
+| /field | 11675 | 349 | 1344 | 0.002 | 2670 | 1146 | 64 |
+| /planner | 22729 | 58 | 1608 | 0.002 | 5112 | 1072 | 87 |
+| /players | 5283 | 123 | 1164 | 0 | 1365 | 1002 | 53 |
+
+What this says, honestly:
+
+- The bottleneck is server composition + transfer, not shared JS. Shared
+  first-load JS is 103 kB (build output), but total JS per route is
+  ~1 MB — route chunks, d3 and the market payloads dominate. C2/C4 should
+  chase composition and payload, not the shared bundle.
+- `/planner` at 22.7 s nav confirms the diagnosis behind A1/C2:
+  `buildPlanner` projects ~700 players over six gameweeks before anything
+  paints. Streaming the cockpit/Field first is the fix, not a smaller
+  component.
+- CLS is already ~0 everywhere, so A3 (next/image) must be justified as
+  visual pop-in quality, not a CLS number — the commit will say what it
+  actually measured rather than claiming a CLS win.
+- `/live` LCP (3.7 s) lags its TTFB (71 ms): client-side composition
+  after a fast shell. That is C2's target on that route.
+
+Rule (from the plan): no workstream-C optimisation commits without a
+before/after pair from `pnpm perf` in its commit message.
