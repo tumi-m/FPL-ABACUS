@@ -8,6 +8,7 @@ import { bestGuess, route } from "@/lib/genui/router";
 import { resolveCard, type ResolvedCard } from "@/lib/genui/resolve";
 import { buildMatchday } from "@/lib/server/buildMatchday";
 import { personaById, personaFallback, personaPrompt, scrubFigures, arcadeFacts, factsToPromptContext, type ArcadeMatchdayLite } from "@/lib/ai/personas";
+import { runToolLoop, toolsSystemPrompt, type ToolCard } from "@/lib/ai/tools";
 
 export const maxDuration = 30;
 
@@ -126,6 +127,11 @@ function cacheKeyFor(component: string, params: Record<string, unknown>, teamId:
   return `gaffer:ask:${hash}`;
 }
 
+/** One log line per tools run: why it stopped and how much it did. */
+function runToolStopLabel(stop: string, calls: number): string {
+  return `stop=${stop} calls=${calls}`;
+}
+
 export async function POST(req: NextRequest) {
   let body: AskBody;
   try {
@@ -193,25 +199,87 @@ export async function POST(req: NextRequest) {
 
         // team/gameweek context for both the resolver and the arcade voice
         let matchdayLite: ArcadeMatchdayLite | null = null;
-        const card: ResolvedCard | null = await cached(
-          cacheKeyFor(routed.component, routed.params, teamId, currentGw),
-          600,
-          async () => {
-            const matchday = await loadMatchday(teamId);
-            matchdayLite = matchdayToLite(matchday);
-            return resolveCard(routed.component, routed.params, {
-              teamId,
-              currentGw,
-              matchday,
-            });
-          },
-        );
-        // a cache hit skips the resolver; matchday still needs loading for the voice
-        if (matchdayLite === null) {
-          matchdayLite = matchdayToLite(await loadMatchday(teamId));
+
+        /**
+         * One resolve, cached — shared by the single-card path and each step
+         * of the tools loop. Loads the matchday once and keeps the lite
+         * projection for the voice.
+         */
+        const resolveOne = async (
+          component: string,
+          params: Record<string, unknown>,
+        ): Promise<ResolvedCard | null> => {
+          const card = await cached(
+            cacheKeyFor(component, params, teamId, currentGw),
+            600,
+            async () => {
+              const matchday = await loadMatchday(teamId);
+              matchdayLite = matchdayToLite(matchday);
+              return resolveCard(component, params, { teamId, currentGw, matchday });
+            },
+          );
+          // a cache hit skips the resolver; matchday still needs loading for the voice
+          if (matchdayLite === null) {
+            matchdayLite = matchdayToLite(await loadMatchday(teamId));
+          }
+          return card;
+        };
+
+        const toToolCard = (c: ResolvedCard): ToolCard => ({
+          component: c.component,
+          title: c.title,
+          prose: c.prose,
+          props: c.props,
+          note: c.note,
+        });
+
+        // ── B1: the tools loop ───────────────────────────────────────────
+        // Router-first, exactly as before: a single-intent question answers
+        // with one card and never reaches the model. Only a question the
+        // router mapped — and which the model then extends — may multi-card.
+        let cards: ResolvedCard[] = [];
+        let toolStop: string | null = null;
+        if (routed.intent === "model" && aiEnabled()) {
+          const run = await runToolLoop({
+            question: q,
+            select: async (question, soFar) => {
+              const facts =
+                soFar.length > 0
+                  ? `\nRESOLVED SO FAR (do not name these again): ${JSON.stringify(soFar.map((c) => ({ component: c.component }))).slice(0, 400)}`
+                  : "";
+              try {
+                return await chat(
+                  [
+                    { role: "system", content: `${toolsSystemPrompt()}${facts}` },
+                    { role: "user", content: question.slice(0, 300) },
+                  ],
+                  { json: true, timeoutMs: 4_000, temperature: 0 },
+                );
+              } catch {
+                // model error inside the loop — let runToolLoop's contract handle it
+                throw new Error("gateway down");
+              }
+            },
+            resolve: async (call) => {
+              const c = await resolveOne(call.component, call.params);
+              return c ? toToolCard(c) : null;
+            },
+          });
+          toolStop = runToolStopLabel(run.stop, run.calls);
+          cards = run.cards.map((tc) => ({
+            component: tc.component,
+            title: tc.title,
+            prose: tc.prose,
+            props: tc.props,
+            note: tc.note,
+            sources: undefined,
+          }));
+        } else {
+          const card = await resolveOne(routed.component, routed.params);
+          if (card) cards = [card];
         }
 
-        if (!card) {
+        if (cards.length === 0) {
           const gaffer = await gafferVoice(body.persona, q, null, matchdayLite);
           await send({ type: "gaffer", ...gaffer }, 60);
           await send({
@@ -219,20 +287,26 @@ export async function POST(req: NextRequest) {
             text: `No grounded ${REGISTRY[routed.component]?.title ?? "card"} available right now — upstream may be quiet.`,
           });
         } else {
-          // the gaffer speaks first; the grounded card follows
-          const gaffer = await gafferVoice(body.persona, q, card, matchdayLite);
+          // the gaffer speaks first, over the whole set; the grounded cards follow
+          const gaffer = await gafferVoice(body.persona, q, cards[0], matchdayLite);
           await send({ type: "gaffer", ...gaffer }, 60);
-          await send({ type: "prose", text: card.prose }, 60);
-          if (card.props) {
-            await send({ type: "card", component: card.component, title: card.title, props: card.props, note: card.note }, 60);
+          for (const card of cards) {
+            await send({ type: "prose", text: card.prose }, 60);
+            if (card.props) {
+              await send({ type: "card", component: card.component, title: card.title, props: card.props, note: card.note }, 60);
+            }
+          }
+          if (toolStop) {
+            console.log(`[ask] tools loop: ${toolStop}`);
           }
         }
         // newsdesk sources grounding the answer — links, never numbers
-        if (card?.sources?.length) {
+        const sourceCard = cards[0];
+        if (sourceCard?.sources?.length) {
           await send(
             {
               type: "sources",
-              items: card.sources.map((s) => ({ title: s.title, url: s.url, source: s.source })),
+              items: sourceCard.sources.map((s) => ({ title: s.title, url: s.url, source: s.source })),
             },
             60,
           );
