@@ -5,8 +5,10 @@ import { Countdown } from "@/components/gaffer/Countdown";
 import { Cockpit, CockpitKey } from "@/components/gaffer/deadline/Cockpit";
 import { CalendarSubscribe } from "@/components/gaffer/deadline/CalendarSubscribe";
 import { WatchlistBoard } from "@/components/gaffer/watch/WatchlistBoard";
+import { GwProfileCalendar } from "@/components/gaffer/deadline/GwProfileCalendar";
 import { BriefingStrip } from "@/components/gaffer/briefing/BriefingStrip";
 import { buildCockpit } from "@/lib/server/buildCockpit";
+import { buildGwProfile } from "@/lib/server/buildGwProfile";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -38,9 +40,10 @@ export default async function DeadlinePage() {
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const origin = `${proto}://${host}`;
 
-  const [cockpitData, boot] = await Promise.all([
+  const [cockpitData, boot, gwProfile] = await Promise.all([
     buildCockpit(teamId),
     getBootstrapLite(),
+    buildGwProfile(teamId).catch(() => null),
   ]);
   const nextEvent =
     boot.events.find((e) => e.is_next) ?? boot.events.find((e) => e.is_current) ??
@@ -71,6 +74,7 @@ export default async function DeadlinePage() {
         </div>
       </div>
       <WatchlistBoard />
+      {gwProfile && <GwProfileCalendar profile={gwProfile} />}
       <CalendarSubscribe origin={origin} />
     </div>
   );
