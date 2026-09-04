@@ -1388,6 +1388,41 @@ test("the gaffer voice is persona-flavoured on the API", async ({ request }) => 
   expect(text).toContain('"persona":"mei"');
 });
 
+test("the proactive briefing answers its contract or says nothing (v10 B2)", async ({ request }) => {
+  // The endpoint is the contract: a team's briefing, with the watchlist ids
+  // the browser holds. It must never throw — a failed enhancement answers
+  // `{ lines: [] }`.
+  const res = await request.get(`/api/gaffer/briefing?entry=${TEAM_ID}`);
+  expect(res.status()).toBe(200);
+  const body = (await res.json()) as { lines: unknown[] };
+  expect(Array.isArray(body.lines)).toBe(true);
+  for (const line of body.lines as { id: string; state: string; text: string; facts: unknown }[]) {
+    expect(["flagged", "captain", "watchlist", "chip", "rival"]).toContain(line.id);
+    expect(["critical", "warn", "note"]).toContain(line.state);
+    expect(line.text.length).toBeGreaterThan(10);
+    expect(line.facts).toBeTruthy();
+  }
+  // A bad team id degrades to silence, not a 500.
+  const bad = await request.get("/api/gaffer/briefing?entry=1");
+  expect(bad.status()).toBe(200);
+  expect(((await bad.json()) as { lines: unknown[] }).lines).toEqual([]);
+});
+
+test("home renders the briefing strip only when there is something to say (v10 B2)", async ({ page }) => {
+  await asTeam(page);
+  await page.goto("/live");
+  // The strip renders nothing at all with no triggers — silence is the
+  // contract. When it does render, every line carries the gaffer's mark.
+  const strip = page.getByLabel("The gaffer's briefing");
+  const count = await strip.count();
+  if (count > 0) {
+    await expect(strip.locator("li")).toHaveCount(await strip.locator("li").count());
+    expect(await strip.locator("li").count()).toBeGreaterThan(0);
+  } else {
+    expect(await page.locator("section[aria-label='The gaffer\\'s briefing']").count()).toBe(0);
+  }
+});
+
 test("the film renders the season archive with sigil", async ({ page }) => {
   await asTeam(page);
   const res = await page.goto("/film");

@@ -5,6 +5,7 @@ import { Countdown } from "@/components/gaffer/Countdown";
 import { Cockpit, CockpitKey } from "@/components/gaffer/deadline/Cockpit";
 import { CalendarSubscribe } from "@/components/gaffer/deadline/CalendarSubscribe";
 import { WatchlistBoard } from "@/components/gaffer/watch/WatchlistBoard";
+import { BriefingStrip } from "@/components/gaffer/briefing/BriefingStrip";
 import { buildCockpit } from "@/lib/server/buildCockpit";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,7 @@ export default async function DeadlinePage() {
   return (
     <div className="space-y-4">
       <h1 className="sr-only">Deadline Cockpit</h1>
+      <BriefingStrip entryId={teamId} />
       <div className="grid gap-4 md:grid-cols-[minmax(280px,360px)_1fr]">
         <div className="space-y-3">
           <Countdown deadlineTime={nextEvent?.deadline_time ?? cockpitData.nextDeadline ?? boot.events[boot.events.length - 1].deadline_time} />

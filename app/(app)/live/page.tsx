@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { MatchdayClient } from "@/components/gaffer/MatchdayClient";
+import { BriefingStrip } from "@/components/gaffer/briefing/BriefingStrip";
 import { buildMatchday } from "@/lib/server/buildMatchday";
 import { COPY } from "@/lib/copy/deck";
 
@@ -42,5 +43,10 @@ export default async function LivePage({
     );
   }
 
-  return <MatchdayClient initialModel={result.model} historical={gwParam != null} />;
+  return (
+    <div className="space-y-4">
+      <BriefingStrip entryId={teamId} />
+      <MatchdayClient initialModel={result.model} historical={gwParam != null} />
+    </div>
+  );
 }
