@@ -175,7 +175,7 @@ const SHAPES: Shape[] = [
     intent: "rank.project",
     component: "rank-projection",
     patterns: [
-      /\brank\b/i, /\bor\b/i, /\bfinish\b/i, /\btop ?10k\b/i, /\bprojection\b/i,
+      /\brank\b/i, /\bfinish\b/i, /\btop ?10k\b/i, /\bprojection\b/i,
       /\bwhere (will|am) i\b/i, /\boverall\b/i,
     ],
   },
@@ -183,13 +183,20 @@ const SHAPES: Shape[] = [
   {
     intent: "swing.impact",
     component: "swing-impact",
-    patterns: [/\bswing\b/i, /\brank impact\b/i, /\bgained|ranks?\b.*event/i, /\bmoved me\b/i],
+    patterns: [
+      /\bswing\b/i, /\brank impact\b/i, /\bgained|ranks?\b.*event/i, /\bmoved me\b/i,
+      /\bswung\b/i, /\bmoved me most\b/i, /\brank (today|this week)\b/i,
+    ],
   },
   // ── exposure ─────────────────────────────────────────────────────────────
   {
     intent: "exposure.check",
     component: "exposure-scatter",
-    patterns: [/\bexposure\b/i, /\btemplate overlap\b/i, /\beffective ownership\b/i, /\beo\b/i, /\bdifferential/i],
+    patterns: [
+      /\bexposure\b/i, /\btemplate overlap\b/i, /\beffective ownership\b/i, /\beo\b/i, /\bdifferential/i,
+      /\bdifferent to the field\b/i, /\bdifferent from the field\b/i, /\bmy ownership\b/i, /\bownership is\b/i,
+      /\bwhere am i different\b/i,
+    ],
   },
   // ── chips ────────────────────────────────────────────────────────────────
   {
