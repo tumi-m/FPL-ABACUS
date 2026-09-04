@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { playerImgSources } from "@/lib/ui/format";
 import { CrestTile } from "@/components/gaffer/ClubCrest";
 import { cn } from "@/lib/ui/cn";
@@ -10,6 +11,14 @@ import { cn } from "@/lib/ui/cn";
  * the legacy CDN second, the club crest when both fail. New signings (Wirtz,
  * Isak's Liverpool era) only exist on the current set; old hands stay covered
  * by the fallback if a season set is ever pruned.
+ *
+ * next/image (v10 A3): the optimizer gives AVIF/WebP and a size ladder that
+ * matches the 32–96 px the app actually renders, and — the point of the
+ * change — `width`/`height` are intrinsic, so the browser reserves the box
+ * before the face arrives and the table of fifteen players no longer reflows
+ * as photos decode. The optimizer never changes a URL's content semantics,
+ * so the cascade works the same: a 404 on the *origin* propagates through
+ * `/_next/image` as a 400/404 and `onError` advances to the next source.
  */
 export function PlayerPhoto({
   photo,
@@ -94,18 +103,23 @@ export function PlayerPhoto({
         </span>
       )}
       {src && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           key={src}
           ref={measure}
           src={src}
           alt=""
-          loading={eager ? "eager" : "lazy"}
+          width={64}
+          height={80}
+          // Rendered at 32–96 px across the app; 64×80 is the middle of the
+          // ladder and the optimizer picks the nearest larger step per DPR.
+          sizes="64px"
+          priority={eager}
+          loading={eager ? undefined : "lazy"}
           /* Hidden until it has actually decoded. A broken <img> paints the
              browser's own glyph over whatever is behind it, so leaving it
              visible while it loads or fails would put a question mark on top
              of the crest instead of letting the crest do its job. */
-          className={cn("relative transition-opacity dur-instant", className, loaded ? "opacity-100" : "opacity-0")}
+          className={cn("relative h-full w-full object-contain object-top transition-opacity dur-instant", className, loaded ? "opacity-100" : "opacity-0")}
           onLoad={() => setLoaded(true)}
           onError={() => {
             setLoaded(false);

@@ -760,7 +760,10 @@ test.describe("authenticated routes", () => {
     await expect(picker).toBeVisible();
     // it lists every gameweek up to the current one, not just a step either way
     expect(await picker.locator("option").count()).toBeGreaterThan(0);
-    await expect(page.locator('img[src*="photos/players"]').first()).toBeVisible();
+    // Faces are next/image now (v10 A3): the optimizer proxies the PL CDN, so
+    // the src points at /_next/image with the origin URL encoded inside it.
+    await expect(page.locator('img[src*="_next/image"]').first()).toBeVisible();
+    await expect(page.locator('img[src*="photos%2Fplayers"], img[src*="photos/players"]').first()).toBeAttached();
   });
 
   test("the ask button wears the gaffer badge instead of a question mark", async ({ page }) => {
