@@ -4,6 +4,8 @@ import { getElementSummary } from "@/lib/fpl/endpoints";
 import { describeFailure } from "@/lib/engines/rivalFailure";
 import { parseScoring } from "@/lib/engines/scoring";
 import { pointsByGameweek, readDefcon, splitPoints } from "@/lib/engines/playerSeason";
+import { estimateMinutes, MINUTES_METHOD, MINUTES_THIN_LABEL } from "@/lib/engines/minutes";
+import { Est } from "@/components/gaffer/Est";
 import { PointsByGameweek, PointsSources, DefconByMatch } from "@/components/gaffer/player/PlayerCharts";
 import { StatPercentiles } from "@/components/gaffer/player/StatPercentiles";
 import { buildPercentiles } from "@/lib/engines/playerPercentiles";
@@ -325,6 +327,14 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
         )}
       </section>
 
+      {/* Will he start? (v10 D2) — the probabilities the whole app is asked
+          for most, estimated from the same history the table above shows. */}
+      <MinutesCertainty
+        history={history}
+        status={el.status}
+        chanceOfPlaying={el.chance_of_playing_this_round}
+      />
+
       {/* The fixtures were already in the response and thrown away. */}
       {fixtures.length > 0 && (
         <section aria-label="Next fixtures" className="rounded-lg bg-surface-1 card-ring p-5">
@@ -362,4 +372,85 @@ function Stat({ label, value, sub, hint }: { label: string; value: string; sub?:
       {sub && <dd className="mt-1 text-2xs text-ink-lo num-tabular">{sub}</dd>}
     </div>
   );
+}
+
+/**
+ * Minutes certainty (v10 D2) — P(start) and P(60+) from the per-match
+ * history, with the interval that widens as history thins. Below three
+ * appearances the model refuses and the panel says so: a greyed
+ * "Not enough history", never a number dressed up as one. FPL's published
+ * chance-of-playing, when there is one, sits beside the model as its words.
+ */
+function MinutesCertainty({
+  history,
+  status,
+  chanceOfPlaying,
+}: {
+  history: Awaited<ReturnType<typeof getElementSummary>>["history"];
+  status: string;
+  chanceOfPlaying: number | null;
+}) {
+  const observations = history.map((h) => ({
+    gw: h.round,
+    minutes: h.minutes,
+    started: h.starts > 0,
+  }));
+  const est = estimateMinutes(observations);
+
+  return (
+    <section aria-label="Minutes certainty" className="rounded-lg bg-surface-1 card-ring p-4 md:p-5">
+      <h2 className="mb-3 text-2xs font-semibold uppercase tracking-wide text-ink-3">Will he start?</h2>
+      {est.reliable ? (
+        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div>
+            <dt className="upper-label text-2xs text-ink-lo">P(start)</dt>
+            <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">
+              <Est method={MINUTES_METHOD}>{`${Math.round(est.pStart * 100)}%`}</Est>
+            </dd>
+            <dd className="mt-1 text-2xs text-ink-lo num-tabular">
+              95% interval {Math.round(est.pStartInterval[0] * 100)}–{Math.round(est.pStartInterval[1] * 100)}%
+            </dd>
+          </div>
+          <div>
+            <dt className="upper-label text-2xs text-ink-lo">P(60+)</dt>
+            <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">
+              <Est method={`${MINUTES_METHOD} Conditioned on starting.`}>{`${Math.round(est.p60 * 100)}%`}</Est>
+            </dd>
+          </div>
+          <div>
+            <dt className="upper-label text-2xs text-ink-lo">Expected minutes</dt>
+            <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">
+              <Est method={`${MINUTES_METHOD} Blended over the chance he comes off the bench.`}>
+                {`${est.expectedMinutes}`}
+              </Est>
+            </dd>
+          </div>
+          <div>
+            <dt className="upper-label text-2xs text-ink-lo">FPL says</dt>
+            <dd className="mt-0.5 text-sm leading-snug text-ink-1">
+              {status === "a" && chanceOfPlaying == null
+                ? "Fully fit — no flag."
+                : status === "a"
+                  ? `${chanceOfPlaying}% chance of playing`
+                  : el_news_label(status, chanceOfPlaying)}
+            </dd>
+          </div>
+        </dl>
+      ) : (
+        <p className="text-sm text-ink-3">
+          <span className="fig-num text-lg text-ink-lo">—</span>{" "}
+          {MINUTES_THIN_LABEL} · {est.note}
+          {chanceOfPlaying != null && ` FPL's own flag: ${chanceOfPlaying}% chance of playing.`}
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** FPL's words for a flagged player, without re-deriving availability here. */
+function el_news_label(status: string, chance: number | null): string {
+  if (status === "u" || status === "n") return "Left the league.";
+  if (status === "s") return "Suspended.";
+  if (chance != null) return `${chance}% chance of playing`;
+  return "Flagged as a doubt.";
 }
