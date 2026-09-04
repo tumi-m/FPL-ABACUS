@@ -1292,6 +1292,8 @@ test.describe("authenticated routes", () => {
     await expect(panel).toBeVisible();
     // It has to say what it is pricing over, or a gain is a number without units.
     await expect(panel.getByText(/Every legal one-for-one swap/)).toBeVisible();
+    // B3: the ranking carries its persona's own reasoning — the card says why.
+    await expect(panel.getByText(/reads them/)).toBeVisible();
 
     const stage = panel.getByRole("button", { name: "Stage it" }).first();
     if ((await stage.count()) === 0) {
