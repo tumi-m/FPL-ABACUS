@@ -52,3 +52,41 @@ Both fixed in `lib/fpl/schemas.ts`. This is exactly why fixtures are recorded ag
 ## Payload budget
 
 `/api/gaffer/live` measured **10.3 KB** (budget ≤ 60 KB); warm p95 locally ~90 ms (budget ≤ 250 ms).
+
+## v10 Task 0 — MuseSpark 1.3 probe (2026-09-04, harness: opencode)
+
+Probed from inside the build sandbox. Direct site fetches are blocked here,
+so provider-doc numbers are NOT claimed — only harness-observed behaviour.
+Design branches on observed behaviour, with safe fallbacks where unproven.
+
+- **Context window — UNVERIFIED number, no degradation observed.** Provider
+  docs were not reachable from the sandbox, so no token count is recorded
+  here. Observed: the harness holds the full v10 brief + repo exploration
+  (registry, router, ask route, personas, quant engines) in one session
+  without degradation. Decision: B-work keeps prompts small anyway
+  (`q.slice(0, 200–300)`, facts capped at 1600 chars in
+  `factsToPromptContext`) so the design does not depend on a large window.
+- **Structured output — YES (JSON), grammar-constrained mode NOT assumed.**
+  The harness produces well-formed JSON tool calls and `parseJson`-tolerant
+  payloads reliably. `lib/ai/client.ts` already requests `format: "json"`
+  on the Ollama gateway and `parseJson` extracts prose-wrapped/fenced JSON.
+  Decision: `modelSelect` keeps parsing prose with `parseJson`; do not
+  require a grammar-constrained mode. B4 asserts routing, never prose.
+- **Tool / function calling — NATIVE in this harness, prompt-and-parse on
+  the gateway.** This session itself uses native tool calls (one call per
+  message, parallel batches). The production path (`app/api/ask/route.ts`
+  → Ollama gateway) today uses the prompt-and-parse `{"tool","params"}`
+  contract via `modelSelect`. Decision: B1 keeps the JSON-reply contract as
+  the portable path and MAY add a native-tools branch when served over an
+  endpoint that advertises it — B1 as written still works without it. The
+  "B3 gets cheaper" shortcut in the brief applies to B1 (the tool loop),
+  not B3 (personas); B3's cost is unchanged either way.
+- **Streaming shape — Ollama-native NDJSON confirmed in code, SSE second
+  parser still needed.** `lib/ai/client.ts:chat()` speaks
+  `POST /api/chat` → `{ message:{content} }` (non-streaming), and
+  `app/api/ask/route.ts` streams to the browser as NDJSON
+  (`application/x-ndjson`, one JSON object per line). No `chatStream`
+  exists yet despite the brief naming one. An OpenAI-compatible endpoint
+  emits `data: {...}` SSE frames instead. Decision: when streaming from the
+  gateway is introduced, add a second SSE parser beside the NDJSON one —
+  do not rewrite `chat()`; detect the `data:` prefix per chunk.
