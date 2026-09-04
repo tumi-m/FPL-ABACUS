@@ -1312,6 +1312,22 @@ test("ask bar routes captaincy questions without a model", async ({ request }) =
   expect(text).toContain('"intent":"captain.pick"');
 });
 
+test("the tools loop degrades to the router answer when the gateway is down (v10 B1)", async ({ request }) => {
+  // No OLLAMA_API_KEY in the test environment: a model-intent question must
+  // still answer through the router path and complete the stream — the
+  // loop's "degrade, never block" contract. The resolver may honestly
+  // return no card (this question names no players to price), but the
+  // stream always completes with a done frame.
+  const res = await request.post("/api/ask", {
+    data: { q: "should I take a hit for haaland and who do I sell?" },
+    headers: { cookie: `gaffer_team=${TEAM_ID}` },
+  });
+  expect(res.status()).toBe(200);
+  const text = await res.text();
+  expect(text).toContain('"type":"done"');
+  expect(text).not.toContain('"type":"error"');
+});
+
 test("arcade gaffer console: select strip, persona voice, sound toggle", async ({ page }) => {
   await asTeam(page);
   await page.goto("/live");
