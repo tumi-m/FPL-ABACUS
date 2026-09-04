@@ -1033,6 +1033,38 @@ test.describe("authenticated routes", () => {
     await expect(page.getByText(/Showing top \d+ of \d/)).toBeVisible();
   });
 
+  test("starring a player follows them to the deadline desk", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/players");
+
+    // Nothing is starred yet, so the filter shows an invitation rather than an
+    // empty table.
+    const watching = page.getByRole("button", { name: /Watching/ });
+    await watching.click();
+    await expect(page.getByText(/Nothing starred yet/)).toBeVisible();
+    await watching.click();
+
+    const star = page.getByRole("button", { name: /— watchlist$/ }).first();
+    const who = (await star.getAttribute("aria-label"))!.replace(" — watchlist", "");
+    await expect(star).toHaveAttribute("aria-pressed", "false");
+    await star.click();
+    await expect(star).toHaveAttribute("aria-pressed", "true");
+
+    // The filter now has somebody to show.
+    await watching.click();
+    await expect(page.getByRole("link", { name: who })).toBeVisible();
+
+    // And the deadline desk prices them — a different route, same browser.
+    await page.goto("/deadline");
+    const board = page.getByRole("region", { name: "Watchlist" });
+    await expect(board).toBeVisible();
+    await expect(board.getByRole("link", { name: who })).toBeVisible();
+
+    // Unstarring from the board empties it again.
+    await board.getByRole("button", { name: `${who} — watchlist` }).click();
+    await expect(board.getByText(/Star a player anywhere/)).toBeVisible();
+  });
+
   test("player profile renders a player heading", async ({ page }) => {
     await asTeam(page);
     await page.goto("/players/1");

@@ -15,6 +15,7 @@ import { SelfAvatar } from "@/components/gaffer/PlayerAvatarClient";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
 import { COPY } from "@/lib/copy/deck";
 import { PageHeader } from "@/components/gaffer/PageHeader";
+import { WatchStar } from "@/components/gaffer/watch/WatchStar";
 import { BackLink } from "@/components/gaffer/BackLink";
 
 export const dynamic = "force-dynamic";
@@ -153,6 +154,7 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
               <div className="upper-label text-2xs text-ink-lo">Owned</div>
               <div className="fig-num text-xl">{el.selected_by_percent}%</div>
             </div>
+            <WatchStar id={el.id} name={el.web_name} className="-mr-2" />
           </div>
         }
       />
