@@ -1015,15 +1015,35 @@ test.describe("authenticated routes", () => {
     expect(await apple.getAttribute("href")).toContain("alarm=60");
   });
 
-  test("deadline desk renders", async ({ page }) => {
+  test("deadline cockpit renders the verdict column", async ({ page }) => {
     await asTeam(page);
     await page.goto("/deadline");
-    // getByText("Deadline Desk") matched both the sr-only h1 and the document
-    // <title>, so it was a strict-mode violation whenever the title happened to
-    // be in the DOM at check time — green or red depending on the race.
-    await expect(page.getByRole("heading", { name: "Deadline Desk" })).toBeAttached();
-    // and something a person can actually see
-    await expect(page.getByRole("region", { name: /Act now|Watch|Settled/ }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Deadline Cockpit" })).toBeAttached();
+    const verdicts = page.getByRole("region", { name: "Deadline verdicts" });
+    await expect(verdicts).toBeVisible();
+    // Five verdict blocks, one line each — or the honest no-picks line.
+    const blocks = verdicts.locator("details");
+    await expect(blocks).toHaveCount(5);
+    // Warn/critical blocks open their evidence; ok blocks collapse to a tick.
+    const open = await blocks.evaluateAll((els) => els.filter((el) => el.hasAttribute("open")).length);
+    const criticals = verdicts.getByText(/not visible right now|flagged|projects higher|worth the hit|worth making/);
+    if ((await criticals.count()) > 0) expect(open).toBeGreaterThan(0);
+    // Exactly one of: the all-clear line, or an action link. Never neither.
+    const allClear = await verdicts.getByText("Nothing else to do.").count();
+    const actions = await verdicts.getByRole("link", { name: /Planner/ }).count();
+    expect(allClear + (actions > 0 ? 1 : 0)).toBeGreaterThanOrEqual(1);
+  });
+
+  test("deadline cockpit verdicts stay above the fold at 390px", async ({ page }) => {
+    await asTeam(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/deadline");
+    const verdicts = page.getByRole("region", { name: "Deadline verdicts" });
+    await expect(verdicts).toBeVisible();
+    const box = await verdicts.boundingBox();
+    expect(box).toBeTruthy();
+    // The closed-column height fits a phone viewport with room for the clock above.
+    expect(box!.height).toBeLessThan(844);
   });
 
   test("players explorer renders with real totals", async ({ page }) => {
