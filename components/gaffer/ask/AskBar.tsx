@@ -125,16 +125,11 @@ export function AskBar() {
     });
   };
 
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOpen((v) => !v);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  /*
+   * ⌘K moved to the command palette (v10 A2): twenty routes and no way to
+   * jump made the shortcut worth more as a jump box, and the ask desk keeps
+   * its own button. Two listeners on one chord fought — the palette owns it.
+   */
 
   React.useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 80);
@@ -143,8 +138,11 @@ export function AskBar() {
   // Any surface can summon the gaffers — landing showcase, arcade cards, etc.
   React.useEffect(() => {
     const onOpenAsk = (e: Event) => {
-      const persona = (e as CustomEvent<{ persona?: string }>).detail?.persona;
-      if (persona && PERSONAS.some((p) => p.id === persona)) choosePersona(persona as PersonaId);
+      const detail = (e as CustomEvent<{ persona?: string; question?: string }>).detail;
+      if (detail?.persona && PERSONAS.some((p) => p.id === detail.persona)) {
+        choosePersona(detail.persona as PersonaId);
+      }
+      if (detail?.question) setQ(detail.question);
       setOpen(true);
     };
     window.addEventListener("gaffer:open-ask", onOpenAsk);
@@ -234,7 +232,6 @@ export function AskBar() {
       >
         <GafferBadge size="1.15em" />
         Ask the Gaffer
-        <kbd className="rounded bg-surface-3 px-1 py-0.5 text-2xs num-tabular">⌘K</kbd>
       </button>
       {/* mobile trigger — the badge stands where a "?" used to, so the button
           shows who answers rather than reading as a help icon */}

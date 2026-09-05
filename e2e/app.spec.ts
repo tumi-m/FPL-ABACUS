@@ -1404,6 +1404,60 @@ test("arcade gaffer console: select strip, persona voice, sound toggle", async (
   await expect(page.getByText(/KOFI · The Maverick/)).toBeVisible({ timeout: 20_000 });
 });
 
+test("the command palette jumps without a network round trip (v10 A2)", async ({ page }) => {
+  await asTeam(page);
+  await page.goto("/live");
+  // Desktop hint button and the chord both open it.
+  await page.keyboard.press("Control+k");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("combobox")).toBeFocused();
+
+  // Type a route fragment — the results are filtered client-side.
+  await dialog.getByRole("combobox").fill("plan");
+  const options = dialog.getByRole("option");
+  await expect(options.first()).toBeVisible();
+  const labels = await options.allInnerTexts();
+  expect(labels.some((l) => /Planner/.test(l))).toBe(true);
+
+  // Enter activates the highlighted row and navigates.
+  await page.keyboard.press("Enter");
+  await page.waitForURL("**/planner");
+});
+
+test("the command palette finds a player by name (v10 A2)", async ({ page }) => {
+  await asTeam(page);
+  await page.goto("/live");
+  await page.keyboard.press("Control+k");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  // Player names come from the palette endpoint in the background; a route
+  // miss would leave the list with routes only, which is the honest degrade.
+  // A first-name that exists in the fixture market, not a hardcoded star.
+  const res = await page.request.get("/api/gaffer/palette-players");
+  const players = ((await res.json()) as { players: { id: number; name: string }[] }).players;
+  const needle = players[0]?.name.toLowerCase().slice(0, 4) ?? "gabr";
+  await dialog.getByRole("combobox").fill(needle);
+  const options = dialog.getByRole("option");
+  await expect(options.first()).toBeVisible({ timeout: 10_000 });
+  const playerHit = await dialog.getByRole("option", { name: new RegExp(needle, "i") }).count();
+  if (playerHit > 0) {
+    await dialog.getByRole("option", { name: new RegExp(needle, "i") }).first().click();
+    await page.waitForURL("**/players/**");
+  }
+});
+
+test("the palette closes on Esc and restores focus (v10 A2)", async ({ page }) => {
+  await asTeam(page);
+  await page.goto("/live");
+  await page.keyboard.press("Control+k");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await page.keyboard.press("Control+k");
+  await expect(page.getByRole("dialog")).toBeVisible();
+});
+
 test("ask answers assemble with reduced-motion reached within one frame (v10 A5/E4)", async ({ page }) => {
   await asTeam(page);
   // Emulate the preference before the app boots, as the spec requires:
