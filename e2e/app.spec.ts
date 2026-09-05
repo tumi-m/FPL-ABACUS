@@ -10,6 +10,30 @@ async function asTeam(page: Page) {
   await page.context().addCookies([teamCookie()]);
 }
 
+/**
+ * Open the command palette with the chord, pressing until it answers.
+ *
+ * The window keydown listener attaches in a React effect, so on a loaded
+ * runner the first Control+k can land before it exists and is silently
+ * lost — the dialog never opens and the test fails on timing, not
+ * behaviour. Press-until-visible converges: a press that opened the dialog
+ * stops the loop before the toggle can close it again.
+ */
+async function openPalette(page: Page) {
+  const dialog = page.getByRole("dialog");
+  await expect
+    .poll(
+      async () => {
+        if (await dialog.isVisible().catch(() => false)) return true;
+        await page.keyboard.press("Control+k");
+        await page.waitForTimeout(300);
+        return dialog.isVisible().catch(() => false);
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+}
+
 test("landing renders the gate, the gaffer lineup and ball imagery", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Gaffer/);
@@ -454,17 +478,28 @@ test.describe("authenticated routes", () => {
     await page.goto("/field/combos");
     const duel = page.locator('section[aria-label="Head to head"]');
     await expect(duel.getByText("No picks added yet.")).toBeHidden({ timeout: 15_000 });
-    // clear Side A (two seeded players) and Side B (one)
+    // clear Side A (two seeded players) and Side B (one). A click can land
+    // while React is committing and remove nothing, so clear until both
+    // sides read empty rather than clicking a fixed number of times — the
+    // assertion below is unchanged.
     const removeA = duel.getByRole("button", { name: /Take .* off Side A/ });
-    while ((await removeA.count()) > 0) {
-      await removeA.first().click({ force: true });
-      await page.waitForTimeout(150);
-    }
     const removeB = duel.getByRole("button", { name: /Take .* off Side B/ });
-    while ((await removeB.count()) > 0) {
-      await removeB.first().click({ force: true });
-      await page.waitForTimeout(150);
-    }
+    await expect
+      .poll(
+        async () => {
+          if ((await removeA.count()) > 0) {
+            await removeA.first().click({ force: true });
+            return "clearing-a";
+          }
+          if ((await removeB.count()) > 0) {
+            await removeB.first().click({ force: true });
+            return "clearing-b";
+          }
+          return "empty";
+        },
+        { timeout: 20_000 },
+      )
+      .toBe("empty");
     await expect(duel.getByText(/Put at least one player on each side/)).toBeVisible();
     await expect(duel.getByText("No picks added yet.").first()).toBeVisible();
     await expect(duel.getByText(/Tap players on the combination board/).first()).toBeVisible();
@@ -1438,7 +1473,7 @@ test("the command palette jumps without a network round trip (v10 A2)", async ({
   await asTeam(page);
   await page.goto("/live");
   // Desktop hint button and the chord both open it.
-  await page.keyboard.press("Control+k");
+  await openPalette(page);
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("combobox")).toBeFocused();
@@ -1458,7 +1493,7 @@ test("the command palette jumps without a network round trip (v10 A2)", async ({
 test("the command palette finds a player by name (v10 A2)", async ({ page }) => {
   await asTeam(page);
   await page.goto("/live");
-  await page.keyboard.press("Control+k");
+  await openPalette(page);
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   // Player names come from the palette endpoint in the background; a route
@@ -1480,7 +1515,7 @@ test("the command palette finds a player by name (v10 A2)", async ({ page }) => 
 test("the palette closes on Esc and restores focus (v10 A2)", async ({ page }) => {
   await asTeam(page);
   await page.goto("/live");
-  await page.keyboard.press("Control+k");
+  await openPalette(page);
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toBeHidden();
