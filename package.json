@@ -13,6 +13,7 @@
     "record": "tsx scripts/record-fixtures.ts",
     "replay": "vitest run replay",
     "perf": "node scripts/perf.mjs",
+    "budget": "node scripts/budget.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "e2e": "playwright test"

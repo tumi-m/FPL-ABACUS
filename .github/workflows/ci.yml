@@ -31,6 +31,39 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
+  budget:
+    name: payload budget
+    runs-on: ubuntu-latest
+    needs: gates
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # A budget nobody enforces is a comment: shared first-load JS and the
+      # live endpoint are measured on every push and an overage fails the
+      # build before it ships.
+      - run: pnpm build
+
+      - name: Measure against the budgets
+        run: |
+          pnpm start &
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null http://localhost:3000 && break
+            sleep 2
+          done
+          pnpm budget
+          kill %1 2>/dev/null || true
+
   e2e:
     name: e2e smoke
     runs-on: ubuntu-latest
