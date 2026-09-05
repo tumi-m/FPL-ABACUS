@@ -668,6 +668,20 @@
   to{ opacity:1 }
 }
 
+/* Ask answers assembling (v10 A5/E4): each arriving component fades and
+   rises once, staggered by its position in the answer. Chrome only — the
+   data inside a card never animates, and numbers never count up (a
+   counting number is a number you cannot read). The global
+   reduced-motion kill switch sets the duration to 0.01ms, which lands the
+   final DOM within one frame and identical to the animated run. */
+.ask-rise{
+  animation: gaffer-ask-rise 340ms cubic-bezier(.22,1,.36,1) 1 both;
+}
+@keyframes gaffer-ask-rise{
+  from{ opacity:0; transform: translateY(8px) }
+  to{ opacity:1; transform: translateY(0) }
+}
+
 /* Arcade gaffers (v6) — 2-frame-feel motion from transforms only:
    breathing idle, talking bounce, blinking caret. The global
    reduced-motion kill switch stops all three. */

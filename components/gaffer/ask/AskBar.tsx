@@ -4,10 +4,10 @@ import * as React from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTitle } from "@/components/primitives/Sheet";
-import dynamic from "next/dynamic";
 import { GafferBadge } from "@/components/gaffer/GafferBadge";
 import { GafferStrip, useGafferPersona } from "@/components/gaffer/ask/GafferStrip";
 import { GafferBubble } from "@/components/gaffer/ask/GafferBubble";
+import { AssembledAnswer } from "@/components/gaffer/ask/AssembledAnswer";
 import { PERSONAS, personaById, type PersonaId } from "@/lib/ai/personas";
 
 interface CardEvent {
@@ -79,7 +79,10 @@ interface GafferLine {
 
 interface ChartCard {
   kind: "card";
-  node: React.ReactNode;
+  /** Registry key + props — the assembled layout quotes the prose line. */
+  component: string;
+  props: Record<string, unknown>;
+  prose: string;
 }
 
 const BLIPS_KEY = "gaffer_blips_muted";
@@ -204,8 +207,7 @@ export function AskBar() {
           } else if (ev.type === "prose") {
             setProse((p) => [...p, ev.text]);
           } else if (ev.type === "card") {
-            const node = <AskCard component={ev.component} props={ev.props} />;
-            if (node) setCards((c) => [...c, { kind: "card", node }]);
+            setCards((c) => [...c, { kind: "card", component: ev.component, props: ev.props, prose: ev.title }]);
           } else if (ev.type === "sources") {
             setSources(ev.items);
           } else if (ev.type === "error") {
@@ -337,9 +339,15 @@ export function AskBar() {
                 {t}
               </p>
             ))}
-            {cards.map((c, i) => (
-              <div key={`c-${i}`}>{c.node}</div>
-            ))}
+            {cards.length > 0 && (
+              <AssembledAnswer
+                cards={cards.map((c) => ({
+                  component: c.component,
+                  props: c.props,
+                  prose: c.prose,
+                }))}
+              />
+            )}
             {sources.length > 0 && (
               <div className="rounded-lg bg-surface-1 card-ring p-4">
                 <p className="upper-label text-2xs text-ink-lo">Sources</p>
@@ -478,10 +486,6 @@ function SelectedGafferHero({
 /**
  * The card renderer, fetched the first time an answer carries one.
  *
- * `renderCard` returned a node directly; a dynamic import cannot, so the
- * module exposes the same switch behind a component instead.
+ * The assembled answer (E4) imports the same module dynamically — one chunk
+ * arrives with the first card, whatever template composes them.
  */
-const AskCard = dynamic(() => import("@/components/gaffer/ask/AskCards").then((m) => m.AskCard), {
-  ssr: false,
-  loading: () => <div className="h-24 animate-pulse rounded-lg bg-surface-3/40" />,
-});

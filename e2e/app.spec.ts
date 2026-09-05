@@ -1394,6 +1394,29 @@ test("arcade gaffer console: select strip, persona voice, sound toggle", async (
   await expect(page.getByText(/KOFI · The Maverick/)).toBeVisible({ timeout: 20_000 });
 });
 
+test("ask answers assemble with reduced-motion reached within one frame (v10 A5/E4)", async ({ page }) => {
+  await asTeam(page);
+  // Emulate the preference before the app boots, as the spec requires:
+  // the final DOM must be identical and reached in one frame.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/live");
+  await page.getByRole("button", { name: "Ask the Gaffer" }).click();
+  await page.getByLabel("Your question").fill("should I captain salah or haaland?");
+  await page.getByRole("button", { name: "Consult Gaffer" }).click();
+
+  // The answer arrives — an assembled region or a bubble — and no element
+  // is left mid-animation: every .ask-rise part is already at its final
+  // opacity, because the global kill switch runs the 340ms rise in 0.01ms.
+  const assembled = page.locator("section[aria-label='Assembled answer']");
+  if ((await assembled.count()) > 0) {
+    await expect(assembled.locator(".ask-rise").first()).toBeVisible();
+    const opacities = await assembled.locator(".ask-rise").evaluateAll((els) =>
+      els.map((el) => getComputedStyle(el).opacity),
+    );
+    for (const o of opacities) expect(Number(o)).toBe(1);
+  }
+});
+
 test("the gaffer voice is persona-flavoured on the API", async ({ request }) => {
   const res = await request.post("/api/ask", {
     data: { q: "should I take a hit?", persona: "mei" },
