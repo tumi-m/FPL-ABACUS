@@ -581,6 +581,27 @@ test.describe("authenticated routes", () => {
     await expect(page).toHaveURL(/\/combos/);
   });
 
+  test("season understanding renders the ledger and the luck channels (v10 D1)", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field/understanding");
+    const ledger = page.getByRole("figure").filter({ hasText: "The Ledger" });
+    await expect(ledger).toBeVisible({ timeout: 20_000 });
+    // The four decision kinds, with the estimate mark on the total.
+    for (const kind of ["The fifteen themselves", "Captaincy", "Hits taken", "Bench left alone"]) {
+      await expect(ledger.getByText(kind, { exact: true })).toBeVisible();
+    }
+    const luck = page.getByRole("figure").filter({ hasText: "Process vs outcome" });
+    await expect(luck).toBeVisible();
+    for (const channel of ["Finishing", "Creation", "Versus field"]) {
+      await expect(luck.getByText(channel, { exact: true })).toBeVisible();
+    }
+    // Ribbons appear once players have four appearances; either way the page
+    // says which state it is in rather than rendering nothing.
+    const ribbons = page.getByRole("region", { name: "True-form ribbons" });
+    const tooYoung = page.getByText(/ribbons need four appearances/);
+    expect((await ribbons.count()) > 0 || (await tooYoung.count() > 0)).toBe(true);
+  });
+
   test("club numbers renders six sortable boards for all twenty clubs", async ({ page }) => {
     await asTeam(page);
     await page.goto("/field/clubs");

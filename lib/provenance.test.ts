@@ -19,7 +19,7 @@ describe("D8 provenance data", () => {
   });
 
   it("provenanceOf names all three states without overlap", () => {
-    const sentences = ["published", "estimated", "unavailable"].map(provenanceOf);
+    const sentences = (["published", "estimated", "unavailable"] as const).map(provenanceOf);
     expect(new Set(sentences).size).toBe(3);
     // The unavailable state IS the line, so a component can render both from
     // the one constant and they can never drift.
