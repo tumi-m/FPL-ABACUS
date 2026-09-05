@@ -1457,3 +1457,20 @@ test("per-entry film OG card renders an image (v10 E1)", async ({ page }) => {
   expect(res.ok()).toBeTruthy();
   expect(res.headers()["content-type"]).toContain("image/");
 });
+
+test("per-entry DNA fingerprint OG card renders an image (v10 E3)", async ({ page }) => {
+  const res = await page.request.get(`/api/og/dna/${TEAM_ID}`);
+  expect(res.ok()).toBeTruthy();
+  expect(res.headers()["content-type"]).toContain("image/");
+});
+
+test("the DNA page offers the fingerprint share card (v10 E3)", async ({ page }) => {
+  await asTeam(page);
+  // Headless Chromium denies the clipboard API until it is granted.
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/dna");
+  await expect(page.getByRole("button", { name: "Share card" })).toBeVisible();
+  // Clipboard path — the card URL is what gets shared, and it names the OG route.
+  await page.getByRole("button", { name: "Share card" }).click();
+  await expect(page.getByRole("button", { name: "Link copied" })).toBeVisible();
+});

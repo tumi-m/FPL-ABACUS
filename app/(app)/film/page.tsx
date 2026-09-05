@@ -4,6 +4,7 @@ import { getEntry, getHistory } from "@/lib/fpl/endpoints";
 import { GwSigil } from "@/components/generative/GwSigil";
 import { GameweekSigil } from "@/components/generative/GameweekSigil";
 import { Aurora } from "@/components/generative/Aurora";
+import { ShareCard } from "@/components/generative/ShareCard";
 import { buildMatchday } from "@/lib/server/buildMatchday";
 import type { SigilSwing } from "@/lib/generative/specs";
 
@@ -62,11 +63,14 @@ export default async function FilmPage() {
             </p>
           </div>
           <div className="flex items-center gap-6">
-            <GameweekSigil
-              seed={teamId * 1000 + swingGw}
-              swings={swings}
-              label={`Gameweek ${swingGw} sigil — one stroke per scoring event, angle by minute, length by rank swing`}
-            />
+            <div className="flex flex-col items-center gap-2">
+              <GameweekSigil
+                seed={teamId * 1000 + swingGw}
+                swings={swings}
+                label={`Gameweek ${swingGw} sigil — one stroke per scoring event, angle by minute, length by rank swing`}
+              />
+              <ShareCard path={`/api/og/film/${teamId}`} label="Share card" />
+            </div>
             <GwSigil seed={teamId * 1000 + currentGw} size={220} label={`Sigil for gameweek ${currentGw}`} />
           </div>
         </div>

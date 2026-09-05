@@ -4,6 +4,7 @@ import { getEntry, getHistory, getTransfers } from "@/lib/fpl/endpoints";
 import { computeDna } from "@/lib/engines/dna";
 import type { DnaInput } from "@/lib/engines/dna";
 import { SeasonFingerprint } from "@/components/generative/SeasonFingerprint";
+import { ShareCard } from "@/components/generative/ShareCard";
 import { PageHeader } from "@/components/gaffer/PageHeader";
 
 export const dynamic = "force-dynamic";
@@ -97,7 +98,10 @@ export default async function DnaPage() {
       </section>
 
       <section aria-label="Season fingerprint" className="rounded-lg bg-surface-1 card-ring p-5">
-        <h2 className="mb-1 text-2xs font-semibold uppercase tracking-wide text-ink-3">Season fingerprint</h2>
+        <div className="mb-1 flex items-baseline justify-between gap-3">
+          <h2 className="text-2xs font-semibold uppercase tracking-wide text-ink-3">Season fingerprint</h2>
+          <ShareCard path={`/api/og/dna/${teamId}`} label="Share card" />
+        </div>
         <p className="mb-2 text-xs text-ink-lo">
           One spoke per gameweek — surge for rank gains, flare for drops, length by points.
         </p>
