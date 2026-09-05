@@ -2,7 +2,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getEntry, getHistory } from "@/lib/fpl/endpoints";
 import { GwSigil } from "@/components/generative/GwSigil";
+import { GameweekSigil } from "@/components/generative/GameweekSigil";
 import { Aurora } from "@/components/generative/Aurora";
+import { buildMatchday } from "@/lib/server/buildMatchday";
+import type { SigilSwing } from "@/lib/generative/specs";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "The Film",
@@ -12,6 +15,11 @@ export const metadata = { title: "The Film",
  * The Film — your season as an archive. The sigil is deterministic art seeded
  * by entry + gameweek; the aurora is the only motion on the page and stops
  * under reduced-motion / Save-Data.
+ *
+ * The current round additionally wears the Gameweek Sigil (v10 E1): this
+ * week's swing sequence as a glyph, deterministic from entry + gw so the
+ * share and the OG card agree. The feed is an enhancement — the archive
+ * renders without it, the same contract every FPL-backed fragment keeps.
  */
 export default async function FilmPage() {
   const store = await cookies();
@@ -19,9 +27,23 @@ export default async function FilmPage() {
   const teamId = raw && /^\d+$/.test(raw) ? Number(raw) : null;
   if (!teamId) redirect("/?next=/film");
 
-  const [entry, history] = await Promise.all([getEntry(teamId), getHistory(teamId)]);
+  const [entry, history, matchRes] = await Promise.all([
+    getEntry(teamId),
+    getHistory(teamId),
+    buildMatchday(teamId),
+  ]);
   const currentGw = history.current[history.current.length - 1]?.event ?? 1;
   const best = Math.min(...history.current.map((c) => c.overall_rank ?? Infinity));
+
+  const swings: SigilSwing[] =
+    matchRes.ok
+      ? matchRes.model.swings.slice(0, 30).map((s) => ({
+          minute: s.minute,
+          delta: s.ranksGained,
+          yours: s.yourMultiplier > 0,
+        }))
+      : [];
+  const swingGw = matchRes.ok ? matchRes.model.event.id : currentGw;
 
   return (
     <div className="space-y-4">
@@ -39,7 +61,14 @@ export default async function FilmPage() {
               {Number.isFinite(best) ? ` · best rank ${best.toLocaleString("en-GB")}` : ""}.
             </p>
           </div>
-          <GwSigil seed={teamId * 1000 + currentGw} size={220} label={`Sigil for gameweek ${currentGw}`} />
+          <div className="flex items-center gap-6">
+            <GameweekSigil
+              seed={teamId * 1000 + swingGw}
+              swings={swings}
+              label={`Gameweek ${swingGw} sigil — one stroke per scoring event, angle by minute, length by rank swing`}
+            />
+            <GwSigil seed={teamId * 1000 + currentGw} size={220} label={`Sigil for gameweek ${currentGw}`} />
+          </div>
         </div>
       </section>
 

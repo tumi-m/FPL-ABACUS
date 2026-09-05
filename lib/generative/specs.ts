@@ -79,6 +79,57 @@ export function sigilSpec(seed: number): SigilSpec {
   };
 }
 
+// ── E1 — the Gameweek Sigil: one gameweek's swing sequence as a glyph ────────
+
+/** One swing in the gameweek's sequence, in the shape the sigil reads. */
+export interface SigilSwing {
+  /** The minute the event fell — drives the stroke's angle around the dial. */
+  minute: number;
+  /** Signed rank swing, normalised against the sequence's biggest move. */
+  delta: number;
+  /** Whether this swing was yours (multiplier > 0). */
+  yours: boolean;
+}
+
+export interface SigilGlyph {
+  /** Where the stroke sits on the dial: angle from 12 o'clock, radians. */
+  angle: number;
+  /** Signed normalised length 0..1 — magnitude of the swing. */
+  reach: number;
+  /** Token name — surge gains, flare drops, line neutral. */
+  tone: "surge" | "flare" | "line";
+  /** Yours get drawn heavier: the eye should find your own events first. */
+  yours: boolean;
+}
+
+export const SIGIL_MINUTES = 95;
+
+/**
+ * A gameweek's swing sequence → one glyph per event.
+ *
+ * Stroke angle = the minute it fell (a full match sweeps the dial once),
+ * length = the rank swing's share of the week's biggest move, colour =
+ * direction. Deterministic from mulberry32(entryId + gw): jitter keeps two
+ * events in the same minute visually distinct while staying byte-identical
+ * across every render, and the OG image, the app and the screenshot agree
+ * because they all call this one function.
+ */
+export function sigilGlyphs(seed: number, swings: SigilSwing[]): SigilGlyph[] {
+  if (!swings.length) return [];
+  const rng = mulberry32(seed);
+  const biggest = Math.max(...swings.map((s) => Math.abs(s.delta)), 1e-9);
+  return swings.map((s) => {
+    const minute = Math.max(0, Math.min(SIGIL_MINUTES, s.minute));
+    const jitter = (rng() - 0.5) * 0.04;
+    return {
+      angle: (minute / SIGIL_MINUTES) * Math.PI * 2 - Math.PI / 2 + jitter,
+      reach: Math.max(0.12, Math.min(1, Math.abs(s.delta) / biggest)),
+      tone: s.delta > 0 ? "surge" : s.delta < 0 ? "flare" : "line",
+      yours: s.yours,
+    };
+  });
+}
+
 /**
  * Kit weave — decorative background bands keyed to club identity tokens.
  * Always paired with codes when rendered near data (style guide §8).

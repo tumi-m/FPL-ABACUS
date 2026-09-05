@@ -1443,3 +1443,17 @@ test("the film renders the season archive with sigil", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "The Film" })).toBeVisible();
   await expect(page.getByRole("img", { name: /sigil for gameweek/i })).toBeVisible();
 });
+
+test("the film carries the gameweek sigil beside the archive art (v10 E1)", async ({ page }) => {
+  await asTeam(page);
+  await page.goto("/film");
+  // The swing-sequence glyph renders whether or not the matchday resolved —
+  // an enhancement that degrades, never a blocker.
+  await expect(page.getByRole("img", { name: /swing sequence|gameweek \d+ sigil/i }).first()).toBeVisible();
+});
+
+test("per-entry film OG card renders an image (v10 E1)", async ({ page }) => {
+  const res = await page.request.get(`/api/og/film/${TEAM_ID}`);
+  expect(res.ok()).toBeTruthy();
+  expect(res.headers()["content-type"]).toContain("image/");
+});
