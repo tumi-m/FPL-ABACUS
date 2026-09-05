@@ -6,6 +6,8 @@ import { parseScoring } from "@/lib/engines/scoring";
 import { pointsByGameweek, readDefcon, splitPoints } from "@/lib/engines/playerSeason";
 import { estimateMinutes, MINUTES_METHOD, MINUTES_THIN_LABEL } from "@/lib/engines/minutes";
 import { Est } from "@/components/gaffer/Est";
+import { Unavailable } from "@/components/gaffer/Provenance";
+import { UNAVAILABLE_STATS } from "@/lib/provenance";
 import { PointsByGameweek, PointsSources, DefconByMatch } from "@/components/gaffer/player/PlayerCharts";
 import { StatPercentiles } from "@/components/gaffer/player/StatPercentiles";
 import { buildPercentiles } from "@/lib/engines/playerPercentiles";
@@ -196,7 +198,7 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
           <Stat label="Bonus" value={`${el.bonus}`} sub={`${el.bps} bps`} />
           <Stat
             label="Per £m"
-            value={round1(el.total_points / Math.max(1, el.now_cost / 10)).toFixed(1)}
+            value={<Est method="Season points divided by his price today — an arithmetic read of two published figures.">{round1(el.total_points / Math.max(1, el.now_cost / 10)).toFixed(1)}</Est>}
             hint="Season points divided by his price today"
           />
         </dl>
@@ -245,6 +247,12 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
         )}
 
       </section>
+
+      {/* D8 — what this app deliberately does not show a number for. Where a
+          competitor prints Opta-derived figures, this names the stats, the
+          dash, and the reason. The absence is the trustworthiness, and it is
+          stated rather than left to be inferred from a smaller table. */}
+      <UnavailableBlock />
 
       {/* A number is only readable beside the players it should be judged
           against — see StatPercentiles. */}
@@ -366,13 +374,46 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
 }
 
 /** One figure with its label, and an optional second line for its context. */
-function Stat({ label, value, sub, hint }: { label: string; value: string; sub?: string; hint?: string }) {
+function Stat({ label, value, sub, hint }: { label: string | React.ReactNode; value: React.ReactNode; sub?: string; hint?: string }) {
   return (
     <div title={hint}>
       <dt className="upper-label text-2xs text-ink-lo">{label}</dt>
       <dd className="fig-num mt-0.5 text-lg leading-none text-ink-hi">{value}</dd>
       {sub && <dd className="mt-1 text-2xs text-ink-lo num-tabular">{sub}</dd>}
     </div>
+  );
+}
+
+/**
+ * The stats this page deliberately does not show a number for (v10 D8).
+ *
+ * A competitor's player page carries columns for big chances, pass
+ * completion, crosses and touches in the box, and those figures do exist —
+ * in Opta's licensed feed, which FPL does not publish and GAFFER does not
+ * buy. Deriving a lookalike from the fields FPL does give would produce
+ * authoritative-looking numbers that are inventions, so this page says what
+ * it is missing and why instead. Every row is an Unavailable affordance:
+ * the stat's name, a dash, and the reason one tap away.
+ */
+function UnavailableBlock() {
+  return (
+    <section aria-label="Stats not published by FPL" className="rounded-lg bg-surface-1 card-ring p-4 md:p-5">
+      <h2 className="mb-1 text-2xs font-semibold uppercase tracking-wide text-ink-3">
+        Not published by FPL
+      </h2>
+      <p className="mb-3 max-w-[62ch] text-2xs leading-relaxed text-ink-lo">
+        The stats below exist in Opta&rsquo;s licensed event feed, which FPL does not publish.
+        Every site showing a number for these is either buying that feed or inventing its own —
+        GAFFER does neither, so they are named here as absences rather than shown as guesses.
+      </p>
+      <ul className="flex flex-wrap gap-x-5 gap-y-1.5">
+        {UNAVAILABLE_STATS.map((s) => (
+          <li key={s.label}>
+            <Unavailable label={s.label} why={s.why} />
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

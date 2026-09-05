@@ -653,6 +653,13 @@ export function FieldClient({
               >
                 <span>Points contribution</span>
               </Link>
+              <Link
+                href="/field/understanding"
+                role="button"
+                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+              >
+                <span>Season understanding</span>
+              </Link>
             </div>
           </div>
         );

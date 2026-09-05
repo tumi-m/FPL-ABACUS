@@ -4,6 +4,7 @@ import * as React from "react";
 import { CrestBadge } from "@/components/gaffer/CrestBadge";
 import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { Est } from "@/components/gaffer/Est";
+import { Published } from "@/components/gaffer/Provenance";
 import { cn } from "@/lib/ui/cn";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
 import { spendLabel, suggestTransfers } from "@/lib/engines/suggest";
@@ -114,7 +115,7 @@ export function PlannerSuggestions({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="fig-num text-base leading-none text-ink-hi">Worth doing next</h3>
         <p className="text-2xs text-ink-lo num-tabular">
-          {free} free · {formatPrice(bankTenths)} banked
+          <Published>{`${free} free · ${formatPrice(bankTenths)} banked`}</Published>
         </p>
       </div>
       <p className="text-2xs leading-relaxed text-ink-lo">
@@ -209,7 +210,7 @@ function Face({
       <span className="min-w-0">
         <span className="block truncate text-xs font-semibold text-ink-hi">{p.name}</span>
         <span className="block truncate text-[10px] leading-tight text-ink-lo num-tabular">
-          {POSITION_SHORT[p.pos]} · {formatPrice(p.cost)}
+          <Published>{`${POSITION_SHORT[p.pos]} · ${formatPrice(p.cost)}`}</Published>
         </span>
       </span>
     </span>

@@ -4,12 +4,14 @@ import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/ui/cn";
 import { Est } from "@/components/gaffer/Est";
+import { Published } from "@/components/gaffer/Provenance";
 import { PlannerPitch, type PitchMode, type PitchSlot } from "@/components/gaffer/planner/PlannerPitch";
 import { MarketPanel } from "@/components/gaffer/planner/MarketPanel";
 import { FixtureTicker } from "@/components/gaffer/planner/FixtureTicker";
 import { PriceWatch } from "@/components/gaffer/planner/PriceWatch";
 import { TeamValueBoard } from "@/components/gaffer/planner/TeamValueBoard";
 import { PlannerSuggestions } from "@/components/gaffer/planner/PlannerSuggestions";
+import { SolverPlan } from "@/components/gaffer/planner/SolverPlan";
 import { fmtDeltaM, fmtM, readTeamValue, type PriceMove, type ValuePoint } from "@/lib/engines/teamValue";
 import { ChipLane } from "@/components/gaffer/planner/ChipLane";
 import { AvatarToggle, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
@@ -459,6 +461,13 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
               onStage={stageSuggestion}
             />
 
+            {/* The whole-window plan: the branching beam over the same market
+                payload, priced hit-inclusive, in the chosen gaffer's posture. */}
+            <SolverPlan
+              data={data}
+              onStage={stageSuggestion}
+            />
+
             <ChipLane
               gws={data.gws}
               chips={data.chips}
@@ -544,14 +553,16 @@ function PlanHeader({
       <div>
         <dt className="upper-label text-2xs text-ink-lo">In the bank</dt>
         <dd className={cn("fig-num mt-0.5 text-xl leading-none", overdrawn ? "text-flare" : "text-ink-hi")}>
-          £{(summary.bankTenths / 10).toFixed(1)}m
+          <Published>{`£${(summary.bankTenths / 10).toFixed(1)}m`}</Published>
         </dd>
       </div>
       <div>
         <dt className="upper-label text-2xs text-ink-lo">Free transfers</dt>
         <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">
-          {Math.max(0, freeTransfers - summary.transfers)}
-          <span className="text-sm text-ink-lo"> / {freeTransfers}</span>
+          <Published>
+            {Math.max(0, freeTransfers - summary.transfers)}
+            <span className="text-sm text-ink-lo"> / {freeTransfers}</span>
+          </Published>
         </dd>
       </div>
       <div>

@@ -251,7 +251,7 @@ export function BonusBoard({ data }: { data: BonusBoardData }) {
       </div>
 
       <p className="text-2xs leading-relaxed text-ink-lo">
-        The 3·2·1 columns come from reading each gameweek&apos;s feed, so they cover {windowLabel} only —
+        The three-two-one columns come from reading each gameweek&apos;s feed, so they cover {windowLabel} only —
         FPL publishes a season bonus total but not the split. &quot;BPS each&quot; is{" "}
         <Est method={EFFICIENCY_METHOD}>the BPS spent per bonus point taken</Est>; lower means a
         player wins his match&apos;s bonus rather than collecting BPS behind somebody else.

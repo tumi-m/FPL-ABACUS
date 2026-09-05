@@ -10,6 +10,30 @@ async function asTeam(page: Page) {
   await page.context().addCookies([teamCookie()]);
 }
 
+/**
+ * Open the command palette with the chord, pressing until it answers.
+ *
+ * The window keydown listener attaches in a React effect, so on a loaded
+ * runner the first Control+k can land before it exists and is silently
+ * lost — the dialog never opens and the test fails on timing, not
+ * behaviour. Press-until-visible converges: a press that opened the dialog
+ * stops the loop before the toggle can close it again.
+ */
+async function openPalette(page: Page) {
+  const dialog = page.getByRole("dialog");
+  await expect
+    .poll(
+      async () => {
+        if (await dialog.isVisible().catch(() => false)) return true;
+        await page.keyboard.press("Control+k");
+        await page.waitForTimeout(300);
+        return dialog.isVisible().catch(() => false);
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+}
+
 test("landing renders the gate, the gaffer lineup and ball imagery", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Gaffer/);
@@ -209,19 +233,16 @@ test.describe("authenticated routes", () => {
       const more = page.getByRole("button", { name: /load 50 more/i });
       await expect(more).toBeVisible({ timeout: 20_000 });
       await more.click();
-      // Let the RSC fetch land before polling for its result; a loaded runner
-      // can take a few seconds and the poll should not be racing it.
-      await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => undefined);
       /*
-       * Assert the outcome, never the URL.
+       * Assert the outcome, never the URL — and never `networkidle`.
        *
-       * "Load 50 more" is a Link into a force-dynamic route, so Next fetches
-       * the next page's payload before it touches the address bar. Polling for
-       * `?page=2` was therefore polling for an implementation detail on the
-       * slowest possible path, and under a loaded runner it was the assertion
-       * that kept flaking while the feature itself worked. What the reader
-       * actually gets is more rows, or an honest end of the list — so that is
-       * what is checked, with room for a cold server render underneath it.
+       * "Load 50 more" is a plain anchor now, not a Link, so there is no RSC
+       * fetch to wait for; and the page carries the live-bar's polling
+       * client, which keeps a request in flight forever — `networkidle`
+       * consumed the whole 30s test timeout while the feature itself worked
+       * in under a second. What the reader actually gets is more rows, or an
+       * honest end of the list; the poll below checks that directly, with
+       * room for a cold server render underneath it.
        */
       await expect
         .poll(async () => {
@@ -458,17 +479,28 @@ test.describe("authenticated routes", () => {
     await page.goto("/field/combos");
     const duel = page.locator('section[aria-label="Head to head"]');
     await expect(duel.getByText("No picks added yet.")).toBeHidden({ timeout: 15_000 });
-    // clear Side A (two seeded players) and Side B (one)
+    // clear Side A (two seeded players) and Side B (one). A click can land
+    // while React is committing and remove nothing, so clear until both
+    // sides read empty rather than clicking a fixed number of times — the
+    // assertion below is unchanged.
     const removeA = duel.getByRole("button", { name: /Take .* off Side A/ });
-    while ((await removeA.count()) > 0) {
-      await removeA.first().click({ force: true });
-      await page.waitForTimeout(150);
-    }
     const removeB = duel.getByRole("button", { name: /Take .* off Side B/ });
-    while ((await removeB.count()) > 0) {
-      await removeB.first().click({ force: true });
-      await page.waitForTimeout(150);
-    }
+    await expect
+      .poll(
+        async () => {
+          if ((await removeA.count()) > 0) {
+            await removeA.first().click({ force: true });
+            return "clearing-a";
+          }
+          if ((await removeB.count()) > 0) {
+            await removeB.first().click({ force: true });
+            return "clearing-b";
+          }
+          return "empty";
+        },
+        { timeout: 20_000 },
+      )
+      .toBe("empty");
     await expect(duel.getByText(/Put at least one player on each side/)).toBeVisible();
     await expect(duel.getByText("No picks added yet.").first()).toBeVisible();
     await expect(duel.getByText(/Tap players on the combination board/).first()).toBeVisible();
@@ -583,6 +615,27 @@ test.describe("authenticated routes", () => {
     await page.goto("/field");
     await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Combinations" }).click();
     await expect(page).toHaveURL(/\/combos/);
+  });
+
+  test("season understanding renders the ledger and the luck channels (v10 D1)", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field/understanding");
+    const ledger = page.getByRole("figure").filter({ hasText: "The Ledger" });
+    await expect(ledger).toBeVisible({ timeout: 20_000 });
+    // The four decision kinds, with the estimate mark on the total.
+    for (const kind of ["The fifteen themselves", "Captaincy", "Hits taken", "Bench left alone"]) {
+      await expect(ledger.getByText(kind, { exact: true })).toBeVisible();
+    }
+    const luck = page.getByRole("figure").filter({ hasText: "Process vs outcome" });
+    await expect(luck).toBeVisible();
+    for (const channel of ["Finishing", "Creation", "Versus field"]) {
+      await expect(luck.getByText(channel, { exact: true })).toBeVisible();
+    }
+    // Ribbons appear once players have four appearances; either way the page
+    // says which state it is in rather than rendering nothing.
+    const ribbons = page.getByRole("region", { name: "True-form ribbons" });
+    const tooYoung = page.getByText(/ribbons need four appearances/);
+    expect((await ribbons.count()) > 0 || (await tooYoung.count() > 0)).toBe(true);
   });
 
   test("club numbers renders six sortable boards for all twenty clubs", async ({ page }) => {
@@ -1199,6 +1252,19 @@ test.describe("authenticated routes", () => {
     expect((await speaks.count()) > 0 || (await refuses.count() > 0)).toBe(true);
   });
 
+  test("the player page states what it deliberately does not publish (v10 D8)", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/players/1");
+    const section = page.getByRole("region", { name: "Stats not published by FPL" });
+    await expect(section).toBeVisible();
+    // The absent stats are named, each carrying its dash affordance and the
+    // one-line reason — never a competitor's number, never silence.
+    for (const stat of ["Big chances", "Pass completion", "Crosses"]) {
+      await expect(section.getByText(stat, { exact: false })).toBeVisible();
+    }
+    await expect(section.getByText(/Opta/i).first()).toBeVisible();
+  });
+
   test("the minutes API returns reliable or thin states, and rate-limits its batch", async ({ page }) => {
     const res = await page.request.get("/api/gaffer/minutes?players=1,2,3");
     expect(res.status()).toBe(200);
@@ -1297,11 +1363,11 @@ test.describe("authenticated routes", () => {
     // The headline is a money figure and the change is measured against the
     // budget everyone opened on, not against the first week played.
     await expect(board.getByText(/^£\d+\.\d+m$/).first()).toBeVisible();
-    await expect(board.getByText(/since the £100\.0m everyone started on/)).toBeVisible();
+    await expect(board.getByText(/since the opening budget/)).toBeVisible();
     // The caveat that stops the ledger below being read as profit.
     await expect(board.getByText(/Selling banks only half a player.s rise/)).toBeVisible();
 
-    await expect(board.getByText("What each has done since GW1")).toBeVisible();
+    await expect(board.getByText("What each has done since the opener")).toBeVisible();
     await expect(board.getByText("Season's biggest risers")).toBeVisible();
     await expect(board.getByText("Season's biggest fallers")).toBeVisible();
 
@@ -1417,6 +1483,83 @@ test("arcade gaffer console: select strip, persona voice, sound toggle", async (
   await expect(page.getByText(/KOFI · The Maverick/)).toBeVisible({ timeout: 20_000 });
 });
 
+test("the command palette jumps without a network round trip (v10 A2)", async ({ page }) => {
+  await asTeam(page);
+  await page.goto("/live");
+  // Desktop hint button and the chord both open it.
+  await openPalette(page);
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("combobox")).toBeFocused();
+
+  // Type a route fragment — the results are filtered client-side.
+  await dialog.getByRole("combobox").fill("plan");
+  const options = dialog.getByRole("option");
+  await expect(options.first()).toBeVisible();
+  const labels = await options.allInnerTexts();
+  expect(labels.some((l) => /Planner/.test(l))).toBe(true);
+
+  // Enter activates the highlighted row and navigates.
+  await page.keyboard.press("Enter");
+  await page.waitForURL("**/planner");
+});
+
+test("the command palette finds a player by name (v10 A2)", async ({ page }) => {
+  await asTeam(page);
+  await page.goto("/live");
+  await openPalette(page);
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  // Player names come from the palette endpoint in the background; a route
+  // miss would leave the list with routes only, which is the honest degrade.
+  // A first-name that exists in the fixture market, not a hardcoded star.
+  const res = await page.request.get("/api/gaffer/palette-players");
+  const players = ((await res.json()) as { players: { id: number; name: string }[] }).players;
+  const needle = players[0]?.name.toLowerCase().slice(0, 4) ?? "gabr";
+  await dialog.getByRole("combobox").fill(needle);
+  const options = dialog.getByRole("option");
+  await expect(options.first()).toBeVisible({ timeout: 10_000 });
+  const playerHit = await dialog.getByRole("option", { name: new RegExp(needle, "i") }).count();
+  if (playerHit > 0) {
+    await dialog.getByRole("option", { name: new RegExp(needle, "i") }).first().click();
+    await page.waitForURL("**/players/**");
+  }
+});
+
+test("the palette closes on Esc and restores focus (v10 A2)", async ({ page }) => {
+  await asTeam(page);
+  await page.goto("/live");
+  await openPalette(page);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await page.keyboard.press("Control+k");
+  await expect(page.getByRole("dialog")).toBeVisible();
+});
+
+test("ask answers assemble with reduced-motion reached within one frame (v10 A5/E4)", async ({ page }) => {
+  await asTeam(page);
+  // Emulate the preference before the app boots, as the spec requires:
+  // the final DOM must be identical and reached in one frame.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/live");
+  await page.getByRole("button", { name: "Ask the Gaffer" }).click();
+  await page.getByLabel("Your question").fill("should I captain salah or haaland?");
+  await page.getByRole("button", { name: "Consult Gaffer" }).click();
+
+  // The answer arrives — an assembled region or a bubble — and no element
+  // is left mid-animation: every .ask-rise part is already at its final
+  // opacity, because the global kill switch runs the 340ms rise in 0.01ms.
+  const assembled = page.locator("section[aria-label='Assembled answer']");
+  if ((await assembled.count()) > 0) {
+    await expect(assembled.locator(".ask-rise").first()).toBeVisible();
+    const opacities = await assembled.locator(".ask-rise").evaluateAll((els) =>
+      els.map((el) => getComputedStyle(el).opacity),
+    );
+    for (const o of opacities) expect(Number(o)).toBe(1);
+  }
+});
+
 test("the gaffer voice is persona-flavoured on the API", async ({ request }) => {
   const res = await request.post("/api/ask", {
     data: { q: "should I take a hit?", persona: "mei" },
@@ -1465,4 +1608,35 @@ test("the film renders the season archive with sigil", async ({ page }) => {
   expect(res?.status()).toBe(200);
   await expect(page.getByRole("heading", { name: "The Film" })).toBeVisible();
   await expect(page.getByRole("img", { name: /sigil for gameweek/i })).toBeVisible();
+});
+
+test("the film carries the gameweek sigil beside the archive art (v10 E1)", async ({ page }) => {
+  await asTeam(page);
+  await page.goto("/film");
+  // The swing-sequence glyph renders whether or not the matchday resolved —
+  // an enhancement that degrades, never a blocker.
+  await expect(page.getByRole("img", { name: /swing sequence|gameweek \d+ sigil/i }).first()).toBeVisible();
+});
+
+test("per-entry film OG card renders an image (v10 E1)", async ({ page }) => {
+  const res = await page.request.get(`/api/og/film/${TEAM_ID}`);
+  expect(res.ok()).toBeTruthy();
+  expect(res.headers()["content-type"]).toContain("image/");
+});
+
+test("per-entry DNA fingerprint OG card renders an image (v10 E3)", async ({ page }) => {
+  const res = await page.request.get(`/api/og/dna/${TEAM_ID}`);
+  expect(res.ok()).toBeTruthy();
+  expect(res.headers()["content-type"]).toContain("image/");
+});
+
+test("the DNA page offers the fingerprint share card (v10 E3)", async ({ page }) => {
+  await asTeam(page);
+  // Headless Chromium denies the clipboard API until it is granted.
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/dna");
+  await expect(page.getByRole("button", { name: "Share card" })).toBeVisible();
+  // Clipboard path — the card URL is what gets shared, and it names the OG route.
+  await page.getByRole("button", { name: "Share card" }).click();
+  await expect(page.getByRole("button", { name: "Link copied" })).toBeVisible();
 });

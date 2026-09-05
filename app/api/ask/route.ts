@@ -231,13 +231,39 @@ export async function POST(req: NextRequest) {
     boot.events.find((e) => e.is_current)?.id ??
     Math.max(1, (boot.events.find((e) => e.is_next)?.id ?? 2) - 1);
 
+  /*
+   * Set by the stream's cancel(): a reader that walked away mid-answer.
+   * Pending staggered timers consult it instead of enqueuing into a
+   * controller whose consumer is gone.
+   */
+  let streamClosed = false;
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const enc = new TextEncoder();
+      /*
+       * The staggered frames are setTimeouts, and a reader can walk away
+       * mid-answer — the sheet closes, the tab navigates. When the timer
+       * then fired on a closed controller the enqueue threw, the exception
+       * escaped as uncaughtException and took the whole server down: every
+       * subsequent request served the error boundary. The close is a
+       * lifecycle event, not a failure of the answer, so it is caught and
+       * recorded; the try/finally below still completes the stream for the
+       * reader who stayed.
+       */
+      let closed = false;
       const send = (obj: unknown, delayMs = 0) =>
         new Promise<void>((resolve) => {
           setTimeout(() => {
-            controller.enqueue(enc.encode(`${JSON.stringify(obj)}\n`));
+            if (closed || streamClosed) {
+              resolve();
+              return;
+            }
+            try {
+              controller.enqueue(enc.encode(`${JSON.stringify(obj)}\n`));
+            } catch {
+              // enqueue on a closing/closed controller — treat as closed
+              closed = true;
+            }
             resolve();
           }, delayMs);
         });
@@ -397,8 +423,18 @@ export async function POST(req: NextRequest) {
           message: "the desk could not answer that one. Try again in a moment.",
         });
       } finally {
-        controller.close();
+        if (!closed) {
+          try {
+            controller.close();
+          } catch {
+            /* the reader left before the answer finished — nothing to close */
+          }
+        }
       }
+    },
+    cancel() {
+      // The reader aborted — stop enqueuing, let pending timers no-op.
+      streamClosed = true;
     },
   });
 

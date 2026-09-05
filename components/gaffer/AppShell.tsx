@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/gaffer/Wordmark";
 import { AskBar } from "@/components/gaffer/ask/AskBar";
+import { CommandPalette } from "@/components/gaffer/CommandPalette";
 import { ThemeToggle } from "@/components/primitives/ThemeToggle";
 import { cn } from "@/lib/ui/cn";
 
@@ -110,6 +111,7 @@ export function AppShell({
             </nav>
             <div className="ml-auto flex items-center gap-2">
               {liveSlot}
+              <CommandPalette />
               <AskBar />
               {teamId != null && statusSlot}
               <ThemeToggle />

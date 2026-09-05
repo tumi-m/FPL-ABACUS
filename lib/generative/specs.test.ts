@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { fingerprintStrokes, kitWeaveBands, sigilSpec } from "@/lib/generative/specs";
-import type { GwRecord } from "@/lib/generative/specs";
+import {
+  fingerprintStrokes,
+  kitWeaveBands,
+  sigilGlyphs,
+  sigilSpec,
+  weightedWeaveBands,
+  SIGIL_MINUTES,
+} from "@/lib/generative/specs";
+import type { GwRecord, SigilSwing } from "@/lib/generative/specs";
 
 const records: GwRecord[] = [
   { event: 1, points: 52, overallRank: 900_000, chip: null },
@@ -65,5 +72,87 @@ describe("kitWeaveBands", () => {
 
   it("falls back to line tones when empty", () => {
     expect(kitWeaveBands([])[0].colorVar).toBe("var(--line)");
+  });
+});
+
+describe("weightedWeaveBands — the minutes-weighted kit weave (v10 E2)", () => {
+  it("band width follows the minutes each club has played", () => {
+    const bands = weightedWeaveBands([
+      { teamId: 14, minutes: 900 },
+      { teamId: 1, minutes: 300 },
+    ]);
+    expect(bands.map((b) => b.colorVar)).toEqual(["var(--club-liv)", "var(--club-ars)"]);
+    // A 3:1 minutes split is a 3:1 share of the 26px budget above the floor.
+    expect(bands[0].width).toBeGreaterThan(bands[1].width);
+    expect(bands[0].width / bands[1].width).toBeCloseTo(3, 0);
+  });
+
+  it("a just-signed player keeps a band — the 2px floor", () => {
+    const bands = weightedWeaveBands([
+      { teamId: 14, minutes: 5000 },
+      { teamId: 1, minutes: 10 },
+    ]);
+    expect(bands[1].width).toBe(2);
+  });
+
+  it("all-zero minutes falls back to the plain weave, not a zero-width cloth", () => {
+    const bands = weightedWeaveBands([
+      { teamId: 14, minutes: 0 },
+      { teamId: 1, minutes: 0 },
+    ]);
+    expect(bands[0].colorVar).toBe("var(--line)");
+    expect(bands[0].width).toBeGreaterThan(0);
+  });
+
+  it("every band has a positive width", () => {
+    for (const b of weightedWeaveBands([{ teamId: 6, minutes: 120 }, { teamId: 7, minutes: 640 }])) {
+      expect(b.width).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("sigilGlyphs — the Gameweek Sigil (v10 E1)", () => {
+  const swings: SigilSwing[] = [
+    { minute: 5, delta: 40_000, yours: true },
+    { minute: 45, delta: -120_000, yours: false },
+    { minute: 90, delta: 60_000, yours: true },
+  ];
+
+  it("same input renders byte-identical twice", () => {
+    expect(sigilGlyphs(1851681 + 12, swings)).toEqual(sigilGlyphs(1851681 + 12, [...swings]));
+  });
+
+  it("angle maps the minute onto the dial, kickoff at 12 o'clock", () => {
+    const glyphs = sigilGlyphs(1, [
+      { minute: 0, delta: 10, yours: false },
+      { minute: 45, delta: -10, yours: false },
+      { minute: 90, delta: 10, yours: false },
+    ]);
+    // Angle is relative to 12 o'clock and sweeps clockwise with the minute.
+    // Jitter (±0.02 rad) keeps same-minute events distinct, so tolerance 0.03.
+    expect(glyphs[0].angle).toBeCloseTo(-Math.PI / 2, 1);
+    expect(glyphs[1].angle).toBeGreaterThan(glyphs[0].angle);
+    expect(glyphs[2].angle).toBeCloseTo(-Math.PI / 2 + (90 / SIGIL_MINUTES) * Math.PI * 2, 1);
+  });
+
+  it("reach is the swing's share of the biggest move; direction picks the tone", () => {
+    const glyphs = sigilGlyphs(2, swings);
+    expect(glyphs[1].reach).toBe(1); // the biggest move
+    expect(glyphs[0].reach).toBeCloseTo(40_000 / 120_000, 5);
+    expect(glyphs[0].tone).toBe("surge");
+    expect(glyphs[1].tone).toBe("flare");
+    expect(glyphs[2].tone).toBe("surge");
+  });
+
+  it("marks the swings that were yours", () => {
+    const glyphs = sigilGlyphs(3, swings);
+    expect(glyphs.map((g) => g.yours)).toEqual([true, false, true]);
+  });
+
+  it("minutes outside the match clamp; empty sequences stay empty", () => {
+    const clamped = sigilGlyphs(4, [{ minute: 999, delta: 10, yours: false }]);
+    // 999 clamps to 95 → one full sweep back to 12 o'clock, plus jitter.
+    expect(((clamped[0].angle + Math.PI / 2) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2)).toBeLessThan(0.03);
+    expect(sigilGlyphs(5, [])).toEqual([]);
   });
 });

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Est } from "@/components/gaffer/Est";
+import { Published } from "@/components/gaffer/Provenance";
 import { WatchStar } from "./WatchStar";
 import { useWatchlist } from "./useWatchlist";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
@@ -133,12 +134,14 @@ function Row({ r }: { r: WatchRow }) {
       )}
 
       <span className="w-14 shrink-0 text-right text-xs num-tabular text-ink-2">
-        {formatPrice(r.price)}
-        {moved !== 0 && (
-          <span className={moved > 0 ? "ml-1 text-positive" : "ml-1 text-critical"}>
-            {moved > 0 ? "▲" : "▼"}
-          </span>
-        )}
+        <Published>
+          {formatPrice(r.price)}
+          {moved !== 0 && (
+            <span className={moved > 0 ? "ml-1 text-positive" : "ml-1 text-critical"}>
+              {moved > 0 ? "▲" : "▼"}
+            </span>
+          )}
+        </Published>
       </span>
 
       <span className="w-16 shrink-0 text-right text-2xs num-tabular">
