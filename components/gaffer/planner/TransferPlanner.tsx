@@ -229,22 +229,32 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
     [selected, swapCtx],
   );
 
+  // A Board suggestion arrives as ?out=&in= and is staged once, checked for
+  // legality at THIS desk — prices and squads move between renders. The
+  // ref carries the latest staging machinery so the effect fires per param
+  // change without re-running the check on every unrelated re-render (which
+  // would re-check a move the user has since undone).
+  const stageDeepLink = React.useCallback(
+    (outId: number, inId: number) => {
+      deepLinked.current = true;
+      const res = checkSwap(outId, inId, swapCtx);
+      if (res.ok) {
+        persist(stageMove(moves, outId, inId));
+      } else {
+        setSelected(outId);
+        setNotice(res.reason ?? "That move is no longer available");
+      }
+    },
+    [swapCtx, moves, persist],
+  );
+  const stageDeepLinkRef = React.useRef(stageDeepLink);
+  stageDeepLinkRef.current = stageDeepLink;
   React.useEffect(() => {
     if (deepLinked.current) return;
     const outId = Number(params.get("out"));
     const inId = Number(params.get("in"));
     if (!Number.isFinite(outId) || !Number.isFinite(inId) || outId <= 0 || inId <= 0) return;
-    deepLinked.current = true;
-    // The suggestion was legal when the Board rendered it; prices and squads
-    // move, so it is checked again here and simply selected if it no longer is.
-    const res = checkSwap(outId, inId, swapCtx);
-    if (res.ok) {
-      persist(stageMove(moves, outId, inId));
-    } else {
-      setSelected(outId);
-      setNotice(res.reason ?? "That move is no longer available");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    stageDeepLinkRef.current(outId, inId);
   }, [params]);
 
   const pick = (inId: number) => {
@@ -279,8 +289,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
       setSelected(null);
       setNotice(null);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [moves, swapCtx],
+    [moves, swapCtx, persist],
   );
 
   const drop = (i: number) => persist(moves.filter((_, idx) => idx !== i));

@@ -406,19 +406,24 @@ export function FieldClient({
     return () => ro.disconnect();
   }, [mode, rival, measure, web, model.squad]);
 
-  // keys 1–6 select modes; never while typing in an input
+  // keys 1–6 select modes; never while typing in an input.
+  // setMode is captured once per render into the ref the listener reads, so
+  // the listener itself mounts for the component's lifetime — remounting a
+  // window listener on every mode change would race a keypress mid-swap and
+  // drop it (the palette chord had exactly this bug).
+  const setModeRef = React.useRef(setMode);
+  setModeRef.current = setMode;
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       const idx = Number(e.key) - 1;
-      if (idx >= 0 && idx < KEY_MODES.length && !(historical && KEY_MODES[idx] !== "points")) setMode(KEY_MODES[idx]);
+      if (idx >= 0 && idx < KEY_MODES.length && !(historical && KEY_MODES[idx] !== "points")) setModeRef.current(KEY_MODES[idx]);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [historical]);
 
   // swing + leverage keyed by element for token lookups
   const swingByElement = React.useMemo(
@@ -494,17 +499,21 @@ export function FieldClient({
     router.replace(`/field?mode=${mode}`, { scroll: false });
   };
 
-  // deep-link ?compare={entryId} — league rows land here
+  // deep-link ?compare={entryId} — league rows land here. loadRival lives in
+  // a ref for the same lifetime reason as the key listener: the effect fires
+  // on urlCompare, and the guarded ref means a rival loads once even if the
+  // effect re-runs while the fetch is in flight.
   const urlCompare = params.get("compare");
+  const loadRivalRef = React.useRef(loadRival);
+  loadRivalRef.current = loadRival;
   React.useEffect(() => {
     const id = Number(urlCompare);
     if (rivalLoadedRef.current) return;
     if (Number.isFinite(id) && id > 0) {
       rivalLoadedRef.current = true;
       setRivalIdRaw(String(id));
-      void loadRival(id);
+      void loadRivalRef.current(id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlCompare]);
 
   const starters = model.squad.filter((s) => !s.onBench);
