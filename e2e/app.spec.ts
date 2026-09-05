@@ -496,7 +496,15 @@ test.describe("authenticated routes", () => {
             await removeB.first().click({ force: true });
             return "clearing-b";
           }
-          return "empty";
+          // The absence of remove buttons is not emptiness. It is also true
+          // for the instant React has unmounted the list and not yet
+          // remounted it, so the poll could report "empty" with players still
+          // on the board — and then the empty copy never arrived, because the
+          // sides were not actually clear. The copy is the only positive
+          // signal that they are.
+          return (await duel.getByText(/Put at least one player on each side/).count()) > 0
+            ? "empty"
+            : "settling";
         },
         { timeout: 20_000 },
       )
@@ -617,8 +625,17 @@ test.describe("authenticated routes", () => {
     await expect(page).toHaveURL(/\/combos/);
   });
 
-  test("season understanding renders the ledger and the luck channels (v10 D1)", async ({ page }) => {
+  test("season understanding renders the ledger and the luck channels (v10 D1)", async ({ page, request }) => {
     await asTeam(page);
+    // The ledger attributes SETTLED weeks — history strictly before the current
+    // gameweek. In GW1 there are none, so the page correctly renders no ledger
+    // at all, and asserting one would be asserting a season that has not
+    // happened. Skip on the fact rather than on the environment, so this starts
+    // running by itself the moment there is a settled week to attribute.
+    const boot = await request.get("/api/gaffer/status");
+    const currentGw = boot.ok() ? ((await boot.json()) as { gameweek?: number }).gameweek ?? 1 : 1;
+    test.skip(currentGw < 2, "no settled gameweek yet — the ledger has nothing to attribute");
+
     await page.goto("/field/understanding");
     const ledger = page.getByRole("figure").filter({ hasText: "The Ledger" });
     await expect(ledger).toBeVisible({ timeout: 20_000 });
@@ -1710,7 +1727,13 @@ test("the proactive briefing answers its contract or says nothing (v10 B2)", asy
     expect(line.facts).toBeTruthy();
   }
   // A bad team id degrades to silence, not a 500.
-  const bad = await request.get("/api/gaffer/briefing?entry=1");
+  //
+  // This used to ask for entry 1, which is not a bad id — FPL ids start at 1
+  // and entry 1 is a real manager with a real squad, so against the live API
+  // the endpoint correctly answered with his flagged players and the test read
+  // that as a failure to stay silent. The gate's own unknown-id test already
+  // settled what an impossible id looks like; use the same one.
+  const bad = await request.get("/api/gaffer/briefing?entry=99999999");
   expect(bad.status()).toBe(200);
   expect(((await bad.json()) as { lines: unknown[] }).lines).toEqual([]);
 });

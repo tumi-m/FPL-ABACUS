@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+  schedule:
+    # Once a day, to ask the live API whether our schemas still fit it.
+    - cron: "17 6 * * *"
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -84,4 +88,54 @@ jobs:
 
       - run: pnpm exec playwright install chromium --with-deps
 
+      # Against fixtures, not the live game.
+      #
+      # This job used to talk to fantasy.premierleague.com, which made every
+      # run a function of the real season. It went red because the calendar
+      # advanced past a gameweek a test had hardcoded, because a cold start
+      # had not rendered its rows yet, and because entry 1 turned out to be a
+      # real manager rather than the impossible id a test assumed. None of
+      # those were regressions, and all of them cost a red build.
+      #
+      # The drift that live traffic used to catch is not lost — it moved to
+      # the `live-drift` job below, where an upstream schema change is
+      # reported as an upstream schema change instead of as a broken feature.
+      - name: Serve the fixtures
+        run: |
+          node scripts/mock-fpl.mjs &
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null http://127.0.0.1:4599/api/bootstrap-static/ && break
+            sleep 1
+          done
+
       - run: pnpm exec playwright test --project=chromium
+        env:
+          FPL_API_BASE: http://127.0.0.1:4599/api
+
+  live-drift:
+    name: upstream drift (live FPL)
+    runs-on: ubuntu-latest
+    # Never on a push: this job is allowed to fail because of somebody else's
+    # outage, so it must not be able to redden a commit. It answers one
+    # question on a schedule — does FPL still return the shapes we parse?
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The zod schemas in lib/fpl/schemas.ts are the contract. Parsing live
+      # payloads through them is the whole test: a field FPL renames or drops
+      # fails here, loudly and by name, rather than surfacing days later as a
+      # blank page nobody can explain.
+      - name: Parse live FPL payloads against our schemas
+        run: pnpm exec tsx scripts/check-upstream.ts
