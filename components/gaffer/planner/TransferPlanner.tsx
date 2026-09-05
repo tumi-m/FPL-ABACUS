@@ -10,6 +10,7 @@ import { FixtureTicker } from "@/components/gaffer/planner/FixtureTicker";
 import { PriceWatch } from "@/components/gaffer/planner/PriceWatch";
 import { TeamValueBoard } from "@/components/gaffer/planner/TeamValueBoard";
 import { PlannerSuggestions } from "@/components/gaffer/planner/PlannerSuggestions";
+import { SolverPlan } from "@/components/gaffer/planner/SolverPlan";
 import { fmtDeltaM, fmtM, readTeamValue, type PriceMove, type ValuePoint } from "@/lib/engines/teamValue";
 import { ChipLane } from "@/components/gaffer/planner/ChipLane";
 import { AvatarToggle, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
@@ -456,6 +457,13 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
               freeTransfers={data.freeTransfers}
               staged={moves.length}
               sellPriceOf={sellPriceOf}
+              onStage={stageSuggestion}
+            />
+
+            {/* The whole-window plan: the branching beam over the same market
+                payload, priced hit-inclusive, in the chosen gaffer's posture. */}
+            <SolverPlan
+              data={data}
               onStage={stageSuggestion}
             />
 
