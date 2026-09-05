@@ -201,6 +201,14 @@ const json = (res, body, code = 200) => {
 };
 const notFound = (res) => json(res, { detail: "Not found." }, 404);
 
+/**
+ * The entries the recording covers. 1851681 is the recorded manager; 4242 is
+ * the same squad with every third pick swapped, so a compare is a real
+ * intersection rather than fifteen out of fifteen; 28333 resolves as an entry
+ * but has no picks, which is FPL's other flavour of 404.
+ */
+const KNOWN_ENTRIES = new Set([1851681, 4242, 28333]);
+
 /** A mini-league big enough to average, rank and scatter. */
 function standings(leagueId, page) {
   const TOTAL = 137;
@@ -239,22 +247,31 @@ const server = http.createServer((req, res) => {
   if (url === "/api/fixtures/") return json(res, fixtures);
   if (url === "/api/event-status/") return json(res, status);
   if (/^\/api\/element-summary\/\d+\/$/.test(url)) return json(res, summary);
-  if (/^\/api\/entry\/\d+\/transfers\/$/.test(url)) return json(res, []);
+  const transfersMatch = /^\/api\/entry\/(\d+)\/transfers\/$/.exec(url);
+  if (transfersMatch) {
+    return KNOWN_ENTRIES.has(Number(transfersMatch[1])) ? json(res, []) : notFound(res);
+  }
   if (/^\/api\/event\/\d+\/live\/$/.test(url)) return json(res, live);
 
-  // The real API 404s an id nobody owns, and the gate's error copy depends on
-  // getting a 404 rather than an empty body.
+  // Only the ids the recording actually covers resolve. Handing the same team
+  // back for every id was the lazier shape and it was also wrong: the real API
+  // 404s an id nobody owns, and a surface that degrades to silence on an
+  // unknown entry — the briefing does — could never be exercised, because
+  // every id it was handed came back as a real manager.
   const entryMatch = /^\/api\/entry\/(\d+)\/$/.exec(url);
   if (entryMatch) {
-    return Number(entryMatch[1]) > 9_999_999 ? notFound(res) : json(res, entry);
+    return KNOWN_ENTRIES.has(Number(entryMatch[1])) ? json(res, entry) : notFound(res);
   }
-  if (/^\/api\/entry\/\d+\/history\/$/.test(url)) return json(res, history);
+  const historyMatch = /^\/api\/entry\/(\d+)\/history\/$/.exec(url);
+  if (historyMatch) {
+    return KNOWN_ENTRIES.has(Number(historyMatch[1])) ? json(res, history) : notFound(res);
+  }
 
   if (/^\/api\/entry\/\d+\/event\/\d+\/picks\/$/.test(url)) {
     const id = Number(/\/entry\/(\d+)\//.exec(url)[1]);
     // 28333 resolves as an entry but has no picks — a manager who joined after
     // this gameweek. The compare failure paths need both flavours of 404.
-    if (id === 28333 || id > 9_999_999) return notFound(res);
+    if (id === 28333 || !KNOWN_ENTRIES.has(id)) return notFound(res);
     // 4242 fields a partly different XI, so a compare is a real intersection
     // rather than fifteen out of fifteen.
     if (id === 4242) {
