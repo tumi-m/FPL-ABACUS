@@ -768,11 +768,21 @@ test.describe("authenticated routes", () => {
     // that is the whole reason the two are scored apart.
     expect(defenceTop).not.toBe(attackTop);
 
-    // widening the range changes the scores without a request
+    // widening the range changes the scores without a request. The range end
+    // is picked against the live picker, not hardcoded: the season moves and
+    // the six-gameweek default may already end at any given week.
     const runOf = () =>
       ticker.getByRole("table").locator("tbody tr").first().locator("td").last().innerText();
     const six = await runOf();
-    await ticker.getByLabel("Last gameweek").selectOption("8");
+    const lastSel = ticker.getByLabel("Last gameweek");
+    const options = await lastSel.locator("option").evaluateAll((els) =>
+      els.map((el) => Number((el as HTMLOptionElement).value)),
+    );
+    const current = Number(await lastSel.inputValue());
+    // Two past the current end stays inside the option list (the picker
+    // always runs to GW38) and is guaranteed a different horizon.
+    const wider = options.filter((o) => o > current)[Math.min(1, options.filter((o) => o > current).length - 1)] ?? current + 1;
+    await lastSel.selectOption(String(wider));
     await expect.poll(runOf).not.toBe(six);
   });
 

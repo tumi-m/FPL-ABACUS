@@ -61,10 +61,20 @@ export default async function SquadPage() {
     ),
   ].slice(0, 8);
 
+  // E2 — the weave weighted by the minutes each club has actually played,
+  // so the cloth re-balances when the fifteen change.
+  const minutesByClub = new Map<number, number>();
+  for (const p of picks.picks) {
+    const el = boot.elements[p.element];
+    if (!el) continue;
+    minutesByClub.set(el.team, (minutesByClub.get(el.team) ?? 0) + el.minutes);
+  }
+  const weaveClubs = [...minutesByClub].map(([teamId, minutes]) => ({ teamId, minutes }));
+
   return (
     <div className="space-y-4">
       <div className="relative overflow-hidden rounded-lg has-gloss card-lift bg-raised px-5 py-4">
-        <KitWeave teamIds={squadTeamIds} />
+        <KitWeave teamIds={squadTeamIds} clubs={weaveClubs} />
         <header className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <h1 className="fig-num text-[22px] leading-none">My team</h1>
           {/*

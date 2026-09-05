@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { fingerprintStrokes, kitWeaveBands, sigilGlyphs, sigilSpec, SIGIL_MINUTES } from "@/lib/generative/specs";
+import {
+  fingerprintStrokes,
+  kitWeaveBands,
+  sigilGlyphs,
+  sigilSpec,
+  weightedWeaveBands,
+  SIGIL_MINUTES,
+} from "@/lib/generative/specs";
 import type { GwRecord, SigilSwing } from "@/lib/generative/specs";
 
 const records: GwRecord[] = [
@@ -65,6 +72,42 @@ describe("kitWeaveBands", () => {
 
   it("falls back to line tones when empty", () => {
     expect(kitWeaveBands([])[0].colorVar).toBe("var(--line)");
+  });
+});
+
+describe("weightedWeaveBands — the minutes-weighted kit weave (v10 E2)", () => {
+  it("band width follows the minutes each club has played", () => {
+    const bands = weightedWeaveBands([
+      { teamId: 14, minutes: 900 },
+      { teamId: 1, minutes: 300 },
+    ]);
+    expect(bands.map((b) => b.colorVar)).toEqual(["var(--club-liv)", "var(--club-ars)"]);
+    // A 3:1 minutes split is a 3:1 share of the 26px budget above the floor.
+    expect(bands[0].width).toBeGreaterThan(bands[1].width);
+    expect(bands[0].width / bands[1].width).toBeCloseTo(3, 0);
+  });
+
+  it("a just-signed player keeps a band — the 2px floor", () => {
+    const bands = weightedWeaveBands([
+      { teamId: 14, minutes: 5000 },
+      { teamId: 1, minutes: 10 },
+    ]);
+    expect(bands[1].width).toBe(2);
+  });
+
+  it("all-zero minutes falls back to the plain weave, not a zero-width cloth", () => {
+    const bands = weightedWeaveBands([
+      { teamId: 14, minutes: 0 },
+      { teamId: 1, minutes: 0 },
+    ]);
+    expect(bands[0].colorVar).toBe("var(--line)");
+    expect(bands[0].width).toBeGreaterThan(0);
+  });
+
+  it("every band has a positive width", () => {
+    for (const b of weightedWeaveBands([{ teamId: 6, minutes: 120 }, { teamId: 7, minutes: 640 }])) {
+      expect(b.width).toBeGreaterThan(0);
+    }
   });
 });
 

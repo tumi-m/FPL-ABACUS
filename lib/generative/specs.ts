@@ -148,6 +148,33 @@ export function kitWeaveBands(teamIds: number[]): { colorVar: string; width: num
   }));
 }
 
+/** One club's contribution to the weave: its token and the minutes behind it. */
+export interface WeaveClub {
+  teamId: number;
+  /** Season minutes across the squad's players of that club. */
+  minutes: number;
+}
+
+/**
+ * Kit weave, weighted by minutes (v10 E2) — the fifteen's clubs, in the
+ * proportion they have actually played. Regenerating on a transfer is
+ * automatic: the minutes come from the squad, so an in or an out changes
+ * the weights and the bands re-balance without any stored state.
+ */
+export function weightedWeaveBands(
+  clubs: WeaveClub[],
+): { colorVar: string; width: number }[] {
+  const meaningful = clubs.filter((c) => c.minutes > 0);
+  if (!meaningful.length) return kitWeaveBands([]);
+  const total = meaningful.reduce((s, c) => s + c.minutes, 0);
+  // 2px minimum keeps a just-signed player's colours on the cloth while the
+  // weights decide how wide the band grows.
+  return meaningful.map((c) => ({
+    colorVar: `var(--club-${clubKey(c.teamId)})`,
+    width: Math.max(2, Math.round((c.minutes / total) * 26)),
+  }));
+}
+
 /** FPL team id (1–20) → the token key used in globals.css. */
 export function clubKey(teamId: number): string {
   const KEYS = [

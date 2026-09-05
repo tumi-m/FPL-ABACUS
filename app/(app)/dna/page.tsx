@@ -1,9 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getEntry, getHistory, getTransfers } from "@/lib/fpl/endpoints";
+import { getEntry, getHistory, getTransfers, getPicks } from "@/lib/fpl/endpoints";
+import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
 import { computeDna } from "@/lib/engines/dna";
 import type { DnaInput } from "@/lib/engines/dna";
 import { SeasonFingerprint } from "@/components/generative/SeasonFingerprint";
+import { KitWeave } from "@/components/generative/KitWeave";
 import { ShareCard } from "@/components/generative/ShareCard";
 import { PageHeader } from "@/components/gaffer/PageHeader";
 
@@ -65,12 +67,36 @@ export default async function DnaPage() {
     chip: history.chips.find((ch) => ch.event === c.event)?.name ?? null,
   }));
 
+  // E2 — the squad's kit weave behind the header: clubs weighted by the
+  // minutes they have played, re-balancing on every transfer. An
+  // enhancement — the page reads without it.
+  const weaveClubs = await (async () => {
+    try {
+      const boot = await getBootstrapLite();
+      const picks = await getPicks(teamId, history.current[history.current.length - 1]?.event ?? 1, true);
+      const minutes = new Map<number, number>();
+      for (const p of picks.picks) {
+        const el = boot.elements[p.element];
+        if (!el) continue;
+        minutes.set(el.team, (minutes.get(el.team) ?? 0) + el.minutes);
+      }
+      return [...minutes].map(([teamId, mins]) => ({ teamId, minutes: mins }));
+    } catch {
+      return [];
+    }
+  })();
+
   return (
     <div className="space-y-4">
-      <PageHeader
-        title={entry.name}
-        meta={`Overall rank ${entry.summary_overall_rank ? entry.summary_overall_rank.toLocaleString() : "—"} · best ${Number.isFinite(bestRank) ? bestRank.toLocaleString() : "—"}`}
-      />
+      <div className="relative overflow-hidden rounded-lg bg-raised card-ring px-4 py-3 has-gloss">
+        {weaveClubs.length > 0 && <KitWeave clubs={weaveClubs} />}
+        <div className="relative">
+          <PageHeader
+            title={entry.name}
+            meta={`Overall rank ${entry.summary_overall_rank ? entry.summary_overall_rank.toLocaleString() : "—"} · best ${Number.isFinite(bestRank) ? bestRank.toLocaleString() : "—"}`}
+          />
+        </div>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card label="Bench cost" value={`${dna.benchCost.points}`} note="points left on your bench this season" />
