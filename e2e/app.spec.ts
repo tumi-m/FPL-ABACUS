@@ -1296,6 +1296,29 @@ test.describe("authenticated routes", () => {
     await expect(page.locator("h1")).not.toBeEmpty();
   });
 
+  test("compare puts up to five players side by side and shares by URL (v10 D5)", async ({ page }) => {
+    await asTeam(page);
+    // Empty state: the prompt and the picker, never a broken table.
+    await page.goto("/compare");
+    await expect(page.getByText(/Nobody on the comparison table yet/)).toBeVisible();
+    // Unknown ids are dropped with the reason, not rendered as ghosts.
+    await page.goto("/compare?ids=1,999999,2");
+    await expect(page.getByText(/not comparable players/)).toBeVisible();
+    // Two real players: percentile grid, xPts chart, fixtures, minutes, price.
+    const grid = page.getByRole("region", { name: "Percentile comparison" });
+    await expect(grid).toBeVisible();
+    await expect(page.getByRole("figure").filter({ hasText: "Expected points over the run" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Coming fixtures" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Minutes certainty" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Price moves" })).toBeVisible();
+    // The share control appears from two players up, and removing one keeps
+    // the URL honest — one id left, one column rendered.
+    await expect(page.getByRole("button", { name: "Share this table" })).toBeVisible();
+    await page.getByRole("link", { name: /Remove .* from comparison/ }).first().click();
+    await expect(page).toHaveURL(/\/compare\?ids=\d+$/);
+    await expect(page.getByRole("table").first()).toBeVisible();
+  });
+
   test("minutes certainty quotes a probability or admits thin history — never a bare guess", async ({ page }) => {
     await asTeam(page);
     await page.goto("/players/1");

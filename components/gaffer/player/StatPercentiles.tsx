@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
-import { bandOf, type PercentileRead, type StatRow } from "@/lib/engines/playerPercentiles";
+import { bandOf, BAND_FILL as ENGINE_BAND_FILL, type PercentileRead, type StatRow } from "@/lib/engines/playerPercentiles";
 
 /**
  * Every figure against the players it should be judged beside.
@@ -19,12 +19,8 @@ import { bandOf, type PercentileRead, type StatRow } from "@/lib/engines/playerP
  * beside them.
  */
 
-const BAND_FILL: Record<string, string> = {
-  elite: "var(--surge)",
-  strong: "var(--volt)",
-  average: "var(--amber)",
-  poor: "var(--flare)",
-};
+/** Band fills — re-exported from the engine, the single definition. */
+export const BAND_FILL: Record<string, string> = ENGINE_BAND_FILL;
 
 const BAND_TEXT: Record<string, string> = {
   elite: "text-surge",

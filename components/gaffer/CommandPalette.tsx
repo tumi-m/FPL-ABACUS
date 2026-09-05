@@ -42,6 +42,7 @@ const ROUTES: Item[] = [
   { key: "r-board", label: "Board", hint: "Fixture ticker and the market", weight: 10, href: "/board" },
   { key: "r-leagues", label: "Leagues", hint: "Mini-leagues and rivals", weight: 8, href: "/leagues" },
   { key: "r-combos", label: "Combinations", hint: "Player pairs", weight: 6, href: "/field/combos" },
+  { key: "r-compare", label: "Compare players", hint: "Up to five, side by side", weight: 6, href: "/compare" },
   { key: "r-understanding", label: "Season understanding", hint: "The ledger, the luck, true form", weight: 6, href: "/field/understanding" },
   { key: "r-squad", label: "My team", hint: "The fifteen and their value", weight: 8, href: "/squad" },
   { key: "r-players", label: "Players", hint: "The explorer", weight: 6, href: "/players" },

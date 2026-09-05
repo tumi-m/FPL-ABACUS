@@ -213,3 +213,16 @@ export function bandOf(percentile: number): Band {
   if (percentile >= 30) return "average";
   return "poor";
 }
+
+/**
+ * Band fills — the status palette, shared by the percentile panel and the
+ * compare table so the two surfaces can never disagree about what a band
+ * looks like. Lives with the engine (not the component) so server pages
+ * can read it without importing client code.
+ */
+export const BAND_FILL: Record<Band, string> = {
+  elite: "var(--surge)",
+  strong: "var(--volt)",
+  average: "var(--amber)",
+  poor: "var(--flare)",
+};
