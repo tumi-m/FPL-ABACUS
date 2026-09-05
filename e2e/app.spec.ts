@@ -868,6 +868,23 @@ test.describe("authenticated routes", () => {
     await expect(squad.getByText(/scored on clean sheets kept/)).toBeVisible();
   });
 
+  test("the board predicts deadline ownership, honestly when thin (v10 D3)", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/board");
+    const squad = page.getByRole("region", { name: "Your squad's fixture runs" });
+    await expect(squad).toBeVisible();
+    await expect(squad.getByRole("columnheader", { name: /EO/ })).toBeVisible();
+    // Every EO cell is either the estimate or the stated absence — never a
+    // bare figure, in either coverage state. Without stored snapshots every
+    // row reads "—" with the reason on the title.
+    const cells = squad.locator("tbody tr td:last-child");
+    await expect(cells.first()).not.toBeEmpty();
+    for (const text of await cells.allInnerTexts()) {
+      const t = text.trim();
+      expect(t === "—" || /^~?[\d.]+%$/.test(t)).toBe(true);
+    }
+  });
+
   test("a club row on the board opens that club's players", async ({ page }) => {
     await asTeam(page);
     await page.goto("/board");
@@ -1232,6 +1249,45 @@ test.describe("authenticated routes", () => {
     // Unstarring from the board empties it again.
     await board.getByRole("button", { name: `${who} — watchlist` }).click();
     await expect(board.getByText(/Star a player anywhere/)).toBeVisible();
+  });
+
+  test("the watchlist sorts by deadline EO and price (v10 D3)", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/players");
+
+    // Two starred players with different prices — the sort needs something
+    // to separate. Prices are read off the board itself, never hardcoded.
+    const stars = page.getByRole("button", { name: /— watchlist$/ });
+    await stars.nth(0).click();
+    await stars.nth(1).click();
+
+    await page.goto("/deadline");
+    const board = page.getByRole("region", { name: "Watchlist" });
+    await expect(board).toBeVisible();
+    const names = () => board.locator("ul li a").allInnerTexts();
+    const priceOf = (li: string) =>
+      Number((li.match(/£([\d.]+)m/) ?? ["", "0"])[1]);
+
+    // Deadline EO is a sort choice beside Starred and Price.
+    const sort = board.getByRole("group", { name: "Watchlist sort" });
+    await expect(sort.getByRole("button", { name: "Deadline EO" })).toBeVisible();
+
+    // Price sort is deterministic on published data: dearest first.
+    await sort.getByRole("button", { name: "Price", exact: true }).click();
+    const rows = board.locator("ul li");
+    await expect(rows).toHaveCount(2);
+    const texts = await rows.allInnerTexts();
+    expect(priceOf(texts[0]!)).toBeGreaterThanOrEqual(priceOf(texts[1]!));
+
+    // Deadline EO keeps both rows rendered whatever the coverage — without
+    // snapshots every cell reads "—" with the reason, never a bare guess.
+    await sort.getByRole("button", { name: "Deadline EO" }).click();
+    await expect(rows).toHaveCount(2);
+    expect(await names()).toHaveLength(2);
+
+    // Leave no stars behind for the next test.
+    await board.getByRole("button", { name: /— watchlist$/ }).first().click();
+    await board.getByRole("button", { name: /— watchlist$/ }).first().click();
   });
 
   test("player profile renders a player heading", async ({ page }) => {

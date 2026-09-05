@@ -4,6 +4,7 @@ import { getFixtures } from "@/lib/fpl/endpoints";
 import { availabilityLabel, readAvailability } from "@/lib/engines/availability";
 import { rankTonight, type PriceSnapshot } from "@/lib/engines/price";
 import { loadChangeLedger, loadSnapshots } from "@/lib/server/priceStore";
+import { newsTagsByElement, hoursToDeadline, predictFromParts } from "@/lib/server/buildEoPredict";
 import { WATCH_LIMIT } from "@/lib/store/watchlistCore";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,13 @@ export interface WatchRow {
   price_pRise: number;
   price_direction: "up" | "down";
   price_covered: boolean;
+  /** Deadline EO prediction; `eo_covered` false renders "—" with the reason. */
+  eo_predicted: number;
+  eo_low: number;
+  eo_high: number;
+  eo_covered: boolean;
+  eo_thin: boolean;
+  eo_reason: string | null;
 }
 
 /**
@@ -55,11 +63,13 @@ export async function GET(req: NextRequest) {
 
     // Both of these are allowed to fail without taking the board with them:
     // the names and prices are the point, the fixture and the price model are
-    // the trimmings.
-    const [fixtures, snapshots, ledger] = await Promise.all([
+    // the trimmings. News tags ride the same contract — the EO predictor
+    // reads attention, not content, so a failed news read only widens to zero.
+    const [fixtures, snapshots, ledger, tags] = await Promise.all([
       nextGw ? getFixtures(nextGw).catch(() => []) : Promise.resolve([]),
       loadSnapshots(ids).catch(() => new Map<number, PriceSnapshot[]>()),
       loadChangeLedger().catch(() => ({ lastByElement: new Map<number, { at: Date }>() })),
+      newsTagsByElement().catch(() => new Map<number, number>()),
     ]);
 
     const tonight = new Map(
@@ -71,6 +81,8 @@ export async function GET(req: NextRequest) {
         })),
       ).map((r) => [r.element, r]),
     );
+
+    const eoByElement = predictFromParts(boot, ids, snapshots, tags, hoursToDeadline(boot));
 
     const shortOf = (teamId: number) =>
       boot.teams.find((t) => t.id === teamId)?.short_name ?? "—";
@@ -87,6 +99,7 @@ export async function GET(req: NextRequest) {
         chanceOfPlaying: el.chance_of_playing_next_round ?? el.chance_of_playing_this_round,
       });
       const t = tonight.get(id);
+      const eo = eoByElement.get(id);
       rows.push({
         id,
         webName: el.web_name,
@@ -110,6 +123,12 @@ export async function GET(req: NextRequest) {
         price_pRise: t?.pRise ?? 0,
         price_direction: t?.direction ?? "up",
         price_covered: t?.covered ?? false,
+        eo_predicted: eo?.predicted ?? el.selected_by_percent,
+        eo_low: eo?.low ?? el.selected_by_percent,
+        eo_high: eo?.high ?? el.selected_by_percent,
+        eo_covered: eo?.covered ?? false,
+        eo_thin: eo?.thin ?? false,
+        eo_reason: eo?.reason ?? null,
       });
     }
 

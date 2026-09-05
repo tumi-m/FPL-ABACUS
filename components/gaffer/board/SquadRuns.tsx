@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { CrestBadge } from "@/components/gaffer/CrestBadge";
+import { Est } from "@/components/gaffer/Est";
+import { EO_PREDICT_METHOD, type EoPrediction } from "@/lib/engines/eoPredict";
 import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { clubOf } from "@/config/clubs";
 import { cn } from "@/lib/ui/cn";
@@ -65,10 +67,13 @@ export function SquadRuns({
   squad,
   rows,
   gws,
+  eoByElement,
 }: {
   squad: SquadMember[];
   rows: TickerRow[];
   gws: number[];
+  /** Deadline-EO predictions by element — absent rows read as uncovered. */
+  eoByElement?: Map<number, EoPrediction>;
 }) {
   const [span, setSpan] = React.useState<number>(6);
   // The device-wide faces/kits preference, same as every other board.
@@ -158,6 +163,9 @@ export function SquadRuns({
               <th scope="col" className="px-1 text-right upper-label text-2xs text-ink-lo">
                 Run
               </th>
+              <th scope="col" className="px-1 text-right upper-label text-2xs text-ink-lo" title="Predicted effective ownership at the deadline — transfer velocity plus news attention, with the band.">
+                EO↓
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -231,6 +239,7 @@ export function SquadRuns({
                   >
                     {p.row.score.toFixed(1)}
                   </td>
+                  <EoCell prediction={eoByElement?.get(p.element)} />
                 </tr>
               );
             })}
@@ -239,8 +248,43 @@ export function SquadRuns({
       </div>
       <p className="text-2xs text-ink-lo">
         Keepers and defenders are scored on clean sheets kept, everyone else on goals scored — so
-        the same club can sit in different colours for two of your players.
+        the same club can sit in different colours for two of your players. EO↓ is the predicted
+        effective ownership at the deadline; &ldquo;—&rdquo; means the snapshots have not covered
+        him yet, not that nobody owns him.
       </p>
     </section>
+  );
+}
+
+/**
+ * One player's deadline EO.
+ *
+ * Covered rows print the estimate with its band behind a tooltip; thin rows
+ * mute it and name the fragility; uncovered rows print the watchlist's "—"
+ * with the reason — the same three states the watchlist board uses, so the
+ * two surfaces can never disagree about what is known.
+ */
+function EoCell({ prediction }: { prediction: EoPrediction | undefined }) {
+  if (!prediction || !prediction.covered) {
+    return (
+      <td
+        className="px-1 text-right text-[13px] text-ink-lo num-tabular"
+        title={prediction?.reason ?? "No stored snapshot history for this player yet."}
+      >
+        —
+      </td>
+    );
+  }
+  return (
+    <td
+      className={cn("px-1 text-right fig-num text-[13px] num-tabular", prediction.thin ? "text-ink-lo" : "text-ink-hi")}
+      title={
+        prediction.thin && prediction.reason
+          ? `${prediction.reason} Band ${prediction.low.toFixed(1)}–${prediction.high.toFixed(1)}%.`
+          : `Predicted ${prediction.predicted.toFixed(1)}% at the deadline (band ${prediction.low.toFixed(1)}–${prediction.high.toFixed(1)}%).`
+      }
+    >
+      <Est method={EO_PREDICT_METHOD}>{`${prediction.predicted.toFixed(1)}%`}</Est>
+    </td>
   );
 }

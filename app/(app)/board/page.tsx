@@ -13,6 +13,8 @@ import { buildPlanner, type PlannerData } from "@/lib/server/buildPlanner";
 import { ENHANCEMENT_MS, withDeadline } from "@/lib/server/deadline";
 import { suggestTransfers } from "@/lib/engines/suggest";
 import { defaultMinutesFloor } from "@/lib/engines/performance";
+import { predictDeadlineEOs } from "@/lib/server/buildEoPredict";
+import type { EoPrediction } from "@/lib/engines/eoPredict";
 import {
   RecommendedTransfers,
   type SuggestionRow,
@@ -65,6 +67,14 @@ export default async function BoardPage() {
   ]);
   const squadIds: number[] = picksRes?.picks.map((p) => p.element) ?? [];
   const allFixtures = fixturesRes;
+
+  // Deadline EO for the fifteen — snapshots plus news tags, through the same
+  // predictor the watchlist sorts by. Stored-data reads degrade to empty, so
+  // a missing database leaves every row uncovered ("—" with the reason)
+  // rather than taking the panel with it.
+  const eoByElement: Map<number, EoPrediction> = await predictDeadlineEOs(boot, squadIds).catch(
+    () => new Map<number, EoPrediction>(),
+  );
 
   // Rolling-window opponent rates from completed matches only.
   const model = buildFixtureModel(allFixtures, { upToGw: currentGw });
@@ -177,7 +187,7 @@ export default async function BoardPage() {
       )}
 
       {/* your fifteen, position-aware */}
-      <SquadRuns squad={squad} rows={rows} gws={seasonGws} />
+      <SquadRuns squad={squad} rows={rows} gws={seasonGws} eoByElement={eoByElement} />
 
       {/* and what follows from all of it */}
       <RecommendedTransfers

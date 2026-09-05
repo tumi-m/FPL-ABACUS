@@ -6,6 +6,9 @@ import { Est } from "@/components/gaffer/Est";
 import { Published } from "@/components/gaffer/Provenance";
 import { WatchStar } from "./WatchStar";
 import { useWatchlist } from "./useWatchlist";
+import { sortWatchRows, type WatchSort } from "@/lib/store/watchlistSort";
+import { EO_PREDICT_METHOD } from "@/lib/engines/eoPredict";
+import { cn } from "@/lib/ui/cn";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
 import type { WatchRow } from "@/app/api/gaffer/watchlist/route";
 
@@ -26,6 +29,7 @@ type State =
 export function WatchlistBoard() {
   const { ids } = useWatchlist();
   const [state, setState] = useState<State>({ kind: "idle" });
+  const [sort, setSort] = useState<WatchSort>("starred");
   const key = ids.join(",");
 
   useEffect(() => {
@@ -50,10 +54,32 @@ export function WatchlistBoard() {
 
   return (
     <section aria-label="Watchlist" className="rounded-lg bg-surface-1 card-ring p-5">
-      <div className="mb-3 flex items-baseline gap-2">
+      <div className="mb-3 flex flex-wrap items-baseline gap-2">
         <h2 className="text-2xs font-semibold uppercase tracking-wide text-ink-3">Watchlist</h2>
         <span className="text-2xs text-ink-lo num-tabular">{ids.length}</span>
-        <Link href="/players" className="ml-auto text-xs text-ink-3 underline decoration-dotted hover:text-ink-1">
+        <div role="group" aria-label="Watchlist sort" className="ml-auto flex gap-1 rounded-md glass-edge p-0.5">
+          {(
+            [
+              { id: "starred", label: "Starred" },
+              { id: "eo", label: "Deadline EO" },
+              { id: "price", label: "Price" },
+            ] as const
+          ).map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => setSort(o.id)}
+              aria-pressed={sort === o.id}
+              className={cn(
+                "skewed rounded-sm px-2 py-1 text-2xs uppercase-label transition-colors dur-instant",
+                sort === o.id ? "bg-volt text-on-accent" : "text-ink-mid hover:text-ink-hi",
+              )}
+            >
+              <span>{o.label}</span>
+            </button>
+          ))}
+        </div>
+        <Link href="/players" className="text-xs text-ink-3 underline decoration-dotted hover:text-ink-1">
           Add players
         </Link>
       </div>
@@ -82,15 +108,20 @@ export function WatchlistBoard() {
             <span className="shrink-0">Next</span>
             <span className="w-14 shrink-0 text-right">Price</span>
             <span className="w-16 shrink-0 text-right">Move</span>
+            <span className="w-16 shrink-0 text-right" title="Predicted effective ownership at the deadline">
+              EO↓
+            </span>
           </div>
         <ul className="divide-y divide-hairline">
-          {state.rows.map((r) => (
+          {sortWatchRows(state.rows, sort).map((r) => (
             <Row key={r.id} r={r} />
           ))}
         </ul>
         <p className="mt-2 text-2xs text-ink-lo">
           Move is the modelled chance of a price change before the deadline. It reads &ldquo;—&rdquo; for anyone
-          we have no stored transfer history for yet, rather than guessing at zero.
+          we have no stored transfer history for yet, rather than guessing at zero. EO↓ is the same
+          idea for ownership: the predicted share at the deadline, &ldquo;—&rdquo; where the snapshots
+          have not covered him.
         </p>
         </>
       )}
@@ -153,6 +184,18 @@ function Row({ r }: { r: WatchRow }) {
           </span>
         ) : (
           <span className="text-ink-lo" title="No stored snapshot history for this player yet">
+            —
+          </span>
+        )}
+      </span>
+
+      <span className="w-16 shrink-0 text-right text-2xs num-tabular">
+        {r.eo_covered ? (
+          <span className={r.eo_thin ? "text-ink-lo" : "text-ink-2"} title={r.eo_thin && r.eo_reason ? `${r.eo_reason} Band ${r.eo_low.toFixed(1)}–${r.eo_high.toFixed(1)}%.` : `Predicted ${r.eo_predicted.toFixed(1)}% at the deadline (band ${r.eo_low.toFixed(1)}–${r.eo_high.toFixed(1)}%).`}>
+            <Est method={EO_PREDICT_METHOD}>{`${r.eo_predicted.toFixed(1)}%`}</Est>
+          </span>
+        ) : (
+          <span className="text-ink-lo" title={r.eo_reason ?? "No stored snapshot history for this player yet"}>
             —
           </span>
         )}
