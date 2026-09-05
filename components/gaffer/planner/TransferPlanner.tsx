@@ -4,6 +4,7 @@ import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/ui/cn";
 import { Est } from "@/components/gaffer/Est";
+import { Published } from "@/components/gaffer/Provenance";
 import { PlannerPitch, type PitchMode, type PitchSlot } from "@/components/gaffer/planner/PlannerPitch";
 import { MarketPanel } from "@/components/gaffer/planner/MarketPanel";
 import { FixtureTicker } from "@/components/gaffer/planner/FixtureTicker";
@@ -552,14 +553,16 @@ function PlanHeader({
       <div>
         <dt className="upper-label text-2xs text-ink-lo">In the bank</dt>
         <dd className={cn("fig-num mt-0.5 text-xl leading-none", overdrawn ? "text-flare" : "text-ink-hi")}>
-          £{(summary.bankTenths / 10).toFixed(1)}m
+          <Published>{`£${(summary.bankTenths / 10).toFixed(1)}m`}</Published>
         </dd>
       </div>
       <div>
         <dt className="upper-label text-2xs text-ink-lo">Free transfers</dt>
         <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">
-          {Math.max(0, freeTransfers - summary.transfers)}
-          <span className="text-sm text-ink-lo"> / {freeTransfers}</span>
+          <Published>
+            {Math.max(0, freeTransfers - summary.transfers)}
+            <span className="text-sm text-ink-lo"> / {freeTransfers}</span>
+          </Published>
         </dd>
       </div>
       <div>

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Est } from "@/components/gaffer/Est";
+import { Published } from "@/components/gaffer/Provenance";
 import { cn } from "@/lib/ui/cn";
 import { formatPrice } from "@/lib/ui/format";
 import { solvePlan, type SolveResult } from "@/lib/engines/solver/beam";
@@ -85,8 +86,11 @@ export function SolverPlan({
       </div>
 
       <p className="text-2xs leading-relaxed text-ink-lo">
-        {posture.reason} Searched {result.explored.toLocaleString("en-GB")} branches over{" "}
-        {result.horizon} gameweeks at width {result.beamWidth} —{" "}
+        {posture.reason}{" "}
+        <Published>
+          {`Searched ${result.explored.toLocaleString("en-GB")} branches over ${result.horizon} gameweeks at width ${result.beamWidth}`}
+        </Published>{" "}
+        —{" "}
         <span className="text-ink-2">the best plan found, not the best possible.</span>
       </p>
 

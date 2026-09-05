@@ -86,7 +86,7 @@ function ValueHeadline({
             )}
           >
             {fmtDeltaM(value.changeTenths)}
-            <span className="text-ink-lo"> since the £100.0m everyone started on</span>
+            <span className="text-ink-lo"> since the opening budget</span>
           </div>
         </div>
         <dl className="grid grid-cols-3 gap-x-5 gap-y-2">
@@ -219,7 +219,7 @@ function ValueTrail({ value }: { value: ReturnType<typeof readTeamValue> }) {
       </svg>
       <div className="mt-2 flex items-center justify-between text-2xs text-ink-lo num-tabular">
         <span>GW{pts[0].gw}</span>
-        <span>£100.0m start</span>
+        <span>£100m start</span>
         <span>GW{last.gw}</span>
       </div>
     </ChartFrame>
@@ -240,7 +240,7 @@ function OwnedLedger({ ledger }: { ledger: ReturnType<typeof priceLedger> }) {
     <figure className="rounded-lg bg-surface-1 has-gloss card-lift p-4 md:p-5">
       <figcaption className="mb-3">
         <div className="upper-label text-2xs text-ink-lo">Your fifteen</div>
-        <div className="text-sm font-medium text-ink-1">What each has done since GW1</div>
+        <div className="text-sm font-medium text-ink-1">What each has done since the opener</div>
       </figcaption>
       <ul className="space-y-1">
         {ledger.moves.map((m) => (

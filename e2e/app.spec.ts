@@ -1186,6 +1186,19 @@ test.describe("authenticated routes", () => {
     expect((await speaks.count()) > 0 || (await refuses.count() > 0)).toBe(true);
   });
 
+  test("the player page states what it deliberately does not publish (v10 D8)", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/players/1");
+    const section = page.getByRole("region", { name: "Stats not published by FPL" });
+    await expect(section).toBeVisible();
+    // The absent stats are named, each carrying its dash affordance and the
+    // one-line reason — never a competitor's number, never silence.
+    for (const stat of ["Big chances", "Pass completion", "Crosses"]) {
+      await expect(section.getByText(stat, { exact: false })).toBeVisible();
+    }
+    await expect(section.getByText(/Opta/i).first()).toBeVisible();
+  });
+
   test("the minutes API returns reliable or thin states, and rate-limits its batch", async ({ page }) => {
     const res = await page.request.get("/api/gaffer/minutes?players=1,2,3");
     expect(res.status()).toBe(200);
@@ -1280,11 +1293,11 @@ test.describe("authenticated routes", () => {
     // The headline is a money figure and the change is measured against the
     // budget everyone opened on, not against the first week played.
     await expect(board.getByText(/^£\d+\.\d+m$/).first()).toBeVisible();
-    await expect(board.getByText(/since the £100\.0m everyone started on/)).toBeVisible();
+    await expect(board.getByText(/since the opening budget/)).toBeVisible();
     // The caveat that stops the ledger below being read as profit.
     await expect(board.getByText(/Selling banks only half a player.s rise/)).toBeVisible();
 
-    await expect(board.getByText("What each has done since GW1")).toBeVisible();
+    await expect(board.getByText("What each has done since the opener")).toBeVisible();
     await expect(board.getByText("Season's biggest risers")).toBeVisible();
     await expect(board.getByText("Season's biggest fallers")).toBeVisible();
 

@@ -4,6 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import { Est } from "@/components/gaffer/Est";
+import { Published } from "@/components/gaffer/Provenance";
 import {
   POS_LABEL,
   PROJECTION_METHOD,
@@ -113,7 +114,7 @@ export function MarketPanel({
           {outPlayer ? `Replacing ${outPlayer.name}` : "The market"}
         </h2>
         <span className="text-2xs text-ink-lo num-tabular">
-          {rows.length.toLocaleString("en-GB")} available
+          <Published>{`${rows.length.toLocaleString("en-GB")} available`}</Published>
         </span>
       </div>
 
@@ -364,7 +365,9 @@ function MarketRow({
           </span>
         </button>
       </td>
-      <td className="px-1 py-1.5 text-right text-ink-mid">£{(p.cost / 10).toFixed(1)}</td>
+      <td className="px-1 py-1.5 text-right text-ink-mid">
+        <Published>{`£${(p.cost / 10).toFixed(1)}`}</Published>
+      </td>
       {gws.map((g, i) => {
         const v = p.horizon[i] ?? 0;
         const fxs = fixtureFor(p.team, g.id);
