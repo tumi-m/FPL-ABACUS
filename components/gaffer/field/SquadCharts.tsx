@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { scaleLinear } from "d3-scale";
-import { ChartFrame } from "@/components/charts/ChartFrame";
+import { ChartFrame, ChartEmpty } from "@/components/charts/ChartFrame";
 import { Est } from "@/components/gaffer/Est";
 import { clubOf } from "@/config/clubs";
 import { formatPrice, POSITION_SHORT } from "@/lib/ui/format";
@@ -61,9 +61,9 @@ export function ExpectedVsActual({ rows }: { rows: Row[] }) {
   if (data.length === 0) {
     return (
       <ChartFrame eyebrow="Finishing" title="Goals against expected" ariaLabel="Goals against expected goals">
-        <p className="py-10 text-center text-sm text-ink-lo">
+        <ChartEmpty>
           No shots taken yet this season — nothing to compare.
-        </p>
+        </ChartEmpty>
       </ChartFrame>
     );
   }
@@ -169,9 +169,9 @@ export function OverUnder({ rows }: { rows: Row[] }) {
   if (data.length === 0) {
     return (
       <ChartFrame eyebrow="Over / under" title="Against expectation" ariaLabel="Over and under performance">
-        <p className="py-10 text-center text-sm text-ink-lo">
+        <ChartEmpty>
           Nobody has diverged from their expected numbers yet.
-        </p>
+        </ChartEmpty>
       </ChartFrame>
     );
   }
@@ -252,7 +252,7 @@ export function MinutesSecurity({ rows, currentGw }: { rows: Row[]; currentGw: n
   if (data.length === 0) {
     return (
       <ChartFrame eyebrow="Minutes" title="Who actually starts" ariaLabel="Start share per player">
-        <p className="py-10 text-center text-sm text-ink-lo">Nobody has played yet this season.</p>
+        <ChartEmpty>Nobody has played yet this season.</ChartEmpty>
       </ChartFrame>
     );
   }
@@ -304,7 +304,7 @@ export function ValueForMoney({ rows }: { rows: Row[] }) {
   if (data.length === 0) {
     return (
       <ChartFrame eyebrow="Value" title="Points per pound" ariaLabel="Points against price">
-        <p className="py-10 text-center text-sm text-ink-lo">No prices to compare yet.</p>
+        <ChartEmpty>No prices to compare yet.</ChartEmpty>
       </ChartFrame>
     );
   }

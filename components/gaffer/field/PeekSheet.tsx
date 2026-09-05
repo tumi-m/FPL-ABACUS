@@ -297,7 +297,7 @@ export function PeekSheet({
               {/* The meter already carries the count; saying it twice in two
                   type sizes reads as two different numbers at a glance. */}
               <p className="upper-label mb-1 text-2xs text-ink-lo">Defensive contributions</p>
-              <Meter value={row.defconCount / row.defconThreshold} hint={`${row.defconCount}/${row.defconThreshold}`} />
+              <Meter value={row.defconCount / row.defconThreshold} hint={`${row.defconCount}/${row.defconThreshold}`} tone="defcon" />
               <p className="mt-1 text-2xs text-ink-lo">
                 {row.defconCount >= row.defconThreshold
                   ? "Threshold met — 2 points banked."

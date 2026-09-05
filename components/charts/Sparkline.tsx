@@ -7,7 +7,7 @@ import { line, curveMonotoneX } from "d3-shape";
 const W = 96;
 const H = 28;
 
-/** 12-point sparkline; history de-emphasised, current period in your slot. */
+/** 12-point sparkline; history de-emphasised, current period as the single volt emphasis mark. */
 export function Sparkline({ values, ariaLabel }: { values: number[]; ariaLabel: string }) {
   if (values.length < 2) return <svg width={W} height={H} role="img" aria-label={ariaLabel} />;
   const x = scaleLinear().domain([0, values.length - 1]).range([2, W - 2]);

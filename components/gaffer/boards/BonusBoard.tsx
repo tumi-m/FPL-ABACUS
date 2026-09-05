@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
-import { ChartFrame } from "@/components/charts/ChartFrame";
+import { ChartFrame, ChartEmpty } from "@/components/charts/ChartFrame";
 import { Est } from "@/components/gaffer/Est";
 import { PlayerAvatar, AvatarToggle, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import {
@@ -279,9 +279,9 @@ function BonusSplit({
   if (top.length === 0) {
     return (
       <ChartFrame eyebrow="Split" title="How the bonus was earned" ariaLabel="Bonus split by three, two and one">
-        <p className="py-10 text-center text-sm text-ink-lo">
+        <ChartEmpty>
           No bonus recorded in {windowLabel} yet.
-        </p>
+        </ChartEmpty>
       </ChartFrame>
     );
   }
@@ -355,7 +355,7 @@ function BpsConversion({ rows }: { rows: PerfPlayer[] }) {
   if (pts.length < 3) {
     return (
       <ChartFrame eyebrow="Conversion" title="BPS against bonus taken" ariaLabel="BPS against bonus taken">
-        <p className="py-10 text-center text-sm text-ink-lo">Not enough minutes on the board yet.</p>
+        <ChartEmpty>Not enough minutes on the board yet.</ChartEmpty>
       </ChartFrame>
     );
   }

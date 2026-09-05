@@ -93,6 +93,18 @@ export interface LegendItem {
   dashed?: boolean;
 }
 
+/**
+ * The one empty state every chart renders (v10 D4).
+ *
+ * Sixteen charts built at different times said "nothing here" sixteen ways
+ * — py-8 against py-10, three different wordings for the same minute floor.
+ * A chart with no data renders its frame (eyebrow, title, table toggle stay
+ * put so the layout does not jump when data arrives) with this inside it.
+ */
+export function ChartEmpty({ children }: { children: React.ReactNode }) {
+  return <p className="py-10 text-center text-sm text-ink-lo">{children}</p>;
+}
+
 export function ChartLegend({ items }: { items: LegendItem[] }) {
   return (
     <>

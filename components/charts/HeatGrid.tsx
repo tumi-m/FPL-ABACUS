@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChartFrame, type ChartTable } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, type ChartTable } from "@/components/charts/ChartFrame";
 
 export interface HeatCell {
   /** 1 (hard) … 6 (easy) — maps straight onto the fixture heat ramp. */
@@ -28,6 +28,14 @@ const HEAT_INK = ["dark", "dark", "dark", "light", "light", "light"] as const;
 
 /** FDR-style heat grid — the fixture heat ramp, blue→green, never red→green. */
 export function HeatGrid({ rows, ariaLabel }: { rows: HeatRow[]; ariaLabel: string }) {
+  if (rows.length === 0) {
+    return (
+      <ChartFrame eyebrow="Fixtures" title="Difficulty ticker" ariaLabel={ariaLabel}>
+        <ChartEmpty>No fixtures to score yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
+
   const table: ChartTable = {
     headers: ["Team", ...rows[0]?.cells.map((_, i) => `GW${i + 1}`) ?? []],
     rows: rows.map((r) => [r.label, ...r.cells.map((c) => c.text)]),

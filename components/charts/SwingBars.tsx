@@ -3,7 +3,7 @@
 import * as React from "react";
 import { scaleLinear } from "d3-scale";
 import { useMeasure } from "@/lib/charts/useMeasure";
-import { ChartFrame, type ChartTable } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, type ChartTable } from "@/components/charts/ChartFrame";
 
 export interface SwingBarRow {
   label: string;
@@ -11,12 +11,20 @@ export interface SwingBarRow {
   value: number;
 }
 
-/** Diverging horizontal bars — blue for rank lost, red for rank gained (div-pos). */
+/** Diverging horizontal bars — div-pos for rank gained, div-neg for rank lost. */
 export function SwingBars({ rows, ariaLabel }: { rows: SwingBarRow[]; ariaLabel: string }) {
   const [ref, { width }] = useMeasure<HTMLDivElement>();
   const w = Math.max(width, 280);
   const rowH = 26;
   const height = rows.length * rowH + 8;
+
+  if (rows.length === 0) {
+    return (
+      <ChartFrame eyebrow="Swing" title="Rank impact by event" ariaLabel={ariaLabel}>
+        <ChartEmpty>No events to attribute yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
   const labelW = Math.min(150, w * 0.38);
   const maxAbs = Math.max(...rows.map((r) => Math.abs(r.value)), 1);
   const x = scaleLinear().domain([-maxAbs, maxAbs]).range([labelW, w - 64]);

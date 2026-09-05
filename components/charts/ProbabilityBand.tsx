@@ -4,7 +4,7 @@ import * as React from "react";
 import { scaleLinear } from "d3-scale";
 import { area, line, curveMonotoneX } from "d3-shape";
 import { useMeasure } from "@/lib/charts/useMeasure";
-import { ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
 
 export interface BandPoint {
   x: number;
@@ -27,6 +27,14 @@ export function ProbabilityBand({
   const w = Math.max(width, 280);
   const HEIGHT = 180;
   const margin = { top: 12, right: 12, bottom: 22, left: 40 };
+
+  if (points.length === 0) {
+    return (
+      <ChartFrame eyebrow="Projection" title="Simulated outcome band" ariaLabel={ariaLabel}>
+        <ChartEmpty>Nothing simulated yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
 
   const x = scaleLinear()
     .domain([points[0]?.x ?? 0, points[points.length - 1]?.x ?? 1])

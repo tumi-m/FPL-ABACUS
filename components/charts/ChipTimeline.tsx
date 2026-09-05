@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { scaleLinear } from "d3-scale";
-import { ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
 
 export type ChipKind = "wc1" | "fh" | "bb" | "wc2" | "mb";
 
@@ -48,6 +48,14 @@ export function ChipTimeline({
   const rowH = 30;
   const M = { top: 26, right: 16, bottom: 28, left: 92 };
 
+  if (plays.length === 0) {
+    return (
+      <ChartFrame eyebrow="Chips" title="When is everyone playing chips?" ariaLabel={ariaLabel ?? "Lane chart of chip plays by gameweek per manager"}>
+        <ChartEmpty>No chips played yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
+
   const managers = [...new Set(plays.map((p) => p.manager))];
   const H = Math.max(90, M.top + managers.length * rowH + M.bottom);
 
@@ -87,7 +95,7 @@ export function ChipTimeline({
         {range(g0, g1).map((gw) => (
           <g key={gw}>
             <line x1={x(gw)} x2={x(gw)} y1={M.top - 6} y2={H - M.bottom} stroke="var(--grid)" strokeWidth="1" opacity="0.7" />
-            <text x={x(gw)} y={H - M.bottom + 15} textAnchor="middle" fontSize="10" className="fill-(--ink-lo)">
+            <text x={x(gw)} y={H - M.bottom + 15} textAnchor="middle" fontSize="10" className="fill-(--ink-lo) num-tabular">
               {gw}
             </text>
           </g>

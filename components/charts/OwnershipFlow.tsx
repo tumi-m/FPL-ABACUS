@@ -3,7 +3,7 @@
 import * as React from "react";
 import { scaleLinear } from "d3-scale";
 import { area, curveMonotoneX } from "d3-shape";
-import { ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
 
 export interface FlowClub {
   /** Three-letter code — always paired with its club rail colour. */
@@ -30,6 +30,18 @@ export function OwnershipFlow({
   const W = 560;
   const H = 240;
   const M = { top: 14, right: 14, bottom: 26, left: 44 };
+
+  if (clubs.length === 0 || days.length === 0) {
+    return (
+      <ChartFrame
+        eyebrow="Ownership"
+        title="Who is the crowd buying?"
+        ariaLabel={ariaLabel ?? "Stacked area chart of net transfers per day for the top moving clubs"}
+      >
+        <ChartEmpty>No transfer traffic yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
 
   const n = Math.min(days.length, clubs[0]?.values.length ?? 0);
   const x = scaleLinear().domain([0, Math.max(1, n - 1)]).range([M.left, W - M.right]);

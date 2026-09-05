@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/ui/cn";
 import { clubOf } from "@/config/clubs";
-import { ChartFrame } from "@/components/charts/ChartFrame";
+import { ChartFrame, ChartEmpty } from "@/components/charts/ChartFrame";
 import { Est } from "@/components/gaffer/Est";
 import { PlayerAvatar, AvatarToggle, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
 import {
@@ -309,7 +309,7 @@ function ContributionMix({ rows }: { rows: PerfPlayer[] }) {
   if (top.length === 0) {
     return (
       <ChartFrame eyebrow="Mix" title="What the work is made of" ariaLabel="Defensive contribution mix">
-        <p className="py-10 text-center text-sm text-ink-lo">No contributions recorded yet.</p>
+        <ChartEmpty>No contributions recorded yet.</ChartEmpty>
       </ChartFrame>
     );
   }
@@ -392,7 +392,7 @@ function RateAgainstThreshold({
   if (top.length === 0) {
     return (
       <ChartFrame eyebrow="Rate" title="Against the line" ariaLabel="Contribution rate against the scoring threshold">
-        <p className="py-10 text-center text-sm text-ink-lo">Nobody clears the minutes floor yet.</p>
+        <ChartEmpty>Nobody clears the minutes floor yet.</ChartEmpty>
       </ChartFrame>
     );
   }

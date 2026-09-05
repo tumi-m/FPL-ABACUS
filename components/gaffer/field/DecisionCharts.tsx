@@ -12,7 +12,7 @@
  */
 
 import * as React from "react";
-import { ChartFrame } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame } from "@/components/charts/ChartFrame";
 import { Est } from "@/components/gaffer/Est";
 import { crossover, rankAtRisk, type CaptainCandidate } from "@/lib/quant/decision";
 import { processVsOutcome, shapleyLedger, type LedgerDecision } from "@/lib/quant/understanding";
@@ -64,10 +64,10 @@ export function RankAtRisk({
   if (totals.length < 20 || estimatedRank == null || !Number.isFinite(ranksPerPoint) || ranksPerPoint <= 0) {
     return (
       <ChartFrame eyebrow="Monte Carlo" title="Rank at risk" ariaLabel="Simulated rank outcomes for this gameweek">
-        <p className="py-8 text-center text-sm text-ink-lo">
+        <ChartEmpty>
           Needs a live rank estimate and a simulated eleven — both arrive once the gameweek has a
           rank curve and your fixtures are known.
-        </p>
+        </ChartEmpty>
       </ChartFrame>
     );
   }
@@ -225,9 +225,9 @@ export function Crossover({
   if (candidates.length < 2) {
     return (
       <ChartFrame eyebrow="Nash" title="The Crossover" ariaLabel="Nash captaincy objective across your candidates">
-        <p className="py-8 text-center text-sm text-ink-lo">
+        <ChartEmpty>
           The simulation needs at least two of your eleven with a fixture to compare armbands.
-        </p>
+        </ChartEmpty>
       </ChartFrame>
     );
   }
@@ -350,9 +350,9 @@ export function DecisionLedger({ multiverse }: { multiverse: MatchdayModel["mult
   if (decisions.length === 0) {
     return (
       <ChartFrame eyebrow="Shapley" title="The Ledger" ariaLabel="What each decision was worth in ranks">
-        <p className="py-8 text-center text-sm text-ink-lo">
+        <ChartEmpty>
           No counterfactuals yet — the ledger fills in once players in your squad have scored.
-        </p>
+        </ChartEmpty>
       </ChartFrame>
     );
   }
@@ -467,9 +467,9 @@ export function ProcessVsOutcome({
   if (live.length === 0) {
     return (
       <ChartFrame eyebrow="Luck" title="Process vs outcome" ariaLabel="Luck channels in your gameweek">
-        <p className="py-8 text-center text-sm text-ink-lo">
+        <ChartEmpty>
           Nothing has kicked off yet — luck needs a match to happen in.
-        </p>
+        </ChartEmpty>
       </ChartFrame>
     );
   }
@@ -601,9 +601,9 @@ export function Delivery({ rows, expectedByElement }: { rows: SquadRow[]; expect
   if (xi.length === 0) {
     return (
       <ChartFrame eyebrow="Delivery" title="Against expectation" ariaLabel="Live points against the published expectation">
-        <p className="py-8 text-center text-sm text-ink-lo">
+        <ChartEmpty>
           No expectations published for this gameweek yet.
-        </p>
+        </ChartEmpty>
       </ChartFrame>
     );
   }

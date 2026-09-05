@@ -1616,7 +1616,28 @@ test("ask answers assemble with reduced-motion reached within one frame (v10 A5/
   }
 });
 
-test("the gaffer voice is persona-flavoured on the API", async ({ request }) => {
+  test("the defcon card banks in the lane colour with a table toggle (v10 D4)", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/live");
+    await page.getByRole("button", { name: "Ask the Gaffer" }).click();
+    await page.getByLabel("Your question").fill("does gabriel hit 10 defcon?");
+    await page.getByRole("button", { name: "Consult Gaffer" }).click();
+    // The router answers without a model call; the card renders the
+    // per-match columns with the threshold legend.
+    const card = page.locator("figure").filter({ hasText: "does he actually hit" }).first();
+    await expect(card).toBeVisible({ timeout: 20_000 });
+    await expect(card.getByText("Threshold met")).toBeVisible();
+    // Threshold hits bank in the lane's own gold, never the old sequential
+    // wash — and the assertion holds whether or not he has hit yet, because
+    // it pins the absence of the old token rather than the presence of hits.
+    expect(await card.locator('rect[fill="var(--seq-550)"]').count()).toBe(0);
+    // Every chart carries the table toggle for the same data.
+    await card.getByRole("button", { name: "Table" }).click();
+    await expect(card.getByRole("table")).toBeVisible();
+    await expect(card.getByRole("columnheader", { name: "DEFCON" })).toBeVisible();
+  });
+
+  test("the gaffer voice is persona-flavoured on the API", async ({ request }) => {
   const res = await request.post("/api/ask", {
     data: { q: "should I take a hit?", persona: "mei" },
     headers: { cookie: `gaffer_team=${TEAM_ID}` },

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartFrame } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame } from "@/components/charts/ChartFrame";
 import { POSITION_SHORT } from "@/lib/ui/format";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
@@ -238,9 +238,9 @@ export function BonusLeaders({
         title="Bonus leaders"
         ariaLabel={rival ? `Bonus points across your squad and ${rival.name}` : "Bonus points in your squad"}
       >
-        <p className="py-8 text-center text-sm text-ink-lo">
+        <ChartEmpty>
           No bonus yet — the 1·2·3 settle from the 20th minute.
-        </p>
+        </ChartEmpty>
       </ChartFrame>
     );
   }

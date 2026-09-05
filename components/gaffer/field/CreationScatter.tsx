@@ -3,7 +3,7 @@
 import * as React from "react";
 import useSWR from "swr";
 import { scaleLinear } from "d3-scale";
-import { ChartFrame } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame } from "@/components/charts/ChartFrame";
 import { cn } from "@/lib/ui/cn";
 import { POSITION_SHORT } from "@/lib/ui/format";
 import type { PerfPlayer } from "@/lib/engines/performance";
@@ -195,13 +195,13 @@ export function CreationScatter({ mine }: { mine: number[] }) {
         {!near || isLoading ? (
           <div className="h-[340px] animate-pulse rounded-md bg-surface-3/40" />
         ) : error ? (
-          <p className="py-16 text-center text-sm text-ink-lo">
+          <ChartEmpty>
             The league board did not answer. It will try again when you come back.
-          </p>
+          </ChartEmpty>
         ) : points.length === 0 ? (
-          <p className="py-16 text-center text-sm text-ink-lo">
+          <ChartEmpty>
             Nobody has an expected involvement yet — come back a gameweek or two in.
-          </p>
+          </ChartEmpty>
         ) : (
           <Plot points={points} anyDeadBall={anyDeadBall} />
         )}

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { scaleLinear } from "d3-scale";
-import { ChartFrame, ChartLegend } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, ChartLegend } from "@/components/charts/ChartFrame";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 /**
@@ -24,6 +24,14 @@ export function EOScatter({
   const W = 560;
   const H = 320;
   const M = { top: 18, right: 18, bottom: 34, left: 44 };
+
+  if (rows.length === 0) {
+    return (
+      <ChartFrame eyebrow="Exposure" title="Where am I exposed?" ariaLabel={ariaLabel}>
+        <ChartEmpty>No squad to plot yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
 
   const pts = rows.map((r) => ({
     el: r.element,

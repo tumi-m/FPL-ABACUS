@@ -15,10 +15,17 @@ export function Meter({
   value: number;
   label?: string;
   hint?: string;
-  tone?: "brand" | "warning";
+  /**
+   * brand is generic progress chrome; warning is the price lane's amber.
+   * defcon is the lane's own steel — a DEFCON meter filling in volt would
+   * speak a different colour from the ring and the board two pixels away.
+   */
+  tone?: "brand" | "warning" | "defcon";
   className?: string;
 }) {
   const pct = Math.min(100, Math.max(0, value * 100));
+  const fill =
+    tone === "warning" ? "var(--warning)" : tone === "defcon" ? "var(--defcon)" : "var(--brand)";
   return (
     <div className={cn("w-full", className)}>
       {(label || hint) && (
@@ -38,7 +45,7 @@ export function Meter({
       >
         <div
           className="h-full rounded-full transition-all dur-slow ease-out-quint"
-          style={{ width: `${pct}%`, background: tone === "warning" ? "var(--warning)" : "var(--brand)" }}
+          style={{ width: `${pct}%`, background: fill }}
         />
       </div>
     </div>

@@ -4,7 +4,7 @@ import * as React from "react";
 import { scaleLinear, scaleLog } from "d3-scale";
 import { line, curveMonotoneX } from "d3-shape";
 import { useMeasure } from "@/lib/charts/useMeasure";
-import { ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
 import type { Series } from "@/lib/charts/series";
 import { entityColor } from "@/lib/charts/series";
 
@@ -22,6 +22,18 @@ export function RankCurve({
   const [hoverX, setHoverX] = React.useState<number | null>(null);
   const w = Math.max(width, 280);
   const margin = { top: 12, right: 12, bottom: 22, left: 44 };
+
+  if (series.length === 0 || series.every((s) => s.data.length === 0)) {
+    return (
+      <ChartFrame
+        eyebrow="Rank"
+        title="Overall rank by gameweek"
+        ariaLabel="Line chart of overall rank across gameweeks"
+      >
+        <ChartEmpty>No rank history yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
 
   const allPoints = series.flatMap((s) => s.data);
   const yExtent: [number, number] = [

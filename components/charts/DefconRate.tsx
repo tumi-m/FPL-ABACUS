@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
-import { ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
 
 export interface DefconMatch {
   /** Short opponent or round label. */
@@ -13,8 +13,9 @@ export interface DefconMatch {
 
 /**
  * DefconRate — UI doc §6. Per-match DEFCON columns against the bonus
- * threshold as a dashed lumen rule; hits above it fill cyan, misses sit in
- * --line-hi. Answers "does he actually hit 10?".
+ * threshold as a dashed lumen rule; hits fill in the lane's own banked
+ * token (--defcon-hit, the same gold the DEFCON board pays in), misses sit
+ * in --line-hi. Answers "does he actually hit 10?".
  */
 export function DefconRate({
   matches,
@@ -30,6 +31,18 @@ export function DefconRate({
   const W = 560;
   const H = 260;
   const M = { top: 26, right: 14, bottom: 34, left: 34 };
+
+  if (matches.length === 0) {
+    return (
+      <ChartFrame
+        eyebrow="Defcon"
+        title={playerName ? `${playerName} — does he actually hit ${threshold}?` : `Does he actually hit ${threshold}?`}
+        ariaLabel={ariaLabel ?? `Column chart of DEFCON events per match against the ${threshold}-point bonus threshold`}
+      >
+        <ChartEmpty>No matches played yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
 
   const max = Math.max(threshold + 1, ...matches.map((m) => m.defcon)) * 1.12;
   const x = scaleBand<string>()
@@ -56,7 +69,7 @@ export function DefconRate({
       legend={
         <ChartLegend
           items={[
-            { name: "Threshold met", colorVar: "var(--seq-550)" },
+            { name: "Threshold met", colorVar: "var(--defcon-hit)" },
             { name: "Below threshold", colorVar: "var(--line-hi)" },
           ]}
         />
@@ -78,7 +91,7 @@ export function DefconRate({
         {y.ticks(4).filter((t) => t > 0 && t < threshold).map((t) => (
           <g key={t}>
             <line x1={M.left} x2={W - M.right} y1={y(t)} y2={y(t)} stroke="var(--grid)" strokeWidth="1" />
-            <text x={M.left - 6} y={y(t) + 3} textAnchor="end" fontSize="10" className="fill-(--ink-lo)">
+            <text x={M.left - 6} y={y(t) + 3} textAnchor="end" fontSize="10" className="fill-(--ink-lo) num-tabular">
               {t}
             </text>
           </g>
@@ -92,7 +105,7 @@ export function DefconRate({
               <rect
                 x={x(m.label)} y={top} width={x.bandwidth()}
                 height={Math.max(2, H - M.bottom - top)}
-                rx="3" fill={hit ? "var(--seq-550)" : "var(--line-hi)"}
+                rx="3" fill={hit ? "var(--defcon-hit)" : "var(--line-hi)"}
                 opacity={hit ? 0.95 : 0.75}
               >
                 <title>{`${m.label} — ${m.defcon} DEFCON${hit ? ", bonus hit" : ""}`}</title>

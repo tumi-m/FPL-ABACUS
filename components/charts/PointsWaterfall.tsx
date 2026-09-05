@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
-import { ChartFrame } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame } from "@/components/charts/ChartFrame";
 import { clubOf } from "@/config/clubs";
 import { playerImg } from "@/lib/ui/format";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
@@ -45,6 +45,14 @@ export function PointsWaterfall({
 
   const total = scoring.reduce((s, r) => s + r.pts, 0);
   let running = 0;
+
+  if (scoring.length === 0) {
+    return (
+      <ChartFrame eyebrow="Attribution" title="Where your points come from" ariaLabel={ariaLabel}>
+        <ChartEmpty>Nobody has scored yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
   const bars = scoring.map((r) => {
     const start = running;
     running += r.pts;
@@ -79,8 +87,8 @@ export function PointsWaterfall({
         {/* y gridlines — hairline */}
         {y.ticks(4).map((t) => (
           <g key={t}>
-            <line x1={M.left} x2={W - M.right} y1={y(t)} y2={y(t)} stroke="var(--line)" strokeWidth="1" />
-            <text x={M.left - 6} y={y(t) + 3} textAnchor="end" fontSize="10" className="fill-(--ink-lo)">
+            <line x1={M.left} x2={W - M.right} y1={y(t)} y2={y(t)} stroke="var(--grid)" strokeWidth="1" />
+            <text x={M.left - 6} y={y(t) + 3} textAnchor="end" fontSize="10" className="fill-(--ink-lo) num-tabular">
               {t}
             </text>
           </g>

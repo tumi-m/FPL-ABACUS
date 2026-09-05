@@ -3,7 +3,7 @@
 import * as React from "react";
 import { scaleLinear } from "d3-scale";
 import { line, curveMonotoneX } from "d3-shape";
-import { ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
 
 export interface XgPoint {
   /** Gameweek number. */
@@ -31,6 +31,18 @@ export function XgVsActual({
   const W = 560;
   const H = 260;
   const M = { top: 16, right: 56, bottom: 30, left: 40 };
+
+  if (points.length === 0) {
+    return (
+      <ChartFrame
+        eyebrow="Underlying"
+        title={playerName ? `${playerName} — due, or finished?` : "Due, or finished?"}
+        ariaLabel={ariaLabel ?? "Line chart of cumulative expected goal involvement versus cumulative actual returns"}
+      >
+        <ChartEmpty>No matches played yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
 
   const x = scaleLinear()
     .domain([Math.min(...points.map((p) => p.gw)), Math.max(...points.map((p) => p.gw, 0))])

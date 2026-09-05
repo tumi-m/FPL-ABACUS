@@ -4,7 +4,7 @@ import * as React from "react";
 import { scaleLinear } from "d3-scale";
 import { area, line, curveMonotoneX } from "d3-shape";
 import { useMeasure } from "@/lib/charts/useMeasure";
-import { ChartFrame, type ChartTable } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, type ChartTable } from "@/components/charts/ChartFrame";
 
 export interface DistBin {
   x: number;
@@ -25,6 +25,14 @@ export function DistributionCurve({
   const w = Math.max(width, 280);
   const HEIGHT = 160;
   const margin = { top: 10, right: 12, bottom: 22, left: 32 };
+
+  if (bins.length === 0) {
+    return (
+      <ChartFrame eyebrow="Field" title="Gameweek score distribution" ariaLabel={ariaLabel}>
+        <ChartEmpty>No scores recorded yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
 
   const x = scaleLinear()
     .domain([bins[0]?.x ?? 0, bins[bins.length - 1]?.x ?? 100])

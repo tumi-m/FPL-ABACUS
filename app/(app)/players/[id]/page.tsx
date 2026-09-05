@@ -327,6 +327,7 @@ export default async function PlayerProfile({ params }: { params: Promise<{ id: 
                     <Meter
                       value={Math.min(1, h.defensive_contribution / defcon.threshold)}
                       hint={`${h.defensive_contribution}/${defcon.threshold}${h.defensive_contribution >= defcon.threshold ? " — cleared" : ""}`}
+                      tone="defcon"
                     />
                   </td>
                 </tr>

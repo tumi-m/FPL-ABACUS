@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { scaleLinear } from "d3-scale";
-import { ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
+import { ChartEmpty, ChartFrame, ChartLegend, type ChartTable } from "@/components/charts/ChartFrame";
 
 export interface SwingPoint {
   /** Gameweek number. */
@@ -31,6 +31,18 @@ export function FixtureSwing({
   const W = 560;
   const H = 240;
   const M = { top: 22, right: 52, bottom: 30, left: 44 };
+
+  if (points.length === 0) {
+    return (
+      <ChartFrame
+        eyebrow="Fixtures"
+        title={playerName ? `${playerName} — when do the fixtures turn?` : "When do the fixtures turn?"}
+        ariaLabel={ariaLabel ?? "Slope chart of opponent xG conceded per 90 across the run, lower is easier"}
+      >
+        <ChartEmpty>No fixtures scheduled yet.</ChartEmpty>
+      </ChartFrame>
+    );
+  }
 
   const xs = points.map((p) => p.gw);
   const x = scaleLinear()

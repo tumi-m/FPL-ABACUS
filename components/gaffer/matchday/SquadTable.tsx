@@ -80,7 +80,7 @@ export function SquadTable({ model, settled }: { model: MatchdayModel; settled?:
                 </td>
                 <td className="w-28 py-2 pl-2">
                   {r.defconThreshold < 99 ? (
-                    <Meter value={r.defconCount / r.defconThreshold} hint={`${r.defconCount}/${r.defconThreshold}`} />
+                    <Meter value={r.defconCount / r.defconThreshold} hint={`${r.defconCount}/${r.defconThreshold}`} tone="defcon" />
                   ) : (
                     <span className="text-xs text-ink-3">—</span>
                   )}

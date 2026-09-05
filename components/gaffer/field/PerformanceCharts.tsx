@@ -10,7 +10,7 @@
  */
 
 import * as React from "react";
-import { ChartFrame } from "@/components/charts/ChartFrame";
+import { ChartFrame, ChartEmpty } from "@/components/charts/ChartFrame";
 import { Est } from "@/components/gaffer/Est";
 import { POS_LABEL } from "@/lib/engines/planner";
 import { sampleWeight, verdict, type Delta, type PerfPlayer } from "@/lib/engines/performance";
@@ -58,7 +58,7 @@ export function ActualVsExpectedScatter({
   if (rows.length === 0) {
     return (
       <ChartFrame eyebrow="Engineered" title={title} ariaLabel={title}>
-        <p className="py-10 text-center text-sm text-ink-lo">Nobody clears the minutes filter yet.</p>
+        <ChartEmpty>Nobody clears the minutes filter yet.</ChartEmpty>
       </ChartFrame>
     );
   }
@@ -200,7 +200,7 @@ export function DeltaBars({
   if (ranked.length === 0) {
     return (
       <ChartFrame eyebrow={eyebrow} title={title} ariaLabel={title}>
-        <p className="py-10 text-center text-sm text-ink-lo">Nobody clears the minutes filter yet.</p>
+        <ChartEmpty>Nobody clears the minutes filter yet.</ChartEmpty>
       </ChartFrame>
     );
   }
