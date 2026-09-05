@@ -209,25 +209,21 @@ test.describe("authenticated routes", () => {
       const more = page.getByRole("button", { name: /load 50 more/i });
       await expect(more).toBeVisible({ timeout: 20_000 });
       await more.click();
-      // Let the RSC fetch land before polling for its result; a loaded runner
-      // can take a few seconds and the poll should not be racing it.
-      await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => undefined);
       /*
-       * Assert the outcome, never the URL.
+       * Assert the outcome, never the URL — and never `networkidle`.
        *
-       * "Load 50 more" is a Link into a force-dynamic route, so Next fetches
-       * the next page's payload before it touches the address bar. Polling for
-       * `?page=2` was therefore polling for an implementation detail on the
-       * slowest possible path, and under a loaded runner it was the assertion
-       * that kept flaking while the feature itself worked. What the reader
-       * actually gets is more rows, or an honest end of the list — so that is
-       * what is checked, with room for a cold server render underneath it.
+       * "Load 50 more" is a plain anchor now, not a Link, so there is no RSC
+       * fetch to wait for; and the page carries the live-bar's polling
+       * client, which keeps a request in flight forever — `networkidle`
+       * consumed the whole 30s test timeout while the feature itself worked
+       * in under a second. What the reader actually gets is more rows, or an
+       * honest end of the list; the poll below checks that directly.
        */
       await expect
         .poll(async () => {
           if ((await page.getByText(/End of standings/).count()) > 0) return "ended";
           return (await page.locator("tbody tr").count()) > dataRows ? "rows" : "waiting";
-        }, { timeout: 30_000 })
+        }, { timeout: 20_000 })
         .not.toBe("waiting");
     } else {
       // small league: exhausted list shows its honest end state
