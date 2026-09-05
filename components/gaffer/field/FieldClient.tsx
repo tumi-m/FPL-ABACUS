@@ -90,6 +90,10 @@ const SquadWeekBlock = dynamic(
   () => import("@/components/gaffer/field/SquadWeekBlock").then((m) => m.SquadWeekBlock),
   { loading: () => <BoardSkeleton />, ssr: false },
 );
+const ArmbandBoard = dynamic(
+  () => import("@/components/gaffer/field/ArmbandBoard").then((m) => m.ArmbandBoard),
+  { loading: () => <BoardSkeleton />, ssr: false },
+);
 
 const POLL_LIVE_MS = 20_000;
 const POLL_IDLE_MS = 300_000;
@@ -1063,6 +1067,14 @@ export function FieldClient({
           nobody scrolled to. */}
       {!boardMode && (
         <>
+      {/* The captaincy doubles one player's return, which makes it the biggest
+          single lever in the game — and it lived in an ask card. It goes first
+          below the pitch, and it reads the NEXT gameweek rather than the one on
+          screen: the Field is routinely opened on a live or finished week, and
+          "who should wear it" only means something about a week you can still
+          change. */}
+      <ArmbandBoard squad={model.squad} />
+
       <EOScatter rows={model.squad} onSelect={(el) => setPeekElement(el)} />
 
       {/* the decision board — the Monte Carlo and Nash engines the app already

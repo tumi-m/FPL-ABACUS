@@ -1290,6 +1290,30 @@ test.describe("authenticated routes", () => {
     await board.getByRole("button", { name: /— watchlist$/ }).first().click();
   });
 
+  test("the armband board ranks captaincy candidates for the next gameweek", async ({ page }) => {
+    await asTeam(page);
+    await page.goto("/field");
+    const band = page.getByRole("region", { name: "The armband" });
+    await expect(band).toBeVisible({ timeout: 15_000 });
+    await band.scrollIntoViewIfNeeded();
+
+    // It reads the NEXT gameweek, not the one the Field is showing.
+    await expect(band.getByText(/GW\d+/).first()).toBeVisible({ timeout: 15_000 });
+
+    // A ranked list with a verdict naming the pick at the top of it.
+    const rows = band.locator("ol > li");
+    await expect(rows.first()).toBeVisible({ timeout: 15_000 });
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+    expect(count).toBeLessThanOrEqual(6);
+
+    // Every projection is an estimate and says so — the <Est> contract.
+    await expect(band.locator('[role="note"]').first()).toBeVisible();
+
+    // Keepers are off the board: the armband on a goalkeeper is never right.
+    await expect(band.getByText("GKP·", { exact: false })).toHaveCount(0);
+  });
+
   test("player profile renders a player heading", async ({ page }) => {
     await asTeam(page);
     await page.goto("/players/1");
