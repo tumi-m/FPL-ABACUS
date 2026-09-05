@@ -768,12 +768,31 @@ test.describe("authenticated routes", () => {
     // that is the whole reason the two are scored apart.
     expect(defenceTop).not.toBe(attackTop);
 
-    // widening the range changes the scores without a request
-    const runOf = () =>
-      ticker.getByRole("table").locator("tbody tr").first().locator("td").last().innerText();
-    const six = await runOf();
-    await ticker.getByLabel("Last gameweek").selectOption("8");
-    await expect.poll(runOf).not.toBe(six);
+    // Widening the range re-scores without a request.
+    //
+    // This used to select a hardcoded GW8, which was only ever a widening
+    // while the real season sat on GW1 or GW2: the window opens at the current
+    // gameweek plus five, so from GW3 onwards "8" was already the selected
+    // value and the click was a no-op — the score could not move and CI failed
+    // deterministically. Widen to the end of the published season instead, and
+    // assert the direction rather than mere difference: every extra gameweek
+    // adds a non-negative amount to every club, so the best run can only grow.
+    const runOf = async () =>
+      Number(
+        await ticker.getByRole("table").locator("tbody tr").first().locator("td").last().innerText(),
+      );
+    const lastGw = ticker.getByLabel("Last gameweek");
+    const weeks = await lastGw.locator("option").evaluateAll((os) =>
+      os.map((o) => Number((o as HTMLOptionElement).value)),
+    );
+    const opensAt = Number(await lastGw.inputValue());
+    const endOfSeason = weeks[weeks.length - 1];
+    // a six-week default window inside a full season always leaves room
+    expect(endOfSeason).toBeGreaterThan(opensAt);
+
+    const short = await runOf();
+    await lastGw.selectOption(String(endOfSeason));
+    await expect.poll(runOf).toBeGreaterThan(short);
   });
 
   test("board marks your clubs and can filter to them", async ({ page }) => {
@@ -1235,6 +1254,10 @@ test.describe("authenticated routes", () => {
     await page.goto("/planner");
     const market = page.getByRole("region", { name: "Player market" });
     const rows = market.locator("tbody tr");
+    // count() takes an immediate snapshot and never retries, so on a cold start
+    // it captured an empty table and the assertion below then demanded the
+    // market return to nothing. Wait for the first row before counting.
+    await expect(rows.first()).toBeVisible();
     const before = await rows.count();
     await market.getByPlaceholder("Search a player or club code").fill("zzzznobody");
     await expect(market.getByText(/Nothing matches those filters/)).toBeVisible();
