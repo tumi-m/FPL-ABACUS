@@ -87,3 +87,62 @@ describe("verifyFigures", () => {
     expect(r.clean).toBe(true);
   });
 });
+
+describe("claims are bound to an entity and a measure", () => {
+  // The four the audit reproduced against the number-only verifier. Each was
+  // accepted; each must now be dropped, and each is a different way for a
+  // sentence to be false while every digit in it is real.
+  const saka = { player: "Saka", goals: 13 };
+
+  it("refuses a real number attributed to the wrong player", () => {
+    expect(verifyFigures("Haaland scored 13 goals.", saka).clean).toBe(false);
+  });
+
+  it("refuses a real number attached to the wrong measure", () => {
+    // 13 is his goal count, not his price.
+    expect(verifyFigures("Saka costs £13m.", saka).clean).toBe(false);
+  });
+
+  it("refuses a small count no fact supports, even though 2 reads as grammar", () => {
+    // "two of your three defenders" is grammar and stays free; "scored 2
+    // goals" is a statistic and needs evidence like any other.
+    expect(verifyFigures("Saka scored 2 goals.", saka).clean).toBe(false);
+    expect(verifyFigures("Two of the three are yours.", saka).clean).toBe(true);
+  });
+
+  it("refuses a flat fitness claim with nothing behind it", () => {
+    expect(verifyFigures("Saka is definitely fit.", saka).clean).toBe(false);
+    expect(verifyFigures("Saka will start.", saka).clean).toBe(false);
+  });
+
+  it("keeps the same claim when the facts do support it", () => {
+    expect(verifyFigures("Saka scored 13 goals.", saka).clean).toBe(true);
+    const withPrice = { player: "Saka", goals: 13, price: 8.5 };
+    expect(verifyFigures("Saka costs £8.5m.", withPrice).clean).toBe(true);
+  });
+
+  it("accepts a fitness claim FPL's own words back, wherever they are stored", () => {
+    // The briefing keeps this under `label`, not `status` — the evidence is
+    // the wording, not the field it arrived in.
+    const flagged = { name: "Haaland", label: "Knock · Expected back 8 Mar" };
+    expect(verifyFigures("Your captain Haaland is out: Knock · Expected back 8 Mar.", flagged).clean).toBe(true);
+  });
+
+  it("does not read an ordinary opener as a player", () => {
+    // "Hold" and "Since" begin sentences; they are not somebody who scored.
+    expect(verifyFigures("Hold the transfer and take the 13 goals.", saka).clean).toBe(true);
+  });
+
+  it("does not split a decimal into a second claim", () => {
+    // "42.5% owned" was cut at the period, leaving an orphan "5" that no fact
+    // could license, and a true sentence was dropped for a number it never made.
+    const owned = { rows: [{ name: "Saka", eo: 42.5 }] };
+    expect(verifyFigures("Saka is 42.5% owned.", owned).clean).toBe(true);
+  });
+
+  it("reads a measure and a subject out of a fact written as a sentence", () => {
+    const threats = { team: { name: "GP", threats: ["Haaland (32% EO)"] } };
+    expect(verifyFigures("Haaland sits at 32% owned.", threats).clean).toBe(true);
+    expect(verifyFigures("Haaland sits at 44% owned.", threats).clean).toBe(false);
+  });
+});
