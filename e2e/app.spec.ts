@@ -869,12 +869,19 @@ test.describe("authenticated routes", () => {
     await asTeam(page);
     await page.goto("/board");
     const ticker = page.getByRole("region", { name: "League fixture ticker" });
-    const all = await ticker.getByRole("table").locator("tbody tr").count();
+    const rows = ticker.getByRole("table").locator("tbody tr");
+    // count() snapshots immediately and never retries, so on a cold start it
+    // read the unfiltered table as empty and then compared the filtered one
+    // against zero — "expected < 0, received 1". Wait for the twenty club rows
+    // before measuring; the filter can only ever be a subset of them.
+    await expect(rows.first()).toBeVisible({ timeout: 15_000 });
+    await expect.poll(() => rows.count(), { timeout: 15_000 }).toBeGreaterThan(1);
+    const all = await rows.count();
 
     await ticker.getByRole("button", { name: "My clubs" }).click();
-    const mine = await ticker.getByRole("table").locator("tbody tr").count();
+    await expect.poll(() => rows.count(), { timeout: 10_000 }).toBeLessThan(all);
+    const mine = await rows.count();
     expect(mine).toBeGreaterThan(0);
-    expect(mine).toBeLessThan(all);
   });
 
   test("board keeps a position-aware read of your own squad", async ({ page }) => {
@@ -1188,10 +1195,12 @@ test.describe("authenticated routes", () => {
     await page.goto("/deadline");
     const cal = page.getByRole("region", { name: "Blank and double calendar" });
     await expect(cal).toBeVisible();
-    // One row per gameweek in the horizon, GW-labelled.
+    // One row per gameweek in the horizon, GW-labelled. The region being
+    // visible does not mean its rows have rendered, and count() never retries —
+    // the same race that read the ticker as empty and compared against zero.
     const rows = cal.getByRole("listitem");
-    const count = await rows.count();
-    expect(count).toBeGreaterThan(4);
+    await expect(rows.first()).toBeVisible({ timeout: 15_000 });
+    await expect.poll(() => rows.count(), { timeout: 15_000 }).toBeGreaterThan(4);
     // The headline number is always an estimate — wrapped in <Est>.
     await expect(cal.locator("role=note").first()).toBeVisible();
     // The honesty line names the cup-round caveat for possible weeks.
