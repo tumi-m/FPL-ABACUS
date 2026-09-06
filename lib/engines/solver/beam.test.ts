@@ -162,3 +162,68 @@ describe("solvePlan — the branching beam", () => {
     expect(HIT_POINTS).toBe(4);
   });
 });
+
+describe("transfer accounting is FPL's, not an assumption", () => {
+  // A five-week horizon where one swap is plainly worth making.
+  const mk = (id: number, pos: number, horizon: number[]) =>
+    player({ id, pos, team: (id % 20) + 1, horizon });
+
+  /** 2 GK, 5 DEF, 5 MID, 3 FWD — a legal fifteen. */
+  const squad = [
+    mk(1, 1, [2, 2, 2, 2, 2]), mk(2, 1, [1, 1, 1, 1, 1]),
+    ...[3, 4, 5, 6, 7].map((i) => mk(i, 2, [2, 2, 2, 2, 2])),
+    ...[8, 9, 10, 11, 12].map((i) => mk(i, 3, [2, 2, 2, 2, 2])),
+    ...[13, 14, 15].map((i) => mk(i, 4, [1, 1, 1, 1, 1])),
+  ];
+  const market = [mk(99, 4, [9, 9, 9, 9, 9])];
+  const base = {
+    squad, market: [...squad, ...market], bankTenths: 100,
+    sellPriceOf: (id: number) => (id === 99 ? 50 : 50),
+    weeks: 5, risk: 0, beamWidth: 20,
+  };
+
+  it("spends the banked transfers it was given rather than assuming one", () => {
+    // With four banked, two swaps in the first two weeks cost no hits.
+    const rich = solvePlan({ ...base, freeTransfers: 4 });
+    expect(rich.hits).toBe(0);
+  });
+
+  it("still grants next week's transfer after this week's is spent", () => {
+    // One free transfer, one swap in week 1. Week 2 must NOT need a hit:
+    // FPL grants one every gameweek. The old accounting left zero.
+    const plan = solvePlan({ ...base, freeTransfers: 1 });
+    const wk1 = plan.moves.filter((m) => m.gw === 1).length;
+    if (wk1 > 0) expect(plan.hits).toBe(0);
+  });
+
+  it("never invents a free transfer by taking a hit", () => {
+    const plan = solvePlan({ ...base, freeTransfers: 0, weeks: 2 });
+    // Whatever it does, it cannot end up having made more moves for free than
+    // the allowance plus the hits it declared.
+    expect(plan.moves.length).toBeLessThanOrEqual(plan.hits + 2);
+  });
+});
+
+describe("a returned plan is one FPL would let you field", () => {
+  const mk = (id: number, pos: number, pts: number) =>
+    player({ id, pos, team: (id % 20) + 1, horizon: [pts] });
+
+  it("scores a legal XI, not the eleven biggest numbers", () => {
+    // Midfielders are worth 10 each and forwards 1. "Best keeper plus ten
+    // outfield" would field five midfielders and no forward — a team FPL
+    // rejects — and score 2 + 50 = 52. A legal XI must take a forward.
+    const squad = [
+      mk(1, 1, 2), mk(2, 1, 0),
+      ...[3, 4, 5, 6, 7].map((i) => mk(i, 2, 3)),
+      ...[8, 9, 10, 11, 12].map((i) => mk(i, 3, 10)),
+      ...[13, 14, 15].map((i) => mk(i, 4, 1)),
+    ];
+    const r = solvePlan({
+      squad, market: squad, bankTenths: 0, sellPriceOf: () => 50,
+      weeks: 1, risk: 0, beamWidth: 5,
+    });
+    // 1 GK (2) + 5 MID (50) + 3 DEF (9) + 1 FWD (1) + 1 more DEF (3) = 65.
+    // The illegal shortcut would have scored higher by skipping the forward.
+    expect(r.perGw[0]).toBe(65);
+  });
+});

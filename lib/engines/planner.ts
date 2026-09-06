@@ -231,10 +231,13 @@ export const MAX_PER_CLUB = 3;
 export const HIT_COST = 4;
 
 /** Points over the first `weeks` gameweeks of a horizon array. */
-export function windowPoints(horizon: number[] | undefined, weeks: number): number {
+export function windowPoints(horizon: number[] | undefined, weeks: number, from = 0): number {
   if (!horizon || horizon.length === 0) return 0;
   let total = 0;
-  for (let i = 0; i < Math.min(weeks, horizon.length); i++) total += horizon[i];
+  // `from` is the first horizon week to count. It matters to any caller
+  // standing part-way through the window: the solver decides a swap in
+  // gameweek 3 and must value it over gameweeks 3–6, not 1–4.
+  for (let i = from; i < Math.min(from + weeks, horizon.length); i++) total += horizon[i];
   return Math.round(total * 10) / 10;
 }
 

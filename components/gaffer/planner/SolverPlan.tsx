@@ -51,8 +51,17 @@ export function SolverPlan({
       squad: working,
       market: data.players,
       bankTenths: data.bankTenths,
-      sellPriceOf: (id) => data.squad.find((s) => s.element === id)?.sellPrice ?? 0,
+      // Somebody bought inside the plan is not in the squad you started with,
+      // and `?? 0` credited nothing for selling him again later — so any plan
+      // that moved a player on twice was priced as if the second sale raised
+      // no money at all. FPL sells a player you have just bought back at what
+      // you paid, so his market cost is the honest stand-in.
+      sellPriceOf: (id) =>
+        data.squad.find((s) => s.element === id)?.sellPrice ??
+        data.players.find((p) => p.id === id)?.cost ??
+        0,
       weeks: data.gws.length,
+      freeTransfers: data.freeTransfers,
       risk: posture.momentum * 0.5 + posture.differential * 0.5,
       minMinutes: defaultMinutesFloor(data.players),
     });

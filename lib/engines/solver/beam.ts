@@ -63,6 +63,14 @@ export interface SolveInput {
   /** Gameweeks of horizon. */
   weeks: number;
   /**
+   * Free transfers banked going into the first horizon week.
+   *
+   * This used to be assumed to be 1. A manager sitting on four banked
+   * transfers was handed a plan that took hits it never needed to take, and
+   * the plan looked wrong to the only person who could tell.
+   */
+  freeTransfers?: number;
+  /**
    * Risk posture: 0 maximises expected points, 1 shields the worst week.
    * Passed as the persona posture — named in the UI, never a bare number.
    */
@@ -124,7 +132,7 @@ export function solvePlan(input: SolveInput): SolveResult {
   const start: SolverState = {
     squadIds: input.squad.map((p) => p.id),
     bankTenths: input.bankTenths,
-    freeTransfers: 1,
+    freeTransfers: Math.max(0, Math.min(5, Math.round(input.freeTransfers ?? 1))),
     hits: 0,
     moves: [],
     score: 0,
@@ -138,7 +146,7 @@ export function solvePlan(input: SolveInput): SolveResult {
       next.push(...expand(state, gw, ctx));
     }
     ctx.explored += next.length;
-    beam = prune(next, beamWidth);
+    beam = prune(next, beamWidth, ctx.risk);
   }
 
   const best = beam.reduce((a, b) => (finalScore(b, ctx.risk) > finalScore(a, ctx.risk) ? b : a));
@@ -181,7 +189,10 @@ function expand(state: SolverState, gw: number, ctx: Ctx): SolverState[] {
 
   for (const outP of squad) {
     const sell = ctx.sellPriceOf(outP.id);
-    const outPoints = windowPoints(outP.horizon, remaining);
+    // From THIS gameweek forward. windowPoints used to sum from the start of
+    // the horizon whatever week the decision was made in, so a swap in
+    // gameweek 3 was priced on gameweeks 1–4 — including two already spent.
+    const outPoints = windowPoints(outP.horizon, remaining, gw - 1);
     for (const inc of candidates) {
       if (inc.pos !== outP.pos) continue;
       if (inc.cost > state.bankTenths + sell) continue;
@@ -197,7 +208,7 @@ function expand(state: SolverState, gw: number, ctx: Ctx): SolverState[] {
         continue;
       }
 
-      const gain = windowPoints(inc.horizon, remaining) - outPoints;
+      const gain = windowPoints(inc.horizon, remaining, gw - 1) - outPoints;
       const asHit = state.freeTransfers <= 0;
       // A hit has to pay for itself — a move that cannot clear the −4 in
       // the remaining weeks is not a branch worth holding.
@@ -209,7 +220,11 @@ function expand(state: SolverState, gw: number, ctx: Ctx): SolverState[] {
       const next: SolverState = {
         squadIds,
         bankTenths: state.bankTenths + sell - inc.cost,
-        freeTransfers: asHit ? 1 : state.freeTransfers - 1,
+        // You spend one (or take the hit), and the next gameweek still
+        // grants one, capped at five. The old line dropped that grant on the
+        // non-hit branch, so a manager who used their transfer in week one was
+        // told week two needed a hit.
+        freeTransfers: Math.min(5, (asHit ? 0 : state.freeTransfers - 1) + 1),
         hits: state.hits + (asHit ? 1 : 0),
         moves: [...state.moves, { out: outP.id, in: inc.id, gw }],
         score: state.score + weekPts - hitCost,
@@ -223,29 +238,70 @@ function expand(state: SolverState, gw: number, ctx: Ctx): SolverState[] {
 }
 
 /**
- * One gameweek's projected points for a squad — its best XI.
+ * One gameweek's projected points for a squad — its best LEGAL XI.
  *
- * The better keeper plays; the ten highest outfield projections fill the
- * rest of the XI. Formation is an approximation (the real XI is the
- * Field's job; this is a planning surface and the UI says so) — but a
- * keeper is never benched for a striker, which is the one formation rule
- * that would badly distort the plan if ignored.
+ * "Best keeper plus the ten highest outfield" is not a team FPL would let you
+ * field: it happily returns eight midfielders and no forward, and scores a
+ * squad on an XI that could never take the pitch. Since the solver compares
+ * squads by this number, an illegal XI does not just mis-state one week — it
+ * picks the wrong plan.
+ *
+ * The shape rules are FPL's: exactly one keeper, at least three defenders, at
+ * least two midfielders, at least one forward, eleven in total, and no more
+ * than five defenders, five midfielders or three forwards. Fill the minimums
+ * with the best available, then spend what is left on the best of the rest
+ * that a maximum still allows.
  */
+const MIN_BY_POS: Record<number, number> = { 1: 1, 2: 3, 3: 2, 4: 1 };
+const MAX_BY_POS: Record<number, number> = { 1: 1, 2: 5, 3: 5, 4: 3 };
+const XI = 11;
+
 function teamPoints(squadIds: number[], gw: number, ctx: Ctx): number {
   const idx = gw - 1;
-  const keeperRows: number[] = [];
-  const outfield: number[] = [];
+  const byPos = new Map<number, number[]>([[1, []], [2, []], [3, []], [4, []]]);
   for (const id of squadIds) {
     const p = ctx.byId.get(id);
     if (!p) continue;
-    const pts = p.horizon?.[idx] ?? 0;
-    if (p.pos === 1) keeperRows.push(pts);
-    else outfield.push(pts);
+    byPos.get(p.pos)?.push(p.horizon?.[idx] ?? 0);
   }
-  keeperRows.sort((a, b) => b - a);
-  outfield.sort((a, b) => b - a);
-  const keeper = keeperRows[0] ?? 0;
-  return round1(keeper + outfield.slice(0, 10).reduce((a, b) => a + b, 0));
+  for (const list of byPos.values()) list.sort((a, b) => b - a);
+
+  const taken = new Map<number, number>([[1, 0], [2, 0], [3, 0], [4, 0]]);
+  let total = 0;
+  let picked = 0;
+
+  // The minimums first — these are not optional, so they are not a choice.
+  for (const pos of [1, 2, 3, 4]) {
+    const list = byPos.get(pos) ?? [];
+    const need = MIN_BY_POS[pos];
+    for (let i = 0; i < need && i < list.length; i++) {
+      total += list[i];
+      taken.set(pos, i + 1);
+      picked += 1;
+    }
+  }
+
+  // Then the best of whoever is left, while a maximum still permits them.
+  while (picked < XI) {
+    let bestPos = -1;
+    let bestPts = -Infinity;
+    for (const pos of [2, 3, 4]) {
+      const at = taken.get(pos) ?? 0;
+      if (at >= MAX_BY_POS[pos]) continue;
+      const list = byPos.get(pos) ?? [];
+      if (at >= list.length) continue;
+      if (list[at] > bestPts) {
+        bestPts = list[at];
+        bestPos = pos;
+      }
+    }
+    if (bestPos === -1) break; // a squad too thin to field eleven
+    total += bestPts;
+    taken.set(bestPos, (taken.get(bestPos) ?? 0) + 1);
+    picked += 1;
+  }
+
+  return round1(total);
 }
 
 function finalScore(s: SolverState, risk: number): number {
@@ -259,10 +315,13 @@ function finalScore(s: SolverState, risk: number): number {
   return s.score - risk * shortfall;
 }
 
-function prune(states: SolverState[], width: number): SolverState[] {
+function prune(states: SolverState[], width: number, risk: number): SolverState[] {
   if (states.length <= width) return states;
+  // Prune on the objective the winner is chosen by. Cutting at risk 0 and then
+  // picking at risk λ threw away the cautious paths before the cautious
+  // chooser ever saw them, so asking Ana for a safe plan searched Kofi's tree.
   return states
-    .sort((a, b) => finalScore(b, 0) - finalScore(a, 0))
+    .sort((a, b) => finalScore(b, risk) - finalScore(a, risk))
     .slice(0, width);
 }
 
