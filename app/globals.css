@@ -301,6 +301,13 @@
   --flare-r:rgba(10,208,255,.13);
   --flare-b:rgba(169,122,255,.10);
   --mesh:rgba(10,208,255,.030);
+  /* Faceted plates — the FC-25 loading-plate read: broad matte planes meeting
+     at hard creases, no gloss and no motion. Kept at mesh weight or below so
+     the planes are felt rather than seen, and never compete with a figure. */
+  --facet-1:rgba(157,240,255,.042);
+  --facet-2:rgba(10,208,255,.034);
+  --facet-3:rgba(169,122,255,.028);
+  --facet-crease:rgba(198,246,255,.055);
   --vignette:radial-gradient(130% 100% at 50% 42%, transparent 42%, rgba(0,3,10,.55) 100%);
 
   /* chrome */
@@ -444,6 +451,10 @@
     --heat-4:#28D3F4; --heat-5:#47F5E3; --heat-6:#82FFC5;
     --flare-l:rgba(0,118,183,.10); --flare-r:rgba(0,143,179,.09); --flare-b:rgba(106,53,217,.07);
     --mesh:rgba(11,29,54,.028);
+    --facet-1:rgba(11,29,54,.032);
+    --facet-2:rgba(0,118,183,.028);
+    --facet-3:rgba(106,53,217,.016);
+    --facet-crease:rgba(11,29,54,.038);
     --vignette:radial-gradient(130% 100% at 50% 42%, transparent 46%, rgba(11,29,54,.10) 100%);
     --gloss:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,0) 46%);
     --bevel:inset 0 1px 0 rgba(255,255,255,.95);
@@ -507,6 +518,10 @@
   --heat-4:#28D3F4; --heat-5:#47F5E3; --heat-6:#82FFC5;
   --flare-l:rgba(0,118,183,.10); --flare-r:rgba(0,143,179,.09); --flare-b:rgba(106,53,217,.07);
   --mesh:rgba(11,29,54,.028);
+  --facet-1:rgba(11,29,54,.032);
+  --facet-2:rgba(0,118,183,.028);
+  --facet-3:rgba(106,53,217,.016);
+  --facet-crease:rgba(11,29,54,.038);
   --vignette:radial-gradient(130% 100% at 50% 42%, transparent 46%, rgba(11,29,54,.10) 100%);
   --gloss:linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,0) 46%);
   --bevel:inset 0 1px 0 rgba(255,255,255,.95);
@@ -587,13 +602,50 @@
    Drive trend from a data attribute set by the live poller.
    ═══════════════════════════════════════════════════════════════════════════ */
 .atmos{
-  position:fixed; inset:0; z-index:0; pointer-events:none;
+  position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
   background:
     radial-gradient(58% 42% at 16% -8%, var(--flare-l), transparent 64%),
     radial-gradient(58% 42% at 84% -8%, var(--flare-r), transparent 64%),
     radial-gradient(80% 60% at 50% 118%, var(--flare-b), transparent 62%),
     repeating-linear-gradient(115deg, var(--mesh) 0 1px, transparent 1px 7px);
   transition:background 1200ms cubic-bezier(.22,1,.36,1);
+}
+/* The faceted plate. Three conic fans from three origins cut the plane into
+   broad polygons — each fan's hard stops are straight lines from its origin,
+   and three overlapping fans read as folded planes rather than as three
+   gradients. Two creases on the 115 axis, the same axis the menu cuts and the
+   mesh already run on, keep the geometry in the house grid. Static by design:
+   the reference is a still plate, so there is nothing here for
+   prefers-reduced-motion to stop. */
+.atmos::before, .facets{
+  content:""; position:absolute; inset:-22%; pointer-events:none;
+  background:
+    conic-gradient(from 6deg at 8% -6%,
+      var(--facet-1) 0 27deg, transparent 27deg 45deg,
+      var(--facet-2) 45deg 78deg, transparent 78deg 97deg,
+      var(--facet-1) 97deg 130deg, transparent 130deg 153deg,
+      var(--facet-3) 153deg 186deg, transparent 186deg 211deg,
+      var(--facet-2) 211deg 245deg, transparent 245deg 269deg,
+      var(--facet-1) 269deg 301deg, transparent 301deg 327deg,
+      var(--facet-2) 327deg 360deg),
+    conic-gradient(from 41deg at 96% 24%,
+      transparent 0 22deg, var(--facet-2) 22deg 58deg,
+      transparent 58deg 81deg, var(--facet-3) 81deg 112deg,
+      transparent 112deg 141deg, var(--facet-1) 141deg 179deg,
+      transparent 179deg 204deg, var(--facet-2) 204deg 238deg,
+      transparent 238deg 263deg, var(--facet-3) 263deg 295deg,
+      transparent 295deg 322deg, var(--facet-1) 322deg 360deg),
+    conic-gradient(from 128deg at 36% 109%,
+      var(--facet-3) 0 34deg, transparent 34deg 61deg,
+      var(--facet-1) 61deg 88deg, transparent 88deg 124deg,
+      var(--facet-2) 124deg 161deg, transparent 161deg 192deg,
+      var(--facet-3) 192deg 229deg, transparent 229deg 258deg,
+      var(--facet-1) 258deg 292deg, transparent 292deg 360deg),
+    linear-gradient(115deg,
+      transparent 0 27.9%, var(--facet-crease) 27.9% 28.05%, transparent 28.05% 62.8%,
+      var(--facet-crease) 62.8% 62.95%, transparent 62.95% 100%),
+    linear-gradient(-24deg,
+      transparent 0 40.9%, var(--facet-crease) 40.9% 41.03%, transparent 41.03% 100%);
 }
 .atmos::after{ content:""; position:absolute; inset:0; background:var(--vignette); }
 [data-trend="up"]   .atmos{ --flare-r: rgba(44,242,182,.15); }

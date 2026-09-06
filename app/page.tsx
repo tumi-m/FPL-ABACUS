@@ -18,8 +18,10 @@ export default async function Landing({
       className="relative min-h-dvh overflow-hidden"
       style={{ background: "linear-gradient(180deg,var(--landing-a),var(--landing-b) 46%,var(--landing-c))" }}
     >
-      {/* FIFA-menu atmosphere — diagonal electric sweeps over the floodlight ramp */}
+      {/* FIFA-menu atmosphere — diagonal electric sweeps over the floodlight ramp,
+          over the same faceted plate the app shell carries. */}
       <div aria-hidden className="landing-atmos" />
+      <div aria-hidden className="facets" />
 
       {/* floodlit hero — the 4K trophy under the wordmark and gate */}
       <section className="relative flex flex-col items-center justify-center overflow-hidden px-4 pb-14 pt-[12dvh] text-center md:pb-20 md:pt-[14dvh]">
