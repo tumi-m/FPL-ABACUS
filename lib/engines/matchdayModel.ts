@@ -108,6 +108,17 @@ export interface LeverageDisplay {
   exposure: number;
 }
 
+/** One of your players, and what this match paid you for him. */
+export interface FixtureContributor {
+  element: number;
+  webName: string;
+  /** Points as they land in your score — captaincy already applied. */
+  points: number;
+  /** 0 means he is on your bench: real points, not yours. */
+  multiplier: number;
+  isCaptain: boolean;
+}
+
 export interface FixtureRailRow {
   id: number;
   homeTeamId: number;
@@ -119,6 +130,21 @@ export interface FixtureRailRow {
   minute: number;
   state: "pre" | "live" | "done";
   yourPlayers: number;
+  /**
+   * What this match has paid your counting eleven so far.
+   *
+   * The scoreboard used to say only how many of your players were in a
+   * fixture, which is the question nobody asks: three players in a match you
+   * took two points from is a worse afternoon than one player in a match you
+   * took fourteen from, and the rail could not tell them apart. Summed over
+   * every fixture this equals the gameweek score with the transfer cost added
+   * back, and there is a test that says so.
+   */
+  yourPoints: number;
+  /** What your bench took from it — real points, but not in your score. */
+  yourBenchPoints: number;
+  /** Who they came from, biggest first. Bench seats carry multiplier 0. */
+  contributors: FixtureContributor[];
   /** ISO kickoff, so a fixture yet to start can say when. */
   kickoff: string | null;
 }
@@ -493,6 +519,40 @@ export function composeMatchdayModel(deps: {
       const meta = boot.elements[p.element];
       return meta && (meta.team === f.team_h || meta.team === f.team_a);
     }).length;
+
+    // What the match paid you. The multiplier is the effective one — after
+    // auto-subs — which is the same map the gameweek total is built from, so
+    // a bench player who came on is counted here exactly as he is counted
+    // there, and the two can never disagree.
+    const contributors: FixtureContributor[] = [];
+    let yourPoints = 0;
+    let yourBenchPoints = 0;
+    for (const p of picks.picks) {
+      const player = squadState.players.get(p.element);
+      const raw = player?.pointsByFixture.get(f.id) ?? 0;
+      if (raw === 0) continue;
+      const multiplier = squadState.multipliers.get(p.element) ?? 0;
+      const points = multiplier > 0 ? raw * multiplier : raw;
+      if (multiplier > 0) yourPoints += points;
+      else yourBenchPoints += points;
+      contributors.push({
+        element: p.element,
+        webName: player?.webName ?? `#${p.element}`,
+        points,
+        multiplier,
+        isCaptain: p.is_captain,
+      });
+    }
+    // Counting players first, then the bench. Sorting on points alone put a
+    // bench seat above the players the line's figure is actually made of,
+    // which reads as an arithmetic error in a list that adds up perfectly.
+    contributors.sort(
+      (a, b) =>
+        Number(a.multiplier === 0) - Number(b.multiplier === 0) ||
+        b.points - a.points ||
+        a.webName.localeCompare(b.webName),
+    );
+
     const state: FixtureRailRow["state"] = f.finished_provisional || f.finished ? "done" : f.started ? "live" : "pre";
     return {
       id: f.id,
@@ -505,6 +565,9 @@ export function composeMatchdayModel(deps: {
       minute: f.minutes,
       state,
       yourPlayers: countYours,
+      yourPoints,
+      yourBenchPoints,
+      contributors,
       kickoff: f.kickoff_time ?? null,
     };
   });

@@ -41,6 +41,10 @@ const ROUTES: Item[] = [
   { key: "r-planner", label: "Planner", hint: "Stage transfers and chips", weight: 10, href: "/planner" },
   { key: "r-board", label: "Board", hint: "Fixture ticker and the market", weight: 10, href: "/board" },
   { key: "r-leagues", label: "Leagues", hint: "Mini-leagues and rivals", weight: 8, href: "/leagues" },
+  { key: "r-deadline", label: "Deadline Cockpit", hint: "Am I done? — and the calendar feed", weight: 8, href: "/deadline" },
+  // Typed as its own destination because "calendar" and "reminder" are what
+  // people search for; the feed itself lives on the cockpit.
+  { key: "r-calendar", label: "Calendar reminders", hint: "Every deadline in Apple, Google or Outlook", weight: 6, href: "/deadline#cal-h" },
   { key: "r-combos", label: "Combinations", hint: "Player pairs", weight: 6, href: "/field/combos" },
   { key: "r-compare", label: "Compare players", hint: "Up to five, side by side", weight: 6, href: "/compare" },
   { key: "r-understanding", label: "Season understanding", hint: "The ledger, the luck, true form", weight: 6, href: "/field/understanding" },

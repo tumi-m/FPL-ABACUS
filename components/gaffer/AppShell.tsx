@@ -22,6 +22,11 @@ import { cn } from "@/lib/ui/cn";
 // Newsdesk, Film and Manager DNA are reading, not doing: no thumb slot either,
 // desktop only. They had no inbound link anywhere — typed-URL pages — which is
 // the same failure Combinations had.
+//
+// The Deadline Cockpit was the last page with that failure, and the worst one
+// to lose: it is where the calendar feed lives, so the feature that puts every
+// deadline of the season in your phone was reachable only by typing the URL or
+// by finding one link inside the Planner header.
 const NAV = [
   { href: "/live", label: "Home", short: "Home", thumb: true },
   { href: "/field", label: "Field", short: "Field", thumb: true },
@@ -29,6 +34,7 @@ const NAV = [
   { href: "/field/combos", label: "Combinations", short: "Pairs", thumb: false },
   { href: "/board", label: "Board", short: "Board", thumb: true },
   { href: "/leagues", label: "Leagues", short: "Mini", thumb: true },
+  { href: "/deadline", label: "Deadline", short: "Lock", thumb: false },
   { href: "/news", label: "Newsdesk", short: "News", thumb: false },
   { href: "/film", label: "Film", short: "Film", thumb: false },
   { href: "/dna", label: "Manager DNA", short: "DNA", thumb: false },
@@ -91,7 +97,29 @@ export function AppShell({
             >
               <Wordmark />
             </Link>
-            <nav aria-label="Primary" className="hidden lg:flex items-center gap-1 ml-2">
+            {/*
+              * min-w-0 and flex-1 are load-bearing, not tidiness.
+              *
+              * The nav sat at its natural width and `ml-auto` pushed the right
+              * cluster along in front of it, so between roughly 1024 and
+              * 1320 the theme toggle and half the team status were off the
+              * right-hand edge of the window and the page scrolled sideways
+              * to reach them — measured, not guessed: 1300px of content in a
+              * 1024px header. The nav now takes what is left after the
+              * controls and scrolls its own overflow, so every control stays
+              * on screen at every width and nothing is lost, only further
+              * along. The keyboard palette reaches all of it regardless.
+              */}
+            <nav
+              aria-label="Primary"
+              className="hidden lg:flex min-w-0 flex-1 items-center gap-1 ml-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              /* The fade says there is more along rather than leaving a word
+                 cut in half, which reads as a layout fault. */
+              style={{
+                maskImage: "linear-gradient(to right, #000 calc(100% - 28px), transparent)",
+                WebkitMaskImage: "linear-gradient(to right, #000 calc(100% - 28px), transparent)",
+              }}
+            >
               {NAV.map((item) => (
                 <Link
                   key={item.href}
@@ -99,7 +127,7 @@ export function AppShell({
                   /* Never prefetched — see the thumb bar below for why. */
                   prefetch={false}
                   className={cn(
-                    "h-8 inline-flex items-center rounded-md px-3 text-sm transition-colors dur-instant",
+                    "h-8 inline-flex shrink-0 items-center whitespace-nowrap rounded-md px-3 text-sm transition-colors dur-instant",
                     isActive(item.href)
                       ? "bg-surface-3 text-ink-1 font-medium"
                       : "text-ink-3 hover:text-ink-1 hover:bg-surface-3/60",
@@ -109,7 +137,7 @@ export function AppShell({
                 </Link>
               ))}
             </nav>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-2">
               {liveSlot}
               <CommandPalette />
               <AskBar />

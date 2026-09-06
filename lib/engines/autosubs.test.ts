@@ -19,6 +19,7 @@ function player(id: number, pos: Pos, minutes: number, fixturesFinished = true):
       bonus: 0,
       bonusOfficial: true,
       fixtureIds: [1],
+      pointsByFixture: new Map([[1, minutes > 0 ? 2 : 0]]),
       played: minutes > 0,
       fixturesFinished,
       defcon: { count: 0, threshold: 10, hit: false },

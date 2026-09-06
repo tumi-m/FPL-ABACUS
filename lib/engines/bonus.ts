@@ -39,21 +39,38 @@ function bpsMapForFixture(f: Fixture): Map<number, number> | null {
 }
 
 /**
- * Summed provisional bonus per element across the gameweek's fixtures.
+ * Provisional bonus per element, kept per fixture rather than summed.
+ *
+ * The summed form is what the squad needs; the split is what a scoreboard
+ * needs, because "you took 14 from Brighton–Palace" has to be able to say
+ * which match a projected bonus point came out of. Deriving the sum from the
+ * split rather than computing each separately means the two can never
+ * disagree about a double gameweek.
+ *
  * Skips fixtures whose match day already has official bonus added AND that
  * have finished — FPL's own numbers are authoritative there.
  */
-export function provisionalBonus(fixtures: Fixture[], bonusAddedDays: Set<string>): Map<number, number> {
-  const result = new Map<number, number>();
+export function provisionalBonusByFixture(
+  fixtures: Fixture[],
+  bonusAddedDays: Set<string>,
+): Map<number, Map<number, number>> {
+  const result = new Map<number, Map<number, number>>();
   for (const f of fixtures) {
     if (!f.started || f.minutes < BONUS_VISIBLE_FROM_MINUTE) continue;
     const day = f.kickoff_time?.slice(0, 10);
     if (day && bonusAddedDays.has(day) && f.finished) continue;
     const map = bpsMapForFixture(f);
     if (!map) continue;
-    for (const [el, b] of bonusForFixture(map)) {
-      result.set(el, (result.get(el) ?? 0) + b);
-    }
+    result.set(f.id, bonusForFixture(map));
+  }
+  return result;
+}
+
+/** Summed provisional bonus per element across the gameweek's fixtures. */
+export function provisionalBonus(fixtures: Fixture[], bonusAddedDays: Set<string>): Map<number, number> {
+  const result = new Map<number, number>();
+  for (const byElement of provisionalBonusByFixture(fixtures, bonusAddedDays).values()) {
+    for (const [el, b] of byElement) result.set(el, (result.get(el) ?? 0) + b);
   }
   return result;
 }

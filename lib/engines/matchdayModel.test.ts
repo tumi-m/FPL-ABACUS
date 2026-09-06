@@ -113,4 +113,51 @@ describe("composeMatchdayModel", () => {
     expect(offRow!.bonus).toBe(2);
     expect(offRow!.bonusOfficial).toBe(true);
   });
+
+  it("the scoreboard's per-match points add up to the gameweek score", async () => {
+    // The one property that makes the number on a fixture line trustworthy.
+    // If these two ever disagree, the rail is quietly inventing or losing
+    // points against the figure the manager reads on their own FPL page —
+    // and there is no way to tell by looking at either one alone.
+    const bootRaw = fx<Bootstrap>("bootstrap.json");
+    const picks = fx<PicksResponse>(`picks-${ENTRY_ID}-gw1.json`);
+    const live = fx<Live>("live-gw1.json");
+    const fixtures = fx<Fixture[]>("fixtures-gw1.json");
+    const status = fx<EventStatus>("event-status.json");
+    const entry = fx<Entry>(`entry-${ENTRY_ID}.json`);
+    const { MemoryStore, setCacheStore } = await import("@/lib/cache/store");
+    setCacheStore(new MemoryStore());
+    const boot = await getBootstrapLite();
+
+    // A hit makes the two sides differ by a known amount rather than by zero,
+    // so the assertion cannot pass by both being the same wrong thing.
+    picks.entry_history.event_transfers_cost = 4;
+
+    const { model } = composeMatchdayModel({
+      eventId: bootRaw.events.find((e) => e.is_current)?.id ?? 1,
+      entry, picks, boot, live, fixtures, status,
+      phase: "live",
+      addedDays: bonusAddedDays(status, 1),
+      bundle: {
+        curve: { points: [{ rank: 1, total: 80 }, { rank: 1000, total: 70 }], population: 2 },
+        fieldAvg: 55, fieldSd: 12, sampleSize: 2,
+      },
+      rawEvents: [],
+      transfersThisGw: [],
+      previousSnapshot: null,
+    });
+
+    const railTotal = model.fixturesRail.reduce((t, f) => t + f.yourPoints, 0);
+    expect(railTotal).toBe(model.hero.gwPoints + model.hero.transfersCost);
+    expect(railTotal).toBeGreaterThan(0);
+
+    // And a contributor is never invented: each line's contributors add up to
+    // exactly what that line claims, bench seats kept separate.
+    for (const f of model.fixturesRail) {
+      const counting = f.contributors.filter((c) => c.multiplier > 0);
+      const benched = f.contributors.filter((c) => c.multiplier === 0);
+      expect(counting.reduce((t, c) => t + c.points, 0), `fixture ${f.id}`).toBe(f.yourPoints);
+      expect(benched.reduce((t, c) => t + c.points, 0), `fixture ${f.id}`).toBe(f.yourBenchPoints);
+    }
+  });
 });

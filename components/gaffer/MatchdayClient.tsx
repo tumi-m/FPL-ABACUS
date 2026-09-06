@@ -11,7 +11,9 @@ import { MatchPitch } from "@/components/gaffer/matchday/MatchPitch";
 import { SquadTable } from "@/components/gaffer/matchday/SquadTable";
 import { Scoreboard } from "@/components/gaffer/matchday/Scoreboard";
 import { GameweekPicker } from "@/components/gaffer/GameweekPicker";
-import { MomentToast } from "@/components/gaffer/MomentToast";
+import { GafferMessages } from "@/components/gaffer/GafferMessages";
+import { CalendarInvite } from "@/components/gaffer/deadline/CalendarInvite";
+import { gafferMessages, type GafferMessage } from "@/lib/engines/gafferMessages";
 import { weekMoment, type MomentSpec } from "@/lib/engines/weekPhase";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
@@ -86,25 +88,54 @@ export function MatchdayClient({
   // Bonus settle-fade: the moment the GW leaves provisional territory.
   const settled = current.phase === "bonus_added" || current.phase === "final";
 
-  // Rank-climb moment — fires once per improvement against this GW's best
-  // known rank on this device; dismissible, auto-clears.
-  const [toast, setToast] = React.useState<string | null>(null);
-  const lastClimbRef = React.useRef<number | null>(null);
+  // The calendar offer belongs on the quiet days. While there is football on,
+  // this screen is about the football.
+  const quiet = current.phase !== "live" && current.phase !== "provisional";
+
   const liveRank = current?.hero.officialLiveRank ?? current?.hero.estimatedLiveRank ?? null;
-  const peakKey = `gaffer_peak_${current.event.id}`;
+
+  /*
+   * The Gaffer's messages — one card per moment, diffed off the poll.
+   *
+   * The rank-climb toast this replaced compared against a best-ever rank kept
+   * in localStorage, which meant a manager who reloaded on a bad afternoon
+   * was congratulated for climbing back to somewhere he had already been. The
+   * comparison is now poll-to-poll, in the engine, where it is tested.
+   *
+   * `seen` is seeded from the first model without showing any of it: opening
+   * the app at full-time should not replay eight goals that happened while
+   * you were out. Only the deadline card survives that seeding, because a
+   * deadline you are about to miss is worth saying on arrival.
+   */
+  const [messages, setMessages] = React.useState<GafferMessage[]>([]);
+  const seenRef = React.useRef<Set<string>>(new Set());
+  const prevModelRef = React.useRef<MatchdayModel | null>(null);
+  const dismiss = React.useCallback(
+    (id: string) => setMessages((list) => list.filter((m) => m.id !== id)),
+    [],
+  );
+
   React.useEffect(() => {
-    if (liveRank == null || document.hidden) return;
-    try {
-      const peak = Number(localStorage.getItem(peakKey));
-      if (Number.isFinite(peak) && peak > 0 && liveRank < peak && lastClimbRef.current !== liveRank) {
-        lastClimbRef.current = liveRank;
-        setToast(`Up ${peak - liveRank} places — now #${liveRank.toLocaleString("en-GB")}`);
-      }
-      if (!Number.isFinite(peak) || liveRank < peak) localStorage.setItem(peakKey, String(liveRank));
-    } catch {
-      /* storage blocked — no moment, no harm */
-    }
-  }, [liveRank, peakKey]);
+    if (historical) return;
+    const opening = gafferMessages(null, initialModel, { now: Date.now(), seen: new Set() });
+    for (const m of opening) seenRef.current.add(m.id);
+    prevModelRef.current = initialModel;
+    const deadline = opening.filter((m) => m.kind === "deadline");
+    if (deadline.length > 0) setMessages(deadline);
+  }, [initialModel, historical]);
+
+  React.useEffect(() => {
+    if (historical) return;
+    const prev = prevModelRef.current;
+    if (prev == null || prev === current) return;
+    prevModelRef.current = current;
+    const fresh = gafferMessages(prev, current, { now: Date.now(), seen: seenRef.current });
+    if (fresh.length === 0) return;
+    for (const m of fresh) seenRef.current.add(m.id);
+    // Newest first, and never a backlog: a card that has waited behind three
+    // others is stale by the time it is read.
+    setMessages((list) => [...fresh, ...list].slice(0, 6));
+  }, [current, historical]);
 
   // Atmosphere trend — style guide §10: floodlight bank tint interpolates
   // surge-weighted when your rank is rising, flare-weighted when falling.
@@ -160,6 +191,10 @@ export function MatchdayClient({
           </Link>
         </div>
       </div>
+
+      {/* Above the fold on the days there is nothing to watch. At the foot of
+          the page it was as unfindable as the cockpit it points at. */}
+      {quiet && !historical && <CalendarInvite />}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
       {/* ── Mobile ─────────────────────────────────────────────── */}
@@ -219,7 +254,7 @@ export function MatchdayClient({
         </div>
       </div>
       </div>
-      <MomentToast message={toast} onClose={() => setToast(null)} />
+      <GafferMessages messages={messages} onDismiss={dismiss} />
     </div>
   );
 }

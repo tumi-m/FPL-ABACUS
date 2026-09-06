@@ -55,6 +55,19 @@ export interface LivePlayer {
   /** False while bonus is still our projection — FPL hasn't added it yet. */
   bonusOfficial: boolean;
   fixtureIds: number[];
+  /**
+   * livePoints split across the fixtures that produced them.
+   *
+   * Summing a player's whole score onto his first fixture is right for the
+   * 380 gameweeks a season where he has one, and wrong for every double,
+   * where it credits a match he had not played yet. FPL's own `explain`
+   * array already carries the split; this is that, with provisional bonus
+   * added to the fixture whose bps race earned it.
+   *
+   * Sums to livePoints whenever the player has a fixture at all, so a
+   * scoreboard built from it reconciles with the hero number.
+   */
+  pointsByFixture: Map<number, number>;
   played: boolean;
   fixturesFinished: boolean;
   defcon: { count: number; threshold: number; hit: boolean };
