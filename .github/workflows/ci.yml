@@ -10,7 +10,12 @@ on:
     - cron: "17 6 * * *"
 
 concurrency:
-  group: ci-${{ github.ref }}
+  # The event belongs in the key. Without it a push and the daily scheduled
+  # run share one group on refs/heads/main, so a commit lands mid-drift-check
+  # and cancels it — and a cancelled run reads as "some jobs were not
+  # successful" in a notification, which is a failure email for something that
+  # never failed. Pushes still supersede each other, which is the point.
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
