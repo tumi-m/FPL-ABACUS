@@ -2,7 +2,7 @@ import Image from "next/image";
 import { brand } from "@/config/brand";
 import { cn } from "@/lib/ui/cn";
 
-export function Wordmark({ className }: { className?: string }) {
+export function Wordmark({ className, compact = false }: { className?: string; compact?: boolean }) {
   return (
     <span
       className={cn(
@@ -20,7 +20,7 @@ export function Wordmark({ className }: { className?: string }) {
           unoptimized
         />
       </span>
-      {brand.name}
+      <span className={compact ? "hidden sm:inline" : undefined}>{brand.name}</span>
     </span>
   );
 }

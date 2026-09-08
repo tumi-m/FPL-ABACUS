@@ -621,7 +621,8 @@ test.describe("authenticated routes", () => {
     test.skip(!!isMobile, "desktop chrome only");
     await asTeam(page);
     await page.goto("/field");
-    await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Combinations" }).click();
+    await page.locator("summary").filter({ hasText: /^More/ }).click();
+    await page.getByRole("navigation", { name: "Explore GAFFER" }).getByRole("link", { name: "Combinations" }).click();
     await expect(page).toHaveURL(/\/combos/);
   });
 

@@ -230,7 +230,7 @@ export function CommandPalette() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Command palette — jump anywhere"
-        className="hidden md:inline-flex h-8 items-center gap-2 rounded-full glass-edge px-3 text-xs text-ink-lo transition-colors dur-instant hover:text-ink-hi"
+        className="hidden lg:inline-flex h-8 items-center gap-2 rounded-full glass-edge px-3 text-xs text-ink-lo transition-colors dur-instant hover:text-ink-hi"
       >
         Jump
         <kbd className="rounded bg-surface-3 px-1 py-0.5 text-2xs num-tabular">⌘K</kbd>

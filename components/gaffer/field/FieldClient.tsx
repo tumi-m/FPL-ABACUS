@@ -78,6 +78,10 @@ const SquadSeasonBlock = dynamic(
   () => import("@/components/gaffer/field/SquadSeasonBlock").then((m) => m.SquadSeasonBlock),
   { loading: () => <BoardSkeleton />, ssr: false },
 );
+const FieldInsightLab = dynamic(
+  () => import("@/components/gaffer/field/FieldInsightLab").then((m) => m.FieldInsightLab),
+  { loading: () => <BoardSkeleton />, ssr: false },
+);
 const CreationScatter = dynamic(
   () => import("@/components/gaffer/field/CreationScatter").then((m) => m.CreationScatter),
   { loading: () => <BoardSkeleton />, ssr: false },
@@ -596,6 +600,7 @@ export function FieldClient({
       {/* The title said "The Field" on the Field. The bar keeps its job — pick
           a gameweek, read the state — and drops the word for it. */}
       <h1 className="sr-only">The Field</h1>
+      {!boardMode && <a href="#field-scouting-lens" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-volt">Explore five scouting charts <span aria-hidden>↓</span></a>}
       <div className="lower3">
         <div className="lower3-flag bg-volt" />
         <div className="lower3-body">
@@ -1144,7 +1149,9 @@ export function FieldClient({
         <SquadSeasonBlock rows={model.squad} currentGw={model.event.id} />
       </section>
 
-      {/* Everything above this line is your fifteen. This one is the league
+      <FieldInsightLab mine={model.squad.map((p) => p.element)} />
+
+      {/* The creation chart widens the view to the league
           they came out of, on the same axes — which is the only way to see
           that the creator you are missing is a row you never scrolled to. */}
       <section aria-label="The league this season" className="space-y-4">

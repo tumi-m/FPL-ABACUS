@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import * as React from "react";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/gaffer/Wordmark";
 import { AskBar } from "@/components/gaffer/ask/AskBar";
@@ -95,39 +96,17 @@ export function AppShell({
               aria-label="The Arcade — pick your gaffer"
               className="text-lg shrink-0 rounded-md transition-opacity dur-instant hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-volt"
             >
-              <Wordmark />
+              <Wordmark compact />
             </Link>
-            {/*
-              * min-w-0 and flex-1 are load-bearing, not tidiness.
-              *
-              * The nav sat at its natural width and `ml-auto` pushed the right
-              * cluster along in front of it, so between roughly 1024 and
-              * 1320 the theme toggle and half the team status were off the
-              * right-hand edge of the window and the page scrolled sideways
-              * to reach them — measured, not guessed: 1300px of content in a
-              * 1024px header. The nav now takes what is left after the
-              * controls and scrolls its own overflow, so every control stays
-              * on screen at every width and nothing is lost, only further
-              * along. The keyboard palette reaches all of it regardless.
-              */}
-            <nav
-              aria-label="Primary"
-              className="hidden lg:flex min-w-0 flex-1 items-center gap-1 ml-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              /* The fade says there is more along rather than leaving a word
-                 cut in half, which reads as a layout fault. */
-              style={{
-                maskImage: "linear-gradient(to right, #000 calc(100% - 28px), transparent)",
-                WebkitMaskImage: "linear-gradient(to right, #000 calc(100% - 28px), transparent)",
-              }}
-            >
-              {NAV.map((item) => (
+            <nav aria-label="Primary" className="hidden xl:flex min-w-0 flex-1 items-center gap-1 ml-2">
+              {THUMB.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   /* Never prefetched — see the thumb bar below for why. */
                   prefetch={false}
                   className={cn(
-                    "h-8 inline-flex shrink-0 items-center whitespace-nowrap rounded-md px-3 text-sm transition-colors dur-instant",
+                    "h-11 inline-flex items-center whitespace-nowrap rounded-md px-2 text-xs transition-colors dur-instant",
                     isActive(item.href)
                       ? "bg-surface-3 text-ink-1 font-medium"
                       : "text-ink-3 hover:text-ink-1 hover:bg-surface-3/60",
@@ -137,7 +116,8 @@ export function AppShell({
                 </Link>
               ))}
             </nav>
-            <div className="ml-auto flex shrink-0 items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap">
+              <ExploreNav pathname={pathname} />
               {liveSlot}
               <CommandPalette />
               <AskBar />
@@ -147,7 +127,7 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 md:px-6 py-8 pb-28 lg:pb-12">{children}</main>
+        <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 md:px-6 py-8 pb-28 xl:pb-12">{children}</main>
 
         <nav
           aria-label="Primary mobile"
@@ -155,7 +135,7 @@ export function AppShell({
              inline `display:grid` outranks every class, so `lg:hidden` never
              fired and the phone thumb bar sat under the desktop nav on wide
              screens. Only the column count — which follows NAV — stays inline. */
-          className="lg:hidden grid gap-1.5 fixed inset-x-0 bottom-0 z-40 glass px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
+          className="xl:hidden grid gap-1.5 fixed inset-x-0 bottom-0 z-40 glass px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
           style={{ gridTemplateColumns: `repeat(${THUMB.length}, minmax(0, 1fr))` }}
         >
           {THUMB.map((item) => (
@@ -190,5 +170,32 @@ export function AppShell({
         </nav>
       </div>
     </div>
+  );
+}
+
+/** Secondary tools stay one tap away without squeezing primary navigation. */
+function ExploreNav({ pathname }: { pathname: string }) {
+  const ref = React.useRef<HTMLDetailsElement>(null);
+  React.useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (event.target instanceof Node && !ref.current?.contains(event.target) && ref.current) ref.current.open = false;
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
+  return (
+    <details ref={ref} className="relative" onKeyDown={(event) => {
+      if (event.key === "Escape" && ref.current) {
+        ref.current.open = false;
+        ref.current.querySelector("summary")?.focus();
+      }
+    }}>
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-md px-2 text-xs text-ink-mid hover:bg-surface-3 [&::-webkit-details-marker]:hidden">More <span aria-hidden>⌄</span></summary>
+      <nav aria-label="Explore GAFFER" className="absolute right-0 top-full mt-2 w-60 rounded-lg bg-overlay card-lift p-2">
+        <p className="upper-label px-3 py-2 text-2xs text-ink-lo">See the bigger picture</p>
+        {NAV.filter((item) => !item.thumb).map((item) => <Link key={item.href} href={item.href} prefetch={false} aria-current={pathname === item.href ? "page" : undefined} onClick={() => { if (ref.current) ref.current.open = false; }} className="flex min-h-11 items-center rounded-md px-3 text-sm text-ink-mid hover:bg-surface-3 hover:text-ink-hi aria-[current=page]:text-volt">{item.label}</Link>)}
+        <Link href="/" prefetch={false} onClick={() => { if (ref.current) ref.current.open = false; }} className="mt-1 flex min-h-11 items-center border-t border-hairline px-3 text-sm text-ink-mid hover:text-ink-hi">Change team</Link>
+      </nav>
+    </details>
   );
 }

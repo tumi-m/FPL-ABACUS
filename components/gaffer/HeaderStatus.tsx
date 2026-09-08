@@ -42,9 +42,9 @@ export async function TeamPill({ teamId }: { teamId: number }) {
     <Link
       href="/"
       aria-label={`${entry?.name ?? `Team ${teamId}`} — change team`}
-      className="hidden sm:inline-flex h-8 items-center gap-2 rounded-full glass-edge pl-3 pr-3 text-xs text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-1"
+      className="hidden md:inline-flex h-8 items-center gap-2 rounded-full glass-edge pl-3 pr-3 text-xs text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-1"
     >
-      {entry?.name ?? `Team ${teamId}`}
+      <span className="max-w-28 truncate">{entry?.name ?? `Team ${teamId}`}</span>
       {live?.gwPoints != null && (
         <span className="inline-flex items-baseline gap-1.5 border-l border-line pl-2">
           <span className="fig-num text-sm text-volt" title={`GW${live.gameweek} live score`}>

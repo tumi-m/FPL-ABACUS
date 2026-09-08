@@ -1001,3 +1001,18 @@
   }
   .atmos { transition: none !important; }
 }
+
+/* The planner's opening brief: light belongs to the chrome, not chart marks. */
+.planner-intro {
+  background:
+    radial-gradient(ellipse at 100% 0%, var(--flare-r), transparent 65%),
+    var(--gloss),
+    var(--bg-raised);
+}
+.planner-resources > div {
+  padding-inline-start: 0.875rem;
+  border-inline-start: 1px solid var(--line-hi);
+}
+.decision-room > header {
+  background: linear-gradient(115deg, var(--bg-overlay), var(--bg-raised));
+}

@@ -11,6 +11,7 @@ import { FixtureTicker } from "@/components/gaffer/planner/FixtureTicker";
 import { PriceWatch } from "@/components/gaffer/planner/PriceWatch";
 import { TeamValueBoard } from "@/components/gaffer/planner/TeamValueBoard";
 import { PlannerSuggestions } from "@/components/gaffer/planner/PlannerSuggestions";
+import { DecisionRoom } from "@/components/gaffer/planner/DecisionRoom";
 import { SolverPlan } from "@/components/gaffer/planner/SolverPlan";
 import { fmtDeltaM, fmtM, readTeamValue, type PriceMove, type ValuePoint } from "@/lib/engines/teamValue";
 import { ChipLane } from "@/components/gaffer/planner/ChipLane";
@@ -321,6 +322,19 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
 
   return (
     <div className="space-y-4">
+      <section aria-label="Planner workflow" className="planner-intro rounded-lg bg-raised card-lift px-5 py-6 sm:px-7">
+        <p className="upper-label text-2xs text-volt">Your next edge</p>
+        <h2 className="mt-2 font-display text-3xl font-semibold italic tracking-tight text-ink-hi sm:text-4xl">A better team starts with a better decision.</h2>
+        <p className="mt-3 max-w-[60ch] text-sm leading-relaxed text-ink-mid">Build a move. See what it costs. Find out whether patience wins.</p>
+        <ol className="mt-5 grid gap-3 sm:grid-cols-3">
+          {[{ title: "Choose who leaves", detail: "Start with your squad on the pitch." }, { title: "Find the right fit", detail: "Compare affordable replacements." }, { title: "Challenge the move", detail: "Test it against waiting or holding." }].map((step, i) => (
+            <li key={step.title} className="flex items-start gap-3">
+              <span aria-hidden className="fig-num flex size-8 shrink-0 items-center justify-center rounded-sm bg-sunk text-sm text-volt">0{i + 1}</span>
+              <div><p className="text-sm font-semibold text-ink-hi">{step.title}</p><p className="mt-1 text-xs text-ink-lo">{step.detail}</p></div>
+            </li>
+          ))}
+        </ol>
+      </section>
       {/* what the plan costs and buys — the numbers you decide on */}
       <PlanHeader
         summary={summary}
@@ -343,7 +357,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
                 setSelected(null);
               }}
               className={cn(
-                "skewed rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                "skewed min-h-11 rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
                 pl.id === plan.id ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >
@@ -390,7 +404,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
             aria-pressed={tab === t.key}
             onClick={() => setTab(t.key)}
             className={cn(
-              "skewed rounded-sm px-3 py-2 text-2xs uppercase-label transition-colors dur-instant",
+              "skewed min-h-11 rounded-sm px-3 py-2 text-2xs uppercase-label transition-colors dur-instant",
               tab === t.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
             )}
           >
@@ -413,7 +427,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
                     aria-pressed={mode === m.key}
                     onClick={() => setMode(m.key)}
                     className={cn(
-                      "skewed rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                      "skewed min-h-11 rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
                       mode === m.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
                     )}
                   >
@@ -457,6 +471,32 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
               onReset={reset}
             />
 
+          </div>
+
+          <div className="min-w-0 self-stretch">
+          <MarketPanel
+            players={data.players}
+            gws={data.gws}
+            clubs={data.clubs}
+            ownedIds={ownedIds}
+            budgetTenths={budgetTenths}
+            outPlayer={outPlayer}
+            onPick={pick}
+            reasonFor={reasonFor}
+            fixtureFor={fixtureFor}
+          />
+          </div>
+          <div className="min-w-0 space-y-5 lg:col-span-2">
+            <DecisionRoom
+              key={`${plan.id}:${moves.map((m) => `${m.out}-${m.in}`).join(",")}`}
+              moves={moves}
+              playerOf={playerOf}
+              sellPriceOf={sellPriceOf}
+              freeTransfers={data.freeTransfers}
+              bankTenths={data.bankTenths}
+              gws={data.gws}
+            />
+            <div className="grid items-start gap-5 xl:grid-cols-2">
             {/* The answer, under the pitch and the ledger rather than on
                 another screen — this is the desk that makes the move. */}
             <PlannerSuggestions
@@ -477,6 +517,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
               onStage={stageSuggestion}
             />
 
+            </div>
             <ChipLane
               gws={data.gws}
               chips={data.chips}
@@ -486,18 +527,6 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
               onAssign={assignChip}
             />
           </div>
-
-          <MarketPanel
-            players={data.players}
-            gws={data.gws}
-            clubs={data.clubs}
-            ownedIds={ownedIds}
-            budgetTenths={budgetTenths}
-            outPlayer={outPlayer}
-            onPick={pick}
-            reasonFor={reasonFor}
-            fixtureFor={fixtureFor}
-          />
         </div>
       )}
 
@@ -557,17 +586,17 @@ function PlanHeader({
   return (
     <dl
       aria-label="Plan resources"
-      className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg has-gloss card-lift bg-raised px-4 py-3 sm:grid-cols-4 lg:grid-cols-5"
+      className="planner-resources grid grid-cols-2 gap-5 rounded-lg has-gloss card-lift bg-raised p-5 sm:grid-cols-3 lg:grid-cols-5 sm:p-6"
     >
       <div>
         <dt className="upper-label text-2xs text-ink-lo">In the bank</dt>
-        <dd className={cn("fig-num mt-0.5 text-xl leading-none", overdrawn ? "text-flare" : "text-ink-hi")}>
+        <dd className={cn("fig-num mt-2 text-3xl leading-none", overdrawn ? "text-flare" : "text-ink-hi")}>
           <Published>{`£${(summary.bankTenths / 10).toFixed(1)}m`}</Published>
         </dd>
       </div>
       <div>
         <dt className="upper-label text-2xs text-ink-lo">Free transfers</dt>
-        <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">
+        <dd className="fig-num mt-2 text-3xl leading-none text-ink-hi">
           <Published>
             {Math.max(0, freeTransfers - summary.transfers)}
             <span className="text-sm text-ink-lo"> / {freeTransfers}</span>
@@ -576,7 +605,7 @@ function PlanHeader({
       </div>
       <div>
         <dt className="upper-label text-2xs text-ink-lo">Hits</dt>
-        <dd className={cn("fig-num mt-0.5 text-xl leading-none", summary.hitCost > 0 ? "text-flare" : "text-ink-mid")}>
+        <dd className={cn("fig-num mt-2 text-3xl leading-none", summary.hitCost > 0 ? "text-flare" : "text-ink-mid")}>
           {summary.hitCost > 0 ? `−${summary.hitCost}` : "—"}
         </dd>
       </div>
@@ -586,7 +615,7 @@ function PlanHeader({
         </dt>
         <dd
           className={cn(
-            "fig-num mt-0.5 text-xl leading-none",
+            "fig-num mt-2 text-3xl leading-none",
             summary.transfers === 0 ? "text-ink-mid" : summary.net >= 0 ? "text-surge" : "text-flare",
           )}
         >
@@ -611,7 +640,7 @@ function PlanHeader({
        */}
       <div>
         <dt className="upper-label text-2xs text-ink-lo">Team value</dt>
-        <dd className="fig-num mt-0.5 text-xl leading-none text-ink-hi">{fmtM(teamValueTenths)}</dd>
+        <dd className="fig-num mt-2 text-3xl leading-none text-ink-hi">{fmtM(teamValueTenths)}</dd>
         <dd
           className={cn(
             "mt-0.5 text-2xs num-tabular",
@@ -658,6 +687,7 @@ function PlanLedger({
         <h3 className="upper-label text-2xs text-ink-lo">
           {moves.length} transfer{moves.length === 1 ? "" : "s"} staged
         </h3>
+        <a href="#decision-room" className="ml-auto inline-flex min-h-11 items-center px-3 text-xs font-semibold text-volt">Compare paths <span aria-hidden className="ml-2">↓</span></a>
         <button
           type="button"
           onClick={onReset}
