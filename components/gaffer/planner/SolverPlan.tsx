@@ -122,7 +122,7 @@ export function SolverPlan({
               <button
                 type="button"
                 onClick={() => onStage(m.out, m.in)}
-                className="skewed h-7 shrink-0 rounded-sm bg-volt px-3 text-[10px] uppercase-label text-on-accent transition-transform dur-instant active:scale-[0.98]"
+                className="skewed h-7 shrink-0 rounded-sm bg-volt px-3 text-[10px] upper-label text-on-accent transition-transform dur-instant active:scale-[0.98]"
               >
                 <span>Stage it</span>
               </button>

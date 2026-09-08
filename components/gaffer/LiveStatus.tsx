@@ -35,7 +35,7 @@ export function StatusChip({ data }: { data: LiveBarData }) {
           ? `Live, gameweek ${data.gameweek}, ${data.fixturesInPlay} fixtures in play`
           : `Gameweek ${data.gameweek} — ${moment?.label}`
       }
-      className="skewed inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md glass-edge px-2.5 text-2xs uppercase-label text-ink-mid num-tabular transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi sm:px-3"
+      className="skewed inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md glass-edge px-2.5 text-2xs upper-label-tight text-ink-mid num-tabular transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi sm:px-3"
     >
       {isLive ? (
         <>

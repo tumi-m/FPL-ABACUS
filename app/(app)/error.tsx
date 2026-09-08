@@ -31,13 +31,13 @@ export default function SegmentError({
           <button
             type="button"
             onClick={reset}
-            className="skewed inline-flex h-9 items-center rounded-md bg-raised px-4 text-2xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+            className="skewed inline-flex h-9 items-center rounded-md bg-raised px-4 text-2xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
           >
             <span>Try again</span>
           </button>
           <a
             href="/live"
-            className="skewed inline-flex h-9 items-center rounded-md bg-raised px-4 text-2xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+            className="skewed inline-flex h-9 items-center rounded-md bg-raised px-4 text-2xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
           >
             <span>Back to Matchday</span>
           </a>

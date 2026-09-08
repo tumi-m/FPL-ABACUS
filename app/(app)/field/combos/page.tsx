@@ -63,7 +63,7 @@ export default async function CombosPage() {
           <Link
             href="/field"
             role="button"
-            className="skewed inline-flex h-9 items-center gap-2 rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+            className="skewed inline-flex h-9 items-center gap-2 rounded-md bg-raised px-4 text-xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
           >
             <span aria-hidden>←</span>
             <span>Back to the Field</span>
@@ -98,7 +98,7 @@ export default async function CombosPage() {
         <Link
           href="/planner"
           role="button"
-          className="skewed inline-flex h-11 items-center gap-2 rounded-md bg-volt px-6 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.98]"
+          className="skewed inline-flex h-11 items-center gap-2 rounded-md bg-volt px-6 text-xs upper-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.98]"
         >
           <span>Take it to the Planner</span>
           <span aria-hidden>→</span>

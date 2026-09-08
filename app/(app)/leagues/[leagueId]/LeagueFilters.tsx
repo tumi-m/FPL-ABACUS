@@ -40,7 +40,7 @@ export function LeagueFilters({ basePath, disabled }: { basePath: string; disabl
         type="button"
         onClick={() => setOpen(true)}
         aria-expanded={false}
-        className="skewed inline-flex h-9 items-center rounded-md bg-raised card-ring px-4 text-xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+        className="skewed inline-flex h-9 items-center rounded-md bg-raised card-ring px-4 text-xs upper-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
       >
         {anyActive ? "Filters · on" : "Filters"}
       </button>
@@ -67,7 +67,7 @@ export function LeagueFilters({ basePath, disabled }: { basePath: string; disabl
         </label>
         <input id="lf-top-n" type="number" inputMode="numeric" min={1} value={topN} onChange={(e) => setTopN(e.target.value)} placeholder="500" className={`${inputCls} num-tabular`} disabled={disabled} />
       </div>
-      <button type="submit" className="skewed inline-flex h-9 items-center rounded-md bg-volt px-4 text-sm uppercase-label font-semibold text-on-accent transition-transform dur-instant hover:-translate-y-px" disabled={disabled}>
+      <button type="submit" className="skewed inline-flex h-9 items-center rounded-md bg-volt px-4 text-sm upper-label font-semibold text-on-accent transition-transform dur-instant hover:-translate-y-px" disabled={disabled}>
         Filter
       </button>
       <button

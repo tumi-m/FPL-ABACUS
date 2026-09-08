@@ -158,7 +158,7 @@ export function AppShell({
                */
               prefetch={false}
               className={cn(
-                "skewed flex h-11 min-w-[44px] items-center justify-center rounded-md text-2xs uppercase-label transition-colors dur-instant",
+                "skewed flex h-11 min-w-[44px] items-center justify-center rounded-md text-2xs upper-label transition-colors dur-instant",
                 isActive(item.href)
                   ? "bg-volt font-semibold text-on-accent"
                   : "bg-raised text-ink-mid card-ring hover:text-ink-hi hover:bg-surface-3",

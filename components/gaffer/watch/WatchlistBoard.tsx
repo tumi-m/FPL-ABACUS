@@ -71,7 +71,7 @@ export function WatchlistBoard() {
               onClick={() => setSort(o.id)}
               aria-pressed={sort === o.id}
               className={cn(
-                "skewed rounded-sm px-2 py-1 text-2xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-sm px-2 py-1 text-2xs upper-label transition-colors dur-instant",
                 sort === o.id ? "bg-volt text-on-accent" : "text-ink-mid hover:text-ink-hi",
               )}
             >

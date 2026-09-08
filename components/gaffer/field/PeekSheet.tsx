@@ -145,7 +145,7 @@ export function PeekSheet({
               </span>
               <div>
                 <SheetTitle className="leading-tight">{row.webName}</SheetTitle>
-                <p className="mt-0.5 text-2xs uppercase-label text-ink-lo">
+                <p className="mt-0.5 text-2xs upper-label text-ink-lo">
                   {POSITION_SHORT[row.pos]} · {clubOf(row.teamId).name}
                   {row.isCaptain && row.multiplier >= 2 ? " · captain" : ""}
                   {row.onBench ? " · bench" : ""}
@@ -396,7 +396,7 @@ export function PeekSheet({
           <div className="mt-5 flex justify-center">
             <Link
               href={`/players/${row.element}`}
-              className="skewed inline-flex h-11 items-center rounded-md bg-volt px-5 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.97]"
+              className="skewed inline-flex h-11 items-center rounded-md bg-volt px-5 text-xs upper-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.97]"
             >
               <span>Player page</span>
             </Link>

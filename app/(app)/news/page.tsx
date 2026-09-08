@@ -92,7 +92,7 @@ export default async function NewsPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="fig-num text-[22px] leading-none">Newsdesk</h1>
-          <p className="mt-1 text-2xs uppercase-label text-ink-lo">
+          <p className="mt-1 text-2xs upper-label text-ink-lo">
             Ranked by squad relevance · refreshed hourly
           </p>
         </div>
@@ -105,7 +105,7 @@ export default async function NewsPage({
             href={qs(f.key)}
             aria-pressed={filter === f.key}
             role="button"
-            className={`skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant ${
+            className={`skewed rounded-sm px-3 py-1.5 text-xs upper-label transition-colors dur-instant ${
               filter === f.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi"
             }`}
           >
@@ -144,11 +144,11 @@ export default async function NewsPage({
           {filtered.slice(0, 40).map((i) => (
             <li key={i.urlHash} className="rounded-lg bg-surface-1 card-ring px-4 py-3">
               <div className="flex flex-wrap items-baseline gap-x-2">
-                <span className="rounded-full card-ring px-2 py-0.5 text-2xs uppercase-label text-ink-lo">
+                <span className="rounded-full card-ring px-2 py-0.5 text-2xs upper-label text-ink-lo">
                   {sourceLabel[i.source] ?? i.source}
                 </span>
                 {i.inSquad && (
-                  <span className="rounded-full bg-brand-wash px-2 py-0.5 text-2xs uppercase-label text-volt">
+                  <span className="rounded-full bg-brand-wash px-2 py-0.5 text-2xs upper-label text-volt">
                     your squad
                   </span>
                 )}

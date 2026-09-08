@@ -182,10 +182,10 @@ export function MatchdayClient({
           {historical && (
             <span className="upper-label text-2xs text-ink-lo">settled · a past round</span>
           )}
-          <span className="text-2xs uppercase-label text-ink-lo">{current.phase}</span>
+          <span className="text-2xs upper-label-tight text-ink-lo">{current.phase}</span>
           <Link
             href="/squad"
-            className="skewed ml-auto inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-md card-ring px-3 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+            className="skewed ml-auto inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-md card-ring px-3 text-2xs upper-label-tight text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
           >
             <span>My team</span>
           </Link>

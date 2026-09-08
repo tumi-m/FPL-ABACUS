@@ -86,7 +86,7 @@ export function RegretMeter({
         <Dialog>
           <DialogTrigger
             role="button"
-            className="skewed inline-flex h-9 shrink-0 items-center rounded-sm bg-raised px-3.5 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+            className="skewed inline-flex h-9 shrink-0 items-center rounded-sm bg-raised px-3.5 text-xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
           >
             <span>All branches</span>
           </DialogTrigger>
@@ -126,7 +126,7 @@ export function RegretMeter({
           style={{ transform: "translateX(-1px)" }}
         />
       </div>
-      <div aria-hidden className="mt-1 flex justify-between text-2xs uppercase-label text-ink-lo">
+      <div aria-hidden className="mt-1 flex justify-between text-2xs upper-label text-ink-lo">
         <span>Relief</span>
         <span>Now</span>
         <span>Regret</span>

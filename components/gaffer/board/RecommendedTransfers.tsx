@@ -78,7 +78,7 @@ export function RecommendedTransfers({
                         {`+${r.gain.toFixed(1)}`}
                       </Est>
                     </span>
-                    <span className="block text-2xs uppercase-label text-ink-lo">
+                    <span className="block text-2xs upper-label text-ink-lo">
                       over {weeks} GW
                     </span>
                   </span>

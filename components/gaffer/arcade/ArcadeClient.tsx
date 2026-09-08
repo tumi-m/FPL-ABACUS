@@ -63,7 +63,7 @@ export function ArcadeClient() {
                   unoptimized
                 />
                 {selected && (
-                  <span className="absolute left-2 top-2 rounded-sm bg-volt px-1.5 py-0.5 text-[9px] font-bold uppercase-label text-on-accent">
+                  <span className="absolute left-2 top-2 rounded-sm bg-volt px-1.5 py-0.5 text-[9px] font-bold upper-label text-on-accent">
                     Selected
                   </span>
                 )}
@@ -92,7 +92,7 @@ export function ArcadeClient() {
         <button
           type="button"
           onClick={askGaffer}
-          className="skewed inline-flex h-11 items-center rounded-md bg-volt px-5 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.97]"
+          className="skewed inline-flex h-11 items-center rounded-md bg-volt px-5 text-xs upper-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.97]"
         >
           <span>Put your gaffer to work</span>
         </button>

@@ -178,7 +178,19 @@ function Side({
   owned: Set<number>;
 }) {
   const taken = new Set(ids);
-  const combo = buildCombo(ids.map((id) => byId.get(id)).filter(Boolean) as ComboPlayer[]);
+  /*
+   * Resolve once, and render from what resolved.
+   *
+   * The list used to walk `ids` and `return null` for any id the pool did not
+   * know, while the empty copy was gated on `ids.length === 0`. Those two
+   * disagree exactly when an id does not resolve, and the panel then shows
+   * neither a player nor the "no picks added yet" line — a live section of the
+   * page rendering nothing at all, with no way for the reader to tell whether
+   * it is broken or still loading. Basing both on the resolved rows means the
+   * side always says one of the two true things about itself.
+   */
+  const rows = ids.map((id) => byId.get(id)).filter((p): p is ComboPlayer => p != null);
+  const combo = buildCombo(rows);
 
   return (
     <div className="rounded-lg bg-surface-1 card-ring p-3 md:p-4">
@@ -192,9 +204,8 @@ function Side({
       </div>
 
       <ul className="mt-2 space-y-1.5">
-        {ids.map((id) => {
-          const p = byId.get(id);
-          if (!p) return null;
+        {rows.map((p) => {
+          const id = p.id;
           return (
             <li
               key={id}
@@ -223,7 +234,7 @@ function Side({
             </li>
           );
         })}
-        {ids.length === 0 && (
+        {rows.length === 0 && (
           <li className="py-4 text-center text-xs text-ink-lo">
             <span className="block text-ink-2">No picks added yet.</span>
             <span className="mt-0.5 block text-2xs text-ink-lo">Tap players on the combination board to compare their price points.</span>
@@ -498,7 +509,7 @@ function Boards({ data, owned }: { data: ComboBoardData; owned: Set<number> }) {
             onClick={() => setBoard(b.id)}
             aria-pressed={board === b.id}
             className={cn(
-              "skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
+              "skewed rounded-sm px-3 py-1.5 text-xs upper-label transition-colors dur-instant",
               board === b.id ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
             )}
           >

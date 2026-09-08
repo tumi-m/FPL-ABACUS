@@ -61,7 +61,7 @@ export function CalendarSubscribe({ origin }: { origin: string }) {
               aria-pressed={lead === option.minutes}
               onClick={() => setLead(option.minutes)}
               className={cn(
-                "skewed rounded-md px-3 py-2 text-xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-md px-3 py-2 text-xs upper-label transition-colors dur-instant",
                 lead === option.minutes
                   ? "bg-volt text-on-accent"
                   : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
@@ -82,7 +82,7 @@ export function CalendarSubscribe({ origin }: { origin: string }) {
          */}
         <a
           href={webcal}
-          className="skewed inline-flex h-11 items-center gap-2 rounded-md bg-volt px-5 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.98]"
+          className="skewed inline-flex h-11 items-center gap-2 rounded-md bg-volt px-5 text-xs upper-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.98]"
         >
           <span>Apple Calendar</span>
           <span aria-hidden>↗</span>
@@ -91,7 +91,7 @@ export function CalendarSubscribe({ origin }: { origin: string }) {
           href={google}
           target="_blank"
           rel="noreferrer noopener"
-          className="skewed inline-flex h-11 items-center gap-2 rounded-md bg-raised px-5 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+          className="skewed inline-flex h-11 items-center gap-2 rounded-md bg-raised px-5 text-xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
         >
           <span>Google Calendar</span>
           <span aria-hidden>↗</span>
@@ -99,7 +99,7 @@ export function CalendarSubscribe({ origin }: { origin: string }) {
         <a
           href={`${path}&only=next`}
           download="fpl-deadline.ics"
-          className="skewed inline-flex h-11 items-center rounded-md bg-raised px-5 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+          className="skewed inline-flex h-11 items-center rounded-md bg-raised px-5 text-xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
         >
           Just the next one
         </a>
@@ -121,7 +121,7 @@ export function CalendarSubscribe({ origin }: { origin: string }) {
                 () => undefined,
               );
             }}
-            className="skewed inline-flex h-9 shrink-0 items-center rounded-md bg-raised px-3 text-2xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+            className="skewed inline-flex h-9 shrink-0 items-center rounded-md bg-raised px-3 text-2xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
           >
             {copied ? "Copied" : "Copy"}
           </button>

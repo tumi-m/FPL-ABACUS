@@ -553,7 +553,31 @@
   html {
     -webkit-text-size-adjust: 100%;
   }
-  body {
+  /* ═══════════════════════════════════════════════════════════════════════════
+   Scroll padding — the app has furniture stuck to both edges of the viewport,
+   and the browser does not know it.
+
+   A header 3.5rem tall is fixed to the top and a thumb bar to the bottom.
+   Anything the browser scrolls to itself — a jump to an anchor, tabbing to a
+   control near the foot of a long page, a click Playwright or a screen reader
+   scrolls into view — was placed against the raw viewport edge and landed
+   underneath one of them. Under the thumb bar that is not just hidden: a tap
+   at those coordinates hits the bar, so pressing a button at the bottom of the
+   combinations page navigated to the mini-league table instead of doing what
+   the button said.
+
+   Two lines, and every scroll the platform performs now stops clear of both.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html{
+  scroll-padding-top: 4rem;
+  scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 1024px){
+  /* The thumb bar is phone-only; a desktop only owes the header. */
+  html{ scroll-padding-bottom: 1.5rem; }
+}
+
+body {
     background: var(--bg-base);
     color: var(--ink-hi);
     font-family: var(--font-sans);
@@ -726,6 +750,24 @@
   letter-spacing: .22em;
   text-transform: uppercase;
 }
+/*
+ * The same label, for chrome that has to fit.
+ *
+ * .22em is a standalone label's tracking — a caption over a figure, a rule
+ * across a section — where the width is free. Inside a sized control it is a
+ * tax the control cannot pay: the app header and the gameweek row both ran
+ * past the right edge of a 390px phone (407px of content in a 390px window,
+ * measured) the moment the app's mislabelled controls started rendering as
+ * display type at all. Same family, same weight, same case; a third of the
+ * tracking, and it fits.
+ */
+.upper-label-tight{
+  font-family: var(--f-d);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
 
 /* Moment — bonus settle wash (v5-G): plays once when the GW leaves
    provisional territory; the global reduced-motion switch stops it. */
@@ -864,7 +906,11 @@
 .lower3{ display:flex; border-radius:4px; overflow:hidden; box-shadow:var(--lift); }
 .lower3-flag{ width:12px; transform:skewX(var(--skew)) scaleX(1.4); }
 .lower3-body{
-  flex:1; display:flex; align-items:center; gap:12px; padding:10px 16px;
+  /* Wraps rather than overflows. The row carries a picker, a phase and a way
+     out, and on the narrowest phone those three have never all fitted on one
+     line — it just used to push the last one off the screen instead of
+     putting it on the next line. */
+  flex:1; display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; padding:10px 16px;
   background:linear-gradient(180deg,var(--bg-overlay),var(--bg-raised));
 }
 

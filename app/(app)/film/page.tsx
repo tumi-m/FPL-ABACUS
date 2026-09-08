@@ -83,7 +83,7 @@ export default async function FilmPage() {
             const chip = history.chips.find((ch) => ch.event === c.event)?.name ?? null;
             return (
               <li key={c.event} className="flex items-baseline justify-between gap-3 rounded-md bg-surface-0 px-3 py-2.5 card-ring">
-                <span className="text-xs uppercase-label text-ink-lo">GW{c.event}</span>
+                <span className="text-xs upper-label text-ink-lo">GW{c.event}</span>
                 <span className="fig-num text-lg text-ink-hi">{c.points}</span>
                 <span className="text-right text-xs text-ink-lo num-tabular">
                   {chip ? `${chip} · ` : ""}

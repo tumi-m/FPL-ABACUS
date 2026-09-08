@@ -357,7 +357,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
                 setSelected(null);
               }}
               className={cn(
-                "skewed min-h-11 rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                "skewed min-h-11 rounded-sm px-3 py-1.5 text-2xs upper-label transition-colors dur-instant",
                 pl.id === plan.id ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >
@@ -373,7 +373,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
             type="button"
             onClick={() => persistPlans(addPlan(plans))}
             disabled={plans.plans.length >= MAX_PLANS}
-            className="inline-flex h-11 items-center rounded-md card-ring px-4 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-11 items-center rounded-md card-ring px-4 text-2xs upper-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi disabled:cursor-not-allowed disabled:opacity-40"
           >
             New plan
           </button>
@@ -381,7 +381,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
             <button
               type="button"
               onClick={() => persistPlans(removePlan(plans, plan.id))}
-              className="inline-flex h-11 items-center rounded-md card-ring px-4 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-flare"
+              className="inline-flex h-11 items-center rounded-md card-ring px-4 text-2xs upper-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-flare"
             >
               Delete plan
             </button>
@@ -404,7 +404,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
             aria-pressed={tab === t.key}
             onClick={() => setTab(t.key)}
             className={cn(
-              "skewed min-h-11 rounded-sm px-3 py-2 text-2xs uppercase-label transition-colors dur-instant",
+              "skewed min-h-11 rounded-sm px-3 py-2 text-2xs upper-label transition-colors dur-instant",
               tab === t.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
             )}
           >
@@ -427,7 +427,7 @@ export function TransferPlanner({ data }: { data: PlannerData }) {
                     aria-pressed={mode === m.key}
                     onClick={() => setMode(m.key)}
                     className={cn(
-                      "skewed min-h-11 rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                      "skewed min-h-11 rounded-sm px-3 py-1.5 text-2xs upper-label transition-colors dur-instant",
                       mode === m.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
                     )}
                   >
@@ -691,7 +691,7 @@ function PlanLedger({
         <button
           type="button"
           onClick={onReset}
-          className="relative text-2xs uppercase-label text-ink-lo transition-colors dur-instant after:absolute after:inset-x-0 after:-inset-y-3 after:content-[''] hover:text-flare"
+          className="relative text-2xs upper-label text-ink-lo transition-colors dur-instant after:absolute after:inset-x-0 after:-inset-y-3 after:content-[''] hover:text-flare"
         >
           Clear plan
         </button>
@@ -732,14 +732,14 @@ function PlanLedger({
                   {`${gain >= 0 ? "+" : "−"}${Math.abs(gain).toFixed(1)} over ${weeks} GW`}
                 </Est>
               </span>
-              <span className={cn("text-2xs uppercase-label", free ? "text-ink-lo" : "text-flare")}>
+              <span className={cn("text-2xs upper-label", free ? "text-ink-lo" : "text-flare")}>
                 {free ? "free" : `−${HIT_COST}`}
               </span>
               <button
                 type="button"
                 onClick={() => onDrop(i)}
                 aria-label={`Undo ${out?.name ?? "this"} to ${incoming?.name ?? "this"}`}
-                className="relative text-2xs uppercase-label text-ink-lo transition-colors dur-instant after:absolute after:inset-x-0 after:-inset-y-3 after:content-[''] hover:text-flare"
+                className="relative text-2xs upper-label text-ink-lo transition-colors dur-instant after:absolute after:inset-x-0 after:-inset-y-3 after:content-[''] hover:text-flare"
               >
                 Undo
               </button>

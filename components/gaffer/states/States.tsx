@@ -42,7 +42,7 @@ export function EmptyState({
       {action && href && (
         <Link
           href={href}
-          className="skewed mt-4 inline-flex h-9 items-center rounded-md bg-raised px-4 text-2xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+          className="skewed mt-4 inline-flex h-9 items-center rounded-md bg-raised px-4 text-2xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
         >
           <span>{action}</span>
         </Link>
@@ -102,7 +102,7 @@ export function HonestFailure({
         retryHref ? (
           <a
             href={retryHref}
-            className="mt-2 inline-flex h-8 items-center rounded-sm bg-surface-3 px-3 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:text-ink-hi"
+            className="mt-2 inline-flex h-8 items-center rounded-sm bg-surface-3 px-3 text-2xs upper-label text-ink-mid transition-colors dur-instant hover:text-ink-hi"
           >
             <span>Try again</span>
           </a>
@@ -110,7 +110,7 @@ export function HonestFailure({
           <button
             type="button"
             onClick={onRetry}
-            className="mt-2 inline-flex h-8 items-center rounded-sm bg-surface-3 px-3 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:text-ink-hi"
+            className="mt-2 inline-flex h-8 items-center rounded-sm bg-surface-3 px-3 text-2xs upper-label text-ink-mid transition-colors dur-instant hover:text-ink-hi"
           >
             <span>Try again</span>
           </button>

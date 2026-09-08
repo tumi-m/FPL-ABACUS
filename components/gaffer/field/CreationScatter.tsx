@@ -235,7 +235,7 @@ function Controls({
             onClick={() => onPos(f.id)}
             aria-pressed={pos === f.id}
             className={cn(
-              "skewed rounded-sm px-2.5 py-1 text-2xs uppercase-label transition-colors dur-instant",
+              "skewed rounded-sm px-2.5 py-1 text-2xs upper-label transition-colors dur-instant",
               pos === f.id ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
             )}
           >
@@ -257,7 +257,7 @@ function Controls({
                 : `The ${c} highest expected involvements, all named`
             }
             className={cn(
-              "skewed rounded-sm px-2.5 py-1 text-2xs uppercase-label transition-colors dur-instant",
+              "skewed rounded-sm px-2.5 py-1 text-2xs upper-label transition-colors dur-instant",
               cut === c ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
             )}
           >

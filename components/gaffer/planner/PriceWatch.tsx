@@ -102,7 +102,7 @@ export function PriceWatch({
               aria-pressed={lens === t.key}
               onClick={() => setLens(t.key)}
               className={cn(
-                "skewed rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-sm px-3 py-1.5 text-2xs upper-label transition-colors dur-instant",
                 lens === t.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >
@@ -118,7 +118,7 @@ export function PriceWatch({
               aria-pressed={pos === k}
               onClick={() => setPos(k)}
               className={cn(
-                "skewed rounded-sm px-2.5 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-sm px-2.5 py-1.5 text-2xs upper-label transition-colors dur-instant",
                 pos === k ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >
@@ -249,7 +249,7 @@ export function PriceWatch({
         <button
           type="button"
           onClick={() => setShown((n) => n + PAGE)}
-          className="inline-flex h-11 w-full items-center justify-center rounded-md card-ring text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+          className="inline-flex h-11 w-full items-center justify-center rounded-md card-ring text-2xs upper-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
         >
           Show {Math.min(PAGE, rows.length - visible.length)} more
         </button>

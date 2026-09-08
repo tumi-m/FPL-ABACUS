@@ -139,7 +139,7 @@ export function MarketPanel({
             aria-pressed={pos === t.key}
             onClick={() => setPos(t.key)}
             className={cn(
-              "skewed flex-1 rounded-sm px-2 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+              "skewed flex-1 rounded-sm px-2 py-1.5 text-2xs upper-label transition-colors dur-instant",
               pos === t.key
                 ? "bg-volt text-on-accent"
                 : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
@@ -161,7 +161,7 @@ export function MarketPanel({
               aria-pressed={weeks === n}
               onClick={() => setWeeks(n)}
               className={cn(
-                "skewed rounded-sm px-2.5 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-sm px-2.5 py-1.5 text-2xs upper-label transition-colors dur-instant",
                 weeks === n ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >
@@ -296,7 +296,7 @@ export function MarketPanel({
           <button
             type="button"
             onClick={() => setShown((n) => n + PAGE)}
-            className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-md card-ring text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+            className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-md card-ring text-2xs upper-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
           >
             Show {Math.min(PAGE, rows.length - visible.length)} more
           </button>

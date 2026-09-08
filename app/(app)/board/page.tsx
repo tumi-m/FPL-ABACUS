@@ -157,7 +157,7 @@ export default async function BoardPage() {
         action={
           <Link
             href="/planner"
-            className="skewed inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-md bg-volt px-3 text-2xs uppercase-label text-on-accent transition-transform dur-instant hover:-translate-y-px"
+            className="skewed inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-md bg-volt px-3 text-2xs upper-label text-on-accent transition-transform dur-instant hover:-translate-y-px"
           >
             <span>Open the Planner</span>
           </Link>
@@ -211,7 +211,7 @@ export default async function BoardPage() {
             projected points, the chip lane and the price watch.
           </span>
         </span>
-        <span className="skewed inline-flex h-11 items-center rounded-md bg-volt px-4 text-2xs uppercase-label text-on-accent">
+        <span className="skewed inline-flex h-11 items-center rounded-md bg-volt px-4 text-2xs upper-label text-on-accent">
           <span>Open the Planner</span>
         </span>
       </Link>

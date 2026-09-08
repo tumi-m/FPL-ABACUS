@@ -239,7 +239,7 @@ export function AskBar() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Ask the Gaffer"
-        className="skewed inline-flex h-11 items-center gap-1.5 rounded-md glass-edge px-3.5 text-xs uppercase-label font-semibold text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi sm:hidden"
+        className="skewed inline-flex h-11 items-center gap-1.5 rounded-md glass-edge px-3.5 text-xs upper-label-tight font-semibold text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi sm:hidden"
       >
         Ask <GafferBadge />
       </button>
@@ -274,7 +274,7 @@ export function AskBar() {
               type="submit"
               disabled={busy || !q.trim()}
               aria-label="Consult Gaffer"
-              className="skewed inline-flex h-10 items-center rounded-md bg-volt px-4 text-xs uppercase-label font-semibold text-on-accent transition-all dur-instant hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
+              className="skewed inline-flex h-10 items-center rounded-md bg-volt px-4 text-xs upper-label font-semibold text-on-accent transition-all dur-instant hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
             >
               {busy ? (
                 <span className="flex items-center gap-1" aria-hidden>
@@ -300,7 +300,7 @@ export function AskBar() {
               type="button"
               onClick={toggleBlips}
               aria-pressed={!blipsMuted}
-              className="text-2xs uppercase-label text-ink-lo transition-colors dur-instant hover:text-ink-hi"
+              className="text-2xs upper-label text-ink-lo transition-colors dur-instant hover:text-ink-hi"
             >
               Sound {blipsMuted ? "off" : "on"}
             </button>
@@ -362,7 +362,7 @@ export function AskBar() {
                       <span aria-hidden className="text-2xs text-ink-lo">
                         ↗
                       </span>{" "}
-                      <span className="text-2xs uppercase-label text-ink-lo">{s.source}</span>
+                      <span className="text-2xs upper-label text-ink-lo">{s.source}</span>
                     </li>
                   ))}
                 </ul>

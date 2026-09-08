@@ -142,7 +142,7 @@ export function DefconBoard({ data }: { data: DefconBoardData }) {
               onClick={() => setPos(t.key)}
               aria-pressed={pos === t.key}
               className={cn(
-                "skewed rounded-sm px-2.5 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-sm px-2.5 py-1.5 text-2xs upper-label transition-colors dur-instant",
                 pos === t.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >

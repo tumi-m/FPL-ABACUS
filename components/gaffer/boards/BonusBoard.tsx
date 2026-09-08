@@ -131,7 +131,7 @@ export function BonusBoard({ data }: { data: BonusBoardData }) {
               disabled={f.id === "window" && data.window.gws.length === 0}
               aria-pressed={frame === f.id}
               className={cn(
-                "skewed rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant disabled:cursor-not-allowed disabled:opacity-40",
+                "skewed rounded-sm px-3 py-1.5 text-2xs upper-label transition-colors dur-instant disabled:cursor-not-allowed disabled:opacity-40",
                 frame === f.id ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >
@@ -148,7 +148,7 @@ export function BonusBoard({ data }: { data: BonusBoardData }) {
               onClick={() => setPos(t.key)}
               aria-pressed={pos === t.key}
               className={cn(
-                "skewed rounded-sm px-2.5 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-sm px-2.5 py-1.5 text-2xs upper-label transition-colors dur-instant",
                 pos === t.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >

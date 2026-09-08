@@ -20,7 +20,7 @@ export function CalendarInvite() {
       </p>
       <Link
         href="/deadline"
-        className="skewed inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-md card-ring px-3 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+        className="skewed inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-md card-ring px-3 text-2xs upper-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
       >
         <span>Set reminders</span>
       </Link>

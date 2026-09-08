@@ -30,13 +30,26 @@ export interface ExplorerRow {
 
 type SortKey = "webName" | "price" | "sbp" | "form" | "ppg" | "points" | "goals" | "assists" | "minutes";
 
-const PRESETS: Record<string, SortKey> = {
-  Attack: "goals",
-  Form: "form",
-  Value: "ppg",
-  Points: "points",
-  Minutes: "minutes",
-};
+/**
+ * The sorts, as things you can press.
+ *
+ * These existed as a lookup table that nothing looked anything up in: the
+ * only use of `PRESETS` was printing its own key names in a sentence at the
+ * foot of the page — "presets: Attack / Form / Value / Points / Minutes" —
+ * under a hundred and twenty rows. The page advertised five controls it had
+ * never built, and the sort that did exist lived in the table header, where
+ * on a phone eight of the eleven columns are off the right-hand edge.
+ */
+const PRESETS: { label: string; key: SortKey }[] = [
+  { label: "Form", key: "form" },
+  { label: "Points", key: "points" },
+  { label: "Value", key: "ppg" },
+  { label: "Goals", key: "goals" },
+  { label: "Assists", key: "assists" },
+  { label: "Minutes", key: "minutes" },
+  { label: "Price", key: "price" },
+  { label: "Owned", key: "sbp" },
+];
 
 export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
   const params = useSearchParams();
@@ -79,7 +92,15 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
 
   const th = (key: SortKey, label: string, right = true) => (
     <TableHead className={right ? "text-right" : ""}>
-      <button onClick={() => setSort((s) => ({ key, dir: s.key === key ? ((-s.dir) as 1 | -1) : -1 }))} className="hover:text-ink-1">
+      <button
+        type="button"
+        onClick={() => setSort((s) => ({ key, dir: s.key === key ? ((-s.dir) as 1 | -1) : -1 }))}
+        aria-label={`Sort by ${label}`}
+        className={cn(
+          "inline-flex h-9 items-center rounded-sm px-1 transition-colors dur-instant hover:text-ink-1",
+          sort.key === key && "text-ink-hi",
+        )}
+      >
         {label}
         {sort.key === key && (sort.dir === 1 ? " ↑" : " ↓")}
       </button>
@@ -119,7 +140,7 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
               onClick={() => setPosFilter(p)}
               aria-pressed={posFilter === p}
               className={cn(
-                "h-7 rounded-full px-2.5 text-xs font-medium transition-colors dur-instant",
+                "h-9 rounded-full px-3 text-xs font-medium transition-colors dur-instant",
                 posFilter === p ? "bg-surface-3 text-ink-1" : "text-ink-3 hover:text-ink-1",
               )}
             >
@@ -132,7 +153,7 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
           onClick={() => setWatchedOnly((v) => !v)}
           aria-pressed={watchedOnly}
           className={cn(
-            "inline-flex h-8 items-center gap-1.5 rounded-full glass-edge px-3 text-xs font-medium transition-colors dur-instant",
+            "inline-flex h-9 items-center gap-1.5 rounded-full glass-edge px-3 text-xs font-medium transition-colors dur-instant",
             watchedOnly ? "text-amber" : "text-ink-3 hover:text-ink-1",
           )}
         >
@@ -140,6 +161,38 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
           Watching
           <span className="tabular-nums text-ink-3">{watched.length}</span>
         </button>
+      </div>
+
+      {/* The sort, where you can reach it. Pressing the live one turns it
+          round, which is the same gesture the column headings use. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="upper-label text-2xs text-ink-lo">Sort by</span>
+        <div role="group" aria-label="Sort players by" className="flex flex-wrap gap-1">
+          {PRESETS.map(({ label, key }) => {
+            const live = sort.key === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() =>
+                  setSort((prev) => ({ key, dir: prev.key === key ? ((-prev.dir) as 1 | -1) : -1 }))
+                }
+                aria-pressed={live}
+                className={cn(
+                  "skewed inline-flex h-9 items-center gap-1 rounded-md px-3 text-2xs upper-label-tight transition-colors dur-instant",
+                  live
+                    ? "bg-volt font-semibold text-on-accent"
+                    : "bg-raised text-ink-mid card-ring hover:text-ink-hi",
+                )}
+              >
+                <span>
+                  {label}
+                  {live && <span aria-hidden>{sort.dir === 1 ? " ↑" : " ↓"}</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="rounded-lg bg-surface-1 card-ring p-2 md:p-3">
@@ -197,7 +250,10 @@ export function PlayerExplorer({ rows }: { rows: ExplorerRow[] }) {
           stays private and does not follow you to another device.
         </p>
       ) : (
-        <p className="text-xs text-ink-3">Showing top {filtered.length} of {rows.length.toLocaleString()} · presets: {Object.keys(PRESETS).join(" / ")}</p>
+        <p className="text-xs text-ink-3">
+          Showing {filtered.length} of {rows.length.toLocaleString()} players, sorted by{" "}
+          {PRESETS.find((preset) => preset.key === sort.key)?.label ?? sort.key}.
+        </p>
       )}
     </div>
   );

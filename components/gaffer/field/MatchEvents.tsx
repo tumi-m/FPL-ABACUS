@@ -334,7 +334,7 @@ export function MatchEventLegend({ className }: { className?: string }) {
             <DefconRing full size={15} />
             <span className="text-2xs text-ink-mid">Defence bonus</span>
           </span>
-          <span className="ml-auto text-2xs uppercase-label text-ink-lo group-hover:text-ink-hi">
+          <span className="ml-auto text-2xs upper-label text-ink-lo group-hover:text-ink-hi">
             all marks
             <span aria-hidden className="ml-1 inline-block transition-transform dur-instant group-open:rotate-90">
               ›

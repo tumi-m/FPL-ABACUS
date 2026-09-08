@@ -44,7 +44,7 @@ export function ChartFrame({
               type="button"
               onClick={() => setShowTable((v) => !v)}
               aria-pressed={showTable}
-              className="skewed h-7 shrink-0 rounded-sm bg-raised px-2.5 text-2xs uppercase-label text-ink-lo transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+              className="skewed h-7 shrink-0 rounded-sm bg-raised px-2.5 text-2xs upper-label text-ink-lo transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
             >
               <span>{showTable ? "Chart" : "Table"}</span>
             </button>

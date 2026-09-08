@@ -341,12 +341,15 @@ test.describe("authenticated routes", () => {
 
     // Solo: the charts describe your fifteen and name nobody else.
     await page.goto("/field?mode=points");
-    await expect(page.locator("section[aria-label='Your gameweek']")).toBeVisible();
+    // By role and name, not by attribute: the section carries its name through
+    // its own heading now, which is the same name a screen reader reads out
+    // and the thing worth asserting.
+    await expect(page.getByRole("region", { name: "Your gameweek" })).toBeVisible();
     await expect(page.getByText(/Points by position — \d+ on the board/)).toBeVisible();
 
     // With a rival they change subject, and say whose colour is whose.
     await page.goto("/field?mode=points&compare=4242");
-    const h2h = page.locator("section[aria-label='You against them']");
+    const h2h = page.getByRole("region", { name: "You against them" });
     await expect(h2h).toBeVisible();
     await expect(h2h.getByText(/Points by position — you \d+, /)).toBeVisible();
     await expect(h2h.getByText("Bonus leaders — both squads")).toBeVisible();
@@ -1255,7 +1258,7 @@ test.describe("authenticated routes", () => {
     await asTeam(page);
     await page.goto("/players");
     await expect(page.getByRole("heading", { name: "Players" })).toBeVisible();
-    await expect(page.getByText(/Showing top \d+ of \d/)).toBeVisible();
+    await expect(page.getByText(/Showing \d+ of [\d,]+ players, sorted by/)).toBeVisible();
   });
 
   test("starring a player follows them to the deadline desk", async ({ page }) => {

@@ -171,7 +171,7 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
               <a href={i.url} target="_blank" rel="noopener noreferrer" className="text-ink-hi hover:text-volt">
                 {i.title}
               </a>{" "}
-              <span className="text-2xs uppercase-label text-ink-lo">{i.source}</span>
+              <span className="text-2xs upper-label text-ink-lo">{i.source}</span>
             </li>
           ))}
         </ul>
@@ -217,7 +217,7 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
               <li key={p.elementId} className="flex items-baseline justify-between gap-2 rounded-md bg-surface-0 px-2.5 py-2 card-ring">
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-ink-hi">{p.webName}</span>
-                  <span className="text-2xs uppercase-label text-ink-lo">{p.posLabel}</span>
+                  <span className="text-2xs upper-label text-ink-lo">{p.posLabel}</span>
                 </span>
                 <span className="text-right num-tabular">
                   <span className="fig-num block text-xs text-ink-hi">£{(p.cost / 10).toFixed(1)}</span>
@@ -239,7 +239,7 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
               <li key={p.name} className="flex items-baseline justify-between gap-3 py-2">
                 <span className="text-sm font-medium text-ink-hi">
                   {p.name}
-                  {p.flagged && <span className="ml-2 text-2xs uppercase-label text-flare">flagged</span>}
+                  {p.flagged && <span className="ml-2 text-2xs upper-label text-flare">flagged</span>}
                 </span>
                 <span className="num-tabular text-xs text-ink-lo">
                   {p.epNext != null ? (
@@ -318,7 +318,7 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
         <div className="rounded-lg bg-surface-1 card-ring p-4">
           <div className="flex items-baseline justify-between">
             <div className="upper-label text-2xs text-ink-lo">Win probability</div>
-            <div className="text-2xs uppercase-label text-ink-lo">vs {rivalName}</div>
+            <div className="text-2xs upper-label text-ink-lo">vs {rivalName}</div>
           </div>
           <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-surface-3">
             <span className="block h-full rounded-l-full" style={{ width: `${winProb}%`, background: "var(--surge)" }} />
@@ -332,7 +332,7 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
               <li key={`${m.side}-${m.name}`} className="flex items-center justify-between gap-3 text-sm">
                 <span className="text-ink-hi">
                   {m.name}
-                  <span className="ml-1.5 text-2xs uppercase-label text-ink-lo">{m.side === "you" ? "yours" : "theirs"}</span>
+                  <span className="ml-1.5 text-2xs upper-label text-ink-lo">{m.side === "you" ? "yours" : "theirs"}</span>
                 </span>
                 <span className={`fig-num text-xs ${m.wpa >= 0 ? "text-surge" : "text-flare"}`}>
                   {m.wpa >= 0 ? "+" : "−"}{Math.abs(m.wpa).toFixed(1)}pp
@@ -357,7 +357,7 @@ function renderCard(component: string, props: Record<string, unknown>): React.Re
           <ul className="mt-2 space-y-1.5">
             {arms.map((a) => (
               <li key={a.arm} className="flex items-center gap-3">
-                <span className="w-16 text-xs uppercase-label text-ink-mid">{a.arm}</span>
+                <span className="w-16 text-xs upper-label text-ink-mid">{a.arm}</span>
                 <span className="h-3 flex-1 overflow-hidden rounded-full bg-surface-3">
                   <span
                     className="block h-full rounded-full"

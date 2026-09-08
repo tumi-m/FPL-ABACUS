@@ -79,7 +79,7 @@ export default async function Landing({
           <div className="mt-7 flex w-full justify-center">
             <TeamIdGate next={target} />
           </div>
-          <p className="mt-5 text-2xs uppercase-label text-white/55">
+          <p className="mt-5 text-2xs upper-label text-white/55">
             Free · no account · read-only, your team is never changed
           </p>
         </div>

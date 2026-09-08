@@ -183,7 +183,11 @@ export function StatTable({
                       title={c.title}
                       aria-label={`Sort by ${c.title}`}
                       className={cn(
-                        "flex w-full items-center justify-end gap-1 whitespace-nowrap px-2 py-2 text-2xs font-semibold uppercase tracking-wide transition-colors dur-instant hover:text-ink-hi",
+                        /* A sort control 27px tall is a thumb's-width miss on a phone, and
+                           these headings are the only way to sort the board — 47 of
+                           them on Club numbers, 89 on Combinations, all under the
+                           floor. The row grows by four pixels and they all clear it. */
+                        "flex min-h-9 w-full items-center justify-end gap-1 whitespace-nowrap px-2 py-2 text-2xs font-semibold uppercase tracking-wide transition-colors dur-instant hover:text-ink-hi",
                         active ? "text-volt" : "text-ink-3",
                       )}
                     >

@@ -120,7 +120,7 @@ export function FixtureTicker({ data }: { data: TickerData }) {
               aria-pressed={side === s.key}
               title={s.hint}
               className={cn(
-                "skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-sm px-3 py-1.5 text-xs upper-label transition-colors dur-instant",
                 side === s.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >
@@ -167,7 +167,7 @@ export function FixtureTicker({ data }: { data: TickerData }) {
               onClick={() => setSort(s)}
               aria-pressed={sort === s}
               className={cn(
-                "skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-sm px-3 py-1.5 text-xs upper-label transition-colors dur-instant",
                 sort === s ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >
@@ -181,7 +181,7 @@ export function FixtureTicker({ data }: { data: TickerData }) {
           onClick={() => setMineOnly((v) => !v)}
           aria-pressed={mineOnly}
           className={cn(
-            "skewed inline-flex h-9 items-center rounded-md px-3 text-xs uppercase-label transition-colors dur-instant",
+            "skewed inline-flex h-9 items-center rounded-md px-3 text-xs upper-label transition-colors dur-instant",
             mineOnly ? "bg-volt text-on-accent" : "card-ring text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
           )}
         >

@@ -37,7 +37,7 @@ export default async function FieldClubsPage() {
           <Link
             href="/field"
             role="button"
-            className="skewed inline-flex h-9 items-center gap-2 rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+            className="skewed inline-flex h-9 items-center gap-2 rounded-md bg-raised px-4 text-xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
           >
             <span aria-hidden>←</span>
             <span>Back to the Field</span>

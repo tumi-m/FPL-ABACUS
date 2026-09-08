@@ -109,7 +109,7 @@ export default async function LeagueDetail({
         <UpstreamFailure read={read} retryHref={`/leagues/${id}`}>
           <Link
             href="/leagues"
-            className="skewed inline-flex h-9 items-center rounded-md bg-raised px-4 text-2xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+            className="skewed inline-flex h-9 items-center rounded-md bg-raised px-4 text-2xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
           >
             <span>Your leagues</span>
           </Link>
@@ -306,7 +306,7 @@ export default async function LeagueDetail({
                 scroll={false}
                 role="button"
                 aria-current={active ? "true" : undefined}
-                className={`skewed inline-flex h-9 items-center rounded-md px-4 text-sm uppercase-label font-semibold transition-colors dur-instant ${
+                className={`skewed inline-flex h-9 items-center rounded-md px-4 text-sm upper-label font-semibold transition-colors dur-instant ${
                   active ? "bg-volt text-on-accent" : "bg-raised text-ink-mid card-ring hover:text-ink-hi"
                 }`}
               >
@@ -436,7 +436,7 @@ export default async function LeagueDetail({
           <a
             href={viewHref(view, requested + 1)}
             role="button"
-            className="skewed inline-flex h-11 items-center rounded-md bg-raised px-6 text-sm uppercase-label text-ink-hi card-ring transition-colors dur-instant hover:bg-surface-3"
+            className="skewed inline-flex h-11 items-center rounded-md bg-raised px-6 text-sm upper-label text-ink-hi card-ring transition-colors dur-instant hover:bg-surface-3"
           >
             <span>Load 50 more</span>
           </a>

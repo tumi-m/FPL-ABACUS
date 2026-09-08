@@ -103,7 +103,7 @@ export function CompareControls({ ids }: { ids: number[] }) {
           type="button"
           onClick={copy}
           className={cn(
-            "skewed inline-flex h-9 items-center rounded-md px-3 text-2xs uppercase-label transition-colors dur-instant",
+            "skewed inline-flex h-9 items-center rounded-md px-3 text-2xs upper-label transition-colors dur-instant",
             copied ? "bg-surge text-on-accent" : "card-ring text-ink-mid hover:text-ink-hi",
           )}
         >

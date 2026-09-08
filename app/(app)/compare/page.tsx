@@ -205,7 +205,7 @@ function IdentityRow({ players, ids }: { players: ComparePlayer[]; ids: number[]
               <p className="mt-2 truncate text-sm font-semibold text-ink-hi">
                 <Link href={`/players/${p.id}`} className="hover:text-brand">{p.name}</Link>
               </p>
-              <p className="text-2xs uppercase-label text-ink-lo">
+              <p className="text-2xs upper-label text-ink-lo">
                 {POSITION_SHORT[p.pos]} · {p.club}
               </p>
               <p className="mt-1 text-xs text-ink-2 num-tabular">
@@ -214,7 +214,7 @@ function IdentityRow({ players, ids }: { players: ComparePlayer[]; ids: number[]
               <Link
                 href={rest.length > 0 ? `/compare?ids=${rest.join(",")}` : "/compare"}
                 aria-label={`Remove ${p.name} from comparison`}
-                className="mt-1.5 inline-block text-2xs uppercase-label text-ink-lo transition-colors hover:text-flare"
+                className="mt-1.5 inline-block text-2xs upper-label text-ink-lo transition-colors hover:text-flare"
               >
                 Remove
               </Link>

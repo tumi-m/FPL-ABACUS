@@ -65,7 +65,7 @@ export function GafferStrip({ active, onChoose }: { active: PersonaId; onChoose:
                 unoptimized
               />
             </span>
-            <span className="text-[10px] font-bold uppercase-label text-ink-hi leading-none">{p.name}</span>
+            <span className="text-[10px] font-bold upper-label text-ink-hi leading-none">{p.name}</span>
             <span
               aria-hidden
               className="block h-0.5 w-6 rounded-full"

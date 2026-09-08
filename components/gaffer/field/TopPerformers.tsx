@@ -220,7 +220,7 @@ export function TopPerformers({ data }: { data: TopPerformersData }) {
             aria-pressed={board === b.id}
             title={b.blurb}
             className={cn(
-              "skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
+              "skewed rounded-sm px-3 py-1.5 text-xs upper-label transition-colors dur-instant",
               board === b.id ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
             )}
           >
@@ -257,7 +257,7 @@ export function TopPerformers({ data }: { data: TopPerformersData }) {
               }}
               aria-pressed={pos === t.key}
               className={cn(
-                "skewed rounded-sm px-2.5 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-sm px-2.5 py-1.5 text-2xs upper-label transition-colors dur-instant",
                 pos === t.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >
@@ -280,7 +280,7 @@ export function TopPerformers({ data }: { data: TopPerformersData }) {
                   : undefined
               }
               className={cn(
-                "skewed rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant disabled:cursor-not-allowed disabled:opacity-40",
+                "skewed rounded-sm px-3 py-1.5 text-2xs upper-label transition-colors dur-instant disabled:cursor-not-allowed disabled:opacity-40",
                 frame === f ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
               )}
             >

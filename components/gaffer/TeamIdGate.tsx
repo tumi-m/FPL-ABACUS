@@ -245,7 +245,7 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
                 setStage("form");
                 setLeague(null);
               }}
-              className="text-2xs uppercase-label text-ink-lo hover:text-ink-hi"
+              className="text-2xs upper-label text-ink-lo hover:text-ink-hi"
             >
               ← Back
             </button>
@@ -302,7 +302,7 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
                 setStage("form");
                 setNameHits([]);
               }}
-              className="text-2xs uppercase-label text-ink-lo hover:text-ink-hi"
+              className="text-2xs upper-label text-ink-lo hover:text-ink-hi"
             >
               ← Back
             </button>
@@ -355,7 +355,7 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
       </form>
 
       {hint && !error && stage === "form" && (
-        <p className="mt-2 text-2xs uppercase-label text-volt" role="status">
+        <p className="mt-2 text-2xs upper-label text-volt" role="status">
           {hint}
         </p>
       )}
@@ -369,7 +369,7 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
             onClick={() => setNameMode(m)}
             aria-pressed={nameMode === m}
             className={cn(
-              "skewed rounded-sm px-2.5 py-1 text-2xs uppercase-label transition-colors dur-instant",
+              "skewed rounded-sm px-2.5 py-1 text-2xs upper-label transition-colors dur-instant",
               nameMode === m
                 ? "bg-volt text-on-accent"
                 : "bg-raised text-ink-mid card-ring hover:text-ink-hi",
@@ -389,7 +389,7 @@ export function TeamIdGate({ compact = false, next = "/live" }: { compact?: bool
       <button
         type="button"
         onClick={() => setExplainOpen(true)}
-        className="skewed mt-4 inline-flex h-11 items-center rounded-md bg-raised card-ring px-4 text-xs uppercase-label text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+        className="skewed mt-4 inline-flex h-11 items-center rounded-md bg-raised card-ring px-4 text-xs upper-label text-ink-2 transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
       >
         <span>Where do I find my ID?</span>
       </button>

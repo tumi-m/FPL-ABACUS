@@ -53,7 +53,7 @@ export function ChipLane({
                 gw.id === currentGw && "bg-surface-3",
               )}
             >
-              <div className="text-2xs font-semibold uppercase-label text-ink-lo">GW{gw.id}</div>
+              <div className="text-2xs font-semibold upper-label text-ink-lo">GW{gw.id}</div>
               <div className="text-[9px] leading-tight text-ink-lo">{gw.deadline}</div>
               {(gw.doubles > 0 || gw.blanks > 0) && (
                 <div className="mt-0.5 flex justify-center gap-1">
@@ -81,7 +81,7 @@ export function ChipLane({
                   type="button"
                   onClick={() => onAssign(here[0], null)}
                   title="Take this chip back off the lane"
-                  className="mt-1 w-full rounded-sm bg-volt px-1 py-1 text-2xs font-bold uppercase-label text-on-accent"
+                  className="mt-1 w-full rounded-sm bg-volt px-1 py-1 text-2xs font-bold upper-label text-on-accent"
                 >
                   {chips.find((c) => c.key === here[0])?.label ?? here[0]}
                 </button>
@@ -104,7 +104,7 @@ export function ChipLane({
                             : `Pencil ${c.label} in for GW${gw.id} (available GW${c.startEvent}–${c.stopEvent})`
                         }
                         className={cn(
-                          "rounded-sm px-1 py-0.5 text-[10px] uppercase-label",
+                          "rounded-sm px-1 py-0.5 text-[10px] upper-label",
                           taken
                             ? "cursor-not-allowed text-ink-lo opacity-40"
                             : "bg-sunk text-ink-mid hover:bg-surface-3 hover:text-ink-hi",

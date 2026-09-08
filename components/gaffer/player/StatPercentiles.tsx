@@ -61,7 +61,7 @@ export function StatPercentiles({ read, pos }: { read: PercentileRead; pos: numb
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-pressed={open}
-          className="skewed h-7 shrink-0 rounded-sm bg-raised px-2.5 text-2xs uppercase-label text-ink-lo transition-colors dur-instant hover:text-ink-hi"
+          className="skewed h-7 shrink-0 rounded-sm bg-raised px-2.5 text-2xs upper-label text-ink-lo transition-colors dur-instant hover:text-ink-hi"
         >
           <span>{open ? "Bars" : "Table"}</span>
         </button>

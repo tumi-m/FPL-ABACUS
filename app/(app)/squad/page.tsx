@@ -172,13 +172,13 @@ export default async function SquadPage() {
       <div className="flex flex-wrap gap-2">
         <Link
           href="/field"
-          className="skewed inline-flex h-10 items-center rounded-md card-ring px-4 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+          className="skewed inline-flex h-10 items-center rounded-md card-ring px-4 text-2xs upper-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
         >
           <span>See them on the pitch</span>
         </Link>
         <Link
           href="/planner"
-          className="skewed inline-flex h-10 items-center rounded-md card-ring px-4 text-2xs uppercase-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
+          className="skewed inline-flex h-10 items-center rounded-md card-ring px-4 text-2xs upper-label text-ink-mid transition-colors dur-instant hover:bg-surface-3 hover:text-ink-hi"
         >
           <span>Plan a transfer</span>
         </Link>

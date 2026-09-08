@@ -111,7 +111,7 @@ export function Cockpit({ cockpit }: { cockpit: CockpitResult }) {
               <Link
                 key={b.id}
                 href={b.action!.href}
-                className="skewed inline-flex h-10 items-center rounded-md bg-volt px-4 text-2xs uppercase-label text-on-accent transition-transform dur-instant active:scale-[0.98]"
+                className="skewed inline-flex h-10 items-center rounded-md bg-volt px-4 text-2xs upper-label text-on-accent transition-transform dur-instant active:scale-[0.98]"
               >
                 <span>{b.action!.label}</span>
               </Link>

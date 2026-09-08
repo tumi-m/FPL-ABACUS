@@ -46,7 +46,7 @@ export function MessageGallery() {
       <button
         type="button"
         onClick={() => setMessages(SAMPLES)}
-        className="skewed inline-flex h-10 items-center rounded-md bg-volt px-4 text-xs uppercase-label text-on-accent"
+        className="skewed inline-flex h-10 items-center rounded-md bg-volt px-4 text-xs upper-label text-on-accent"
       >
         Replay
       </button>

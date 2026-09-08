@@ -281,7 +281,7 @@ export function CommandPalette() {
                 )}
               >
                 <span className="min-w-0 truncate text-sm">{item.label}</span>
-                <span className="shrink-0 text-2xs uppercase-label text-ink-lo">{item.hint}</span>
+                <span className="shrink-0 text-2xs upper-label text-ink-lo">{item.hint}</span>
               </button>
             ))}
           </div>

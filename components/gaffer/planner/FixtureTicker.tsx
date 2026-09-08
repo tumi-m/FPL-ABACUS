@@ -110,7 +110,7 @@ export function FixtureTicker({
                 title={s.hint}
                 onClick={() => setSide(s.key)}
                 className={cn(
-                  "skewed rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                  "skewed rounded-sm px-3 py-1.5 text-2xs upper-label transition-colors dur-instant",
                   side === s.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
                 )}
               >
@@ -126,7 +126,7 @@ export function FixtureTicker({
                 aria-pressed={weeks === n}
                 onClick={() => setWeeks(n)}
                 className={cn(
-                  "skewed rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                  "skewed rounded-sm px-3 py-1.5 text-2xs upper-label transition-colors dur-instant",
                   weeks === n ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
                 )}
               >
@@ -147,7 +147,7 @@ export function FixtureTicker({
                 aria-pressed={sort === s.key}
                 onClick={() => setSort(s.key)}
                 className={cn(
-                  "skewed rounded-sm px-3 py-1.5 text-2xs uppercase-label transition-colors dur-instant",
+                  "skewed rounded-sm px-3 py-1.5 text-2xs upper-label transition-colors dur-instant",
                   sort === s.key ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
                 )}
               >

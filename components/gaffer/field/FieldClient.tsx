@@ -19,6 +19,23 @@ import { InjuryReport } from "@/components/gaffer/field/InjuryReport";
 import { describeReason, itemiseGap, topSwings } from "@/lib/engines/compareGap";
 import { availabilityLabel } from "@/lib/engines/availability";
 import { GameweekPicker } from "@/components/gaffer/GameweekPicker";
+import { PageSection, SectionNav, type SpineSection } from "@/components/gaffer/Spine";
+
+/**
+ * The Field's table of contents.
+ *
+ * Order matters and must match the page: the rail highlights whichever of
+ * these you are inside, so a list in a different order than the document
+ * would light up the wrong chip on the way down.
+ */
+const FIELD_SECTIONS: SpineSection[] = [
+  { id: "pitch", label: "Pitch" },
+  { id: "armband", label: "Armband" },
+  { id: "decision", label: "Decisions" },
+  { id: "week", label: "This week" },
+  { id: "season", label: "Season" },
+  { id: "market", label: "Market" },
+];
 import type { TopPerformersData } from "@/components/gaffer/field/TopPerformers";
 import type { BonusBoardData } from "@/components/gaffer/boards/BonusBoard";
 import type { DefconBoardData } from "@/components/gaffer/boards/DefconBoard";
@@ -617,12 +634,12 @@ export function FieldClient({
             <button
               type="button"
               onClick={() => setGw(null)}
-              className="skewed rounded-sm bg-volt px-2 py-1 text-2xs uppercase-label text-on-accent"
+              className="skewed rounded-sm bg-volt px-2 py-1 text-2xs upper-label text-on-accent"
             >
               <span>Back to current</span>
             </button>
           )}
-          <span className="text-2xs uppercase-label text-ink-lo">{model.phase}</span>
+          <span className="text-2xs upper-label text-ink-lo">{model.phase}</span>
           <span className="ml-auto hidden text-2xs text-ink-lo sm:inline">
             {historical ? "Historical view — points mode only" : MODES.find((m) => m.id === mode)?.hint}
           </span>
@@ -653,28 +670,28 @@ export function FieldClient({
               <Link
                 href="/field/clubs"
                 role="button"
-                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-raised px-4 text-xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
               >
                 <span>Club numbers</span>
               </Link>
               <Link
                 href="/field/combos"
                 role="button"
-                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-raised px-4 text-xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
               >
                 <span>Combinations</span>
               </Link>
               <Link
                 href="/field/points"
                 role="button"
-                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-volt px-4 text-xs uppercase-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.97]"
+                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-volt px-4 text-xs upper-label text-on-accent btn-glow transition-transform dur-instant active:scale-[0.97]"
               >
                 <span>Points contribution</span>
               </Link>
               <Link
                 href="/field/understanding"
                 role="button"
-                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-raised px-4 text-xs uppercase-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
+                className="skewed inline-flex h-11 shrink-0 items-center rounded-md bg-raised px-4 text-xs upper-label text-ink-mid card-ring transition-colors dur-instant hover:text-ink-hi"
               >
                 <span>Season understanding</span>
               </Link>
@@ -695,7 +712,7 @@ export function FieldClient({
               aria-pressed={mode === m.id}
               title={gated ? "Historical gameweeks show points only" : undefined}
               className={cn(
-                "skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
+                "skewed rounded-sm px-3 py-1.5 text-xs upper-label transition-colors dur-instant",
                 mode === m.id ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
                 gated && "cursor-not-allowed opacity-40",
               )}
@@ -721,7 +738,7 @@ export function FieldClient({
               />
               <button
                 onClick={() => (rival ? clearRival() : loadRival())}
-                className="skewed rounded-sm bg-raised px-2.5 py-1 text-xs uppercase-label text-ink-mid hover:text-ink-hi"
+                className="skewed rounded-sm bg-raised px-2.5 py-1 text-xs upper-label text-ink-mid hover:text-ink-hi"
               >
                 <span>{rival ? "Clear" : "Compare"}</span>
               </button>
@@ -814,7 +831,7 @@ export function FieldClient({
                   onClick={() => setRivalView(v)}
                   aria-pressed={rivalView === v}
                   className={cn(
-                    "skewed rounded-sm px-3 py-1.5 text-xs uppercase-label transition-colors dur-instant",
+                    "skewed rounded-sm px-3 py-1.5 text-xs upper-label transition-colors dur-instant",
                     rivalView === v ? "bg-volt text-on-accent" : "text-ink-mid hover:bg-surface-3 hover:text-ink-hi",
                   )}
                 >
@@ -857,7 +874,7 @@ export function FieldClient({
         >
           <header>
             <h2 className="fig-num text-[19px] leading-none">{BOARD_HEADS[boardMode].title}</h2>
-            <p className="mt-1 max-w-[70ch] text-2xs uppercase-label text-ink-lo">
+            <p className="mt-1 max-w-[70ch] text-2xs upper-label text-ink-lo">
               {BOARD_HEADS[boardMode].blurb}
             </p>
           </header>
@@ -878,7 +895,7 @@ export function FieldClient({
           )}
         </section>
       ) : (
-      <section aria-label={`Your team on the pitch, ${mode} mode`} className="rounded-lg has-gloss card-lift overflow-hidden bg-raised p-3 md:p-5">
+      <section id="pitch" aria-label={`Your team on the pitch, ${mode} mode`} className="rounded-lg has-gloss card-lift overflow-hidden bg-raised p-3 md:p-5">
         <div
           ref={pitchRef}
           className="on-turf relative overflow-hidden rounded-lg px-2 py-4 md:px-6"
@@ -1072,26 +1089,35 @@ export function FieldClient({
           nobody scrolled to. */}
       {!boardMode && (
         <>
+      {/*
+        * The rail starts here rather than at the top of the page.
+        *
+        * Above this line is the cockpit — the week, the score, the mode tabs,
+        * the pitch — and it already has its own controls; a second sticky bar
+        * over them would be two rails arguing. Below it is six thousand pixels
+        * of analysis with nothing to steer by, which is what the rail is for.
+        */}
+      <SectionNav sections={FIELD_SECTIONS} />
+
       {/* The captaincy doubles one player's return, which makes it the biggest
           single lever in the game — and it lived in an ask card. It goes first
           below the pitch, and it reads the NEXT gameweek rather than the one on
           screen: the Field is routinely opened on a live or finished week, and
           "who should wear it" only means something about a week you can still
           change. */}
-      <ArmbandBoard squad={model.squad} />
-
-      <EOScatter rows={model.squad} onSelect={(el) => setPeekElement(el)} />
+      <div id="armband" style={{ scrollMarginTop: "104px" }} className="space-y-4">
+        <ArmbandBoard squad={model.squad} />
+        <EOScatter rows={model.squad} onSelect={(el) => setPeekElement(el)} />
+      </div>
 
       {/* the decision board — the Monte Carlo and Nash engines the app already
           carried, finally on screen. The simulation feed is fetched once and
           shared; the two charts that need it say so while it loads. */}
-      <section aria-label="Decision board" className="space-y-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="upper-label text-2xs text-ink-lo">The decision board</h2>
-          <p className="text-2xs text-ink-lo">
-            Simulation and attribution — every figure here is an estimate, and says so.
-          </p>
-        </div>
+      <PageSection
+        id="decision"
+        title="The decision board"
+        hint="Simulation and attribution — every figure here is an estimate, and says so."
+      >
         {decisionWeb ? (
           <DecisionBoardBlock
             model={model}
@@ -1106,16 +1132,17 @@ export function FieldClient({
               : "The simulation needs your picks and some finished fixtures to lean on."}
           </p>
         )}
-      </section>
+      </PageSection>
 
       {/* The squad-shape charts. With a rival loaded they stop being a report
           on your fifteen and become a comparison of two, on the pitch's own
           colours: volt is you, ultra is them, the same pair the differential
           bars use, so the mapping is learned once. */}
-      <section aria-label={rival ? "You against them" : "Your gameweek"} className="space-y-4">
-        {rival && (
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="upper-label text-2xs text-ink-lo">You against them</h2>
+      <PageSection
+        id="week"
+        title={rival ? "You against them" : "Your gameweek"}
+        aside={
+          rival ? (
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-ink-lo">
               <span className="inline-flex items-center gap-1.5">
                 <span aria-hidden className="inline-block h-2 w-2 rounded-full bg-volt" />
@@ -1126,43 +1153,42 @@ export function FieldClient({
                 {rival.teamName ?? `Entry ${rival.entry}`}
               </span>
             </p>
-          </div>
-        )}
+          ) : undefined
+        }
+      >
         <SquadWeekBlock rows={model.squad} rival={rivalSeries} />
-      </section>
+      </PageSection>
 
       {/* the season underneath the gameweek — are the players any good */}
-      <section aria-label="Your fifteen this season" className="space-y-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="upper-label text-2xs text-ink-lo">Your fifteen this season</h2>
-          {/* Named as yours even in compare mode. These read a player's whole
-              season rather than this week's scoreline, so putting a rival's
-              fifteen on the same axes would double the marks without adding a
-              comparison — and leaving the heading ambiguous next to four
-              charts that ARE comparative is the worse mistake. */}
-          <p className="text-2xs text-ink-lo">
-            {rival
-              ? "Your squad only — season totals, not projections."
-              : "Season totals, not projections — what they have actually done."}
-          </p>
-        </div>
+      {/* Named as yours even in compare mode. These read a player's whole
+          season rather than this week's scoreline, so putting a rival's
+          fifteen on the same axes would double the marks without adding a
+          comparison — and leaving the heading ambiguous next to four charts
+          that ARE comparative is the worse mistake. */}
+      <PageSection
+        id="season"
+        title="Your fifteen this season"
+        hint={
+          rival
+            ? "Your squad only — season totals, not projections."
+            : "Season totals, not projections — what they have actually done."
+        }
+      >
         <SquadSeasonBlock rows={model.squad} currentGw={model.event.id} />
-      </section>
+      </PageSection>
 
       <FieldInsightLab mine={model.squad.map((p) => p.element)} />
 
       {/* The creation chart widens the view to the league
           they came out of, on the same axes — which is the only way to see
           that the creator you are missing is a row you never scrolled to. */}
-      <section aria-label="The league this season" className="space-y-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="upper-label text-2xs text-ink-lo">Everyone else, too</h2>
-          <p className="text-2xs text-ink-lo">
-            The whole market on one pair of axes — yours marked.
-          </p>
-        </div>
+      <PageSection
+        id="market"
+        title="Everyone else, too"
+        hint="The whole market on one pair of axes — yours marked."
+      >
         <CreationScatter mine={model.squad.map((p) => p.element)} />
-      </section>
+      </PageSection>
         </>
       )}
 
@@ -1819,7 +1845,7 @@ function ComparePitch({
        * the same treatment rather than a second answer to it.
        */}
       <div className="flex justify-center">
-        <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[rgba(4,18,31,.58)] px-3 py-1 text-2xs uppercase-label text-ultra ring-1 ring-[rgba(255,255,255,.16)]">
+        <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[rgba(4,18,31,.58)] px-3 py-1 text-2xs upper-label text-ultra ring-1 ring-[rgba(255,255,255,.16)]">
           <span className="truncate">{rival.teamName ?? `Entry ${rival.entry}`}</span>
           <span aria-hidden>↓</span>
         </span>
@@ -1867,11 +1893,11 @@ function ComparePitch({
        * from those read as a mistake rather than as structure.
        */}
       <div className="my-2 flex items-center justify-between gap-3 rounded-full bg-[rgba(4,18,31,.58)] px-3 py-1.5 ring-1 ring-[rgba(255,255,255,.16)]">
-        <span className="inline-flex min-w-0 items-center gap-1.5 text-2xs uppercase-label text-ultra">
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-2xs upper-label text-ultra">
           <span aria-hidden>↑</span>
           <span className="truncate">{rival.teamName ?? `Entry ${rival.entry}`}</span>
         </span>
-        <span className="inline-flex shrink-0 items-center gap-1.5 text-2xs uppercase-label text-volt">
+        <span className="inline-flex shrink-0 items-center gap-1.5 text-2xs upper-label text-volt">
           <span>You</span>
           <span aria-hidden>↓</span>
         </span>
@@ -2045,7 +2071,7 @@ function CompareColumn({ title, rows, tone }: { title: string; rows: SquadRow[];
     <div>
       <div className="mb-1.5 flex items-baseline justify-between">
         <h4 className="upper-label text-2xs text-ink-lo">{title}</h4>
-        <span className={`text-2xs uppercase-label ${tone === "volt" ? "text-volt" : "text-ultra"}`}>live</span>
+        <span className={`text-2xs upper-label ${tone === "volt" ? "text-volt" : "text-ultra"}`}>live</span>
       </div>
       <table className="w-full text-xs num-tabular">
         <thead>

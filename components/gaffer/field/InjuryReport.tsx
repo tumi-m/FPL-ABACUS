@@ -100,7 +100,7 @@ export function InjuryReport({ rows }: { rows: Row[] }) {
                   </span>
 
                   <span className="shrink-0 text-right">
-                    <span className={cn("block text-xs font-semibold uppercase-label", tone.text)}>
+                    <span className={cn("block text-xs font-semibold upper-label", tone.text)}>
                       {tone.label}
                     </span>
                     {r.availability.chance != null && (
