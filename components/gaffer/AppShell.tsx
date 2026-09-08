@@ -32,16 +32,17 @@ const NAV = [
   { href: "/live", label: "Home", short: "Home", thumb: true },
   { href: "/field", label: "Field", short: "Field", thumb: true },
   { href: "/planner", label: "Planner", short: "Plan", thumb: true },
-  { href: "/field/combos", label: "Combinations", short: "Pairs", thumb: false },
+  { href: "/field/combos", label: "Combinations", short: "Pairs", thumb: false, hint: "Two players against one, at the same spend" },
   { href: "/board", label: "Board", short: "Board", thumb: true },
   { href: "/leagues", label: "Leagues", short: "Mini", thumb: true },
-  { href: "/deadline", label: "Deadline", short: "Lock", thumb: false },
-  { href: "/news", label: "Newsdesk", short: "News", thumb: false },
-  { href: "/film", label: "Film", short: "Film", thumb: false },
-  { href: "/dna", label: "Manager DNA", short: "DNA", thumb: false },
+  { href: "/deadline", label: "Deadline", short: "Lock", thumb: false, hint: "Am I done? — and the calendar feed" },
+  { href: "/news", label: "Newsdesk", short: "News", thumb: false, hint: "Injuries and club news, in FPL's own words" },
+  { href: "/film", label: "Film", short: "Film", thumb: false, hint: "Your season, archived week by week" },
+  { href: "/dna", label: "Manager DNA", short: "DNA", thumb: false, hint: "Your transfer record under the lens" },
 ] as const;
 
 const THUMB = NAV.filter((item) => item.thumb);
+
 
 /**
  * The shell. `liveSlot` and `statusSlot` arrive as already-rendered server
@@ -191,9 +192,38 @@ function ExploreNav({ pathname }: { pathname: string }) {
       }
     }}>
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-md px-2 text-xs text-ink-mid hover:bg-surface-3 [&::-webkit-details-marker]:hidden">More <span aria-hidden>⌄</span></summary>
-      <nav aria-label="Explore GAFFER" className="absolute right-0 top-full mt-2 w-60 rounded-lg bg-overlay card-lift p-2">
+      <nav aria-label="Explore GAFFER" /*
+       * Anchored to the trigger on a wide screen, to the viewport on a phone.
+       *
+       * `absolute right-0` hangs the panel off the right-hand edge of its
+       * summary, and the summary is the first thing in the header's right-hand
+       * cluster — which on a 390px phone sits about 110px from the left. A
+       * 288px panel anchored there runs to x = -178: the whole menu was drawn
+       * off the left edge of the screen, so the five destinations it exists to
+       * reach could not be reached at all on the device most people use.
+       */
+      className="absolute right-0 top-full mt-2 w-72 rounded-lg bg-overlay card-lift p-2 max-sm:fixed max-sm:inset-x-3 max-sm:top-16 max-sm:w-auto">
         <p className="upper-label px-3 py-2 text-2xs text-ink-lo">See the bigger picture</p>
-        {NAV.filter((item) => !item.thumb).map((item) => <Link key={item.href} href={item.href} prefetch={false} aria-current={pathname === item.href ? "page" : undefined} onClick={() => { if (ref.current) ref.current.open = false; }} className="flex min-h-11 items-center rounded-md px-3 text-sm text-ink-mid hover:bg-surface-3 hover:text-ink-hi aria-[current=page]:text-volt">{item.label}</Link>)}
+        {/* Each destination says what it is for. "Combinations", "Film" and
+            "Manager DNA" are five nouns that mean something once you have
+            been to all five, and nothing at all before that. */}
+        {NAV.filter((item) => !item.thumb).map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            prefetch={false}
+            aria-current={pathname === item.href ? "page" : undefined}
+            onClick={() => {
+              if (ref.current) ref.current.open = false;
+            }}
+            className="block rounded-md px-3 py-2.5 text-ink-mid hover:bg-surface-3 hover:text-ink-hi aria-[current=page]:text-volt"
+          >
+            <span className="block text-sm">{item.label}</span>
+            {"hint" in item && (
+              <span className="mt-0.5 block text-2xs leading-snug text-ink-lo">{item.hint}</span>
+            )}
+          </Link>
+        ))}
         <Link href="/" prefetch={false} onClick={() => { if (ref.current) ref.current.open = false; }} className="mt-1 flex min-h-11 items-center border-t border-hairline px-3 text-sm text-ink-mid hover:text-ink-hi">Change team</Link>
       </nav>
     </details>

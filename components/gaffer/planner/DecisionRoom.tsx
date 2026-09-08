@@ -60,7 +60,7 @@ export function DecisionRoom({ moves, playerOf, sellPriceOf, freeTransfers, bank
               <p className="text-sm font-semibold text-ink-hi">{NAMES[key]}</p>
               <p className="fig-num my-2 text-3xl leading-none text-ink-hi">{value == null ? "—" : <Est method={METHOD}>{signed(value)}</Est>}</p>
               <p className="text-xs text-ink-lo">{key === "hold" ? "Your comparison baseline" : value == null ? "Needs at least two gameweeks" : `${key === "now" ? result.nowHit : result.waitHit} points in hits`}</p>
-              <p className={cn("mt-3 text-2xs uppercase-label", result.best === key ? "text-volt" : "text-ink-lo")}>{result.best === key ? "Leads this scenario" : value == null ? "Outside this window" : "Points versus holding"}</p>
+              <p className={cn("mt-3 text-2xs upper-label", result.best === key ? "text-volt" : "text-ink-lo")}>{result.best === key ? "Leads this scenario" : value == null ? "Outside this window" : "Points versus holding"}</p>
             </div>;
           })}
         </div>

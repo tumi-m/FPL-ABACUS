@@ -268,9 +268,18 @@ test.describe("authenticated routes", () => {
     const href = (await rival.getAttribute("href"))!;
     await page.goto(href); // deep-link directly — click hit-testing is flaky under the sticky header
     await expect(page).toHaveURL(/field\?mode=points&compare=\d+/);
-    // either the head-to-head header loads or an honest reason shows
+    // Either the head-to-head header loads or an honest reason shows.
+    //
+    // Scoped to the page's own content, and "You" anchored as a word: the
+    // unscoped version matched the navigation menu's description of the Film
+    // page ("Your season, archived week by week"), which is inside a closed
+    // dropdown, so `.first()` picked an element that is hidden by design and
+    // the assertion failed on markup the test is not about.
     await expect(
-      page.getByText(/no side for GW|No FPL team with id|FPL didn't answer|Entry \d+|You/).first(),
+      page
+        .locator("main")
+        .getByText(/no side for GW|No FPL team with id|FPL didn't answer|Entry \d+|\bYou\b/)
+        .first(),
     ).toBeVisible({ timeout: 15_000 });
   });
 
