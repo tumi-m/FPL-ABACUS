@@ -240,8 +240,22 @@ function standings(leagueId, page) {
   };
 }
 
+/*
+ * MOCK_FPL_403=1 makes every path answer 403, which is what FPL itself did to
+ * production for one tick on 9 Sept. Reproducing it is the only way to check
+ * that a refusal is reported as somebody else's outage rather than as a broken
+ * scheduler — the difference between a warning and an "all jobs have failed"
+ * email, and not something a unit test on the predicate alone can prove.
+ */
+const FORBID_ALL = process.env.MOCK_FPL_403 === "1";
+
 const server = http.createServer((req, res) => {
   const url = req.url.split("?")[0];
+
+  if (FORBID_ALL) {
+    res.writeHead(403, { "content-type": "text/plain" });
+    return res.end("Forbidden");
+  }
 
   if (url === "/api/bootstrap-static/") return json(res, boot);
   if (url === "/api/fixtures/") return json(res, fixtures);

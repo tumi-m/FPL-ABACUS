@@ -49,6 +49,7 @@ jobs:
           AUTH="Authorization: Bearer $SECRET"
           FAILED=""
           SKIPPED=""
+          OUTAGE=""
 
           # -L so a redirect is followed rather than reported as success.
           # Note curl drops the Authorization header across a cross-host
@@ -68,9 +69,24 @@ jobs:
               2*) [ "$VERBOSE" = "true" ] && echo "   ${body:0:500}" ;;
               *)  echo "   ${body:0:500}" ;;
             esac
+            # Whose fault is this?
+            #
+            # Every endpoint labels a failure it could not have prevented —
+            # FPL refusing to answer — with `"upstream":"fpl"`. That is not a
+            # broken scheduler and no retry from here fixes it: the jobs are
+            # idempotent, the next tick is five minutes away, and the outage
+            # that prompted this ran for one tick between two green ones. The
+            # flag is a field rather than a phrase so that rewording an error
+            # message cannot quietly start alerting on outages again.
             case "$code" in
               2*) ;;
-              *) FAILED="$FAILED $1($code)" ;;
+              *)
+                if printf '%s' "$body" | grep -q '"upstream":"fpl"'; then
+                  OUTAGE="$OUTAGE $1($code)"
+                else
+                  FAILED="$FAILED $1($code)"
+                fi
+                ;;
             esac
             # A 2xx carrying "skipped" means the endpoint declined to do its
             # work for a reason it knows about — no database, or no schema.
@@ -97,6 +113,15 @@ jobs:
           if [ "$MIN" -ge 30 ] && [ "$MIN" -le 34 ];  then call /api/cron/news; fi
           if [ "$HOUR" -eq 9 ] && [ "$MIN" -ge 10 ] && [ "$MIN" -le 19 ]; then call /api/cron/finalise; fi
 
+          # FPL being unavailable is weather, not a fault — said out loud on
+          # the run, not mailed out as "all jobs have failed". If it is still
+          # true tomorrow, db-check says so once, which is the same bargain
+          # the missing-schema skip already strikes.
+          if [ -n "$OUTAGE" ]; then
+            echo "::warning::FPL was not answering, so these did no work:$OUTAGE — nothing here is broken; the next tick retries. db-check reports it if it lasts."
+            echo "FPL unavailable:$OUTAGE" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
           # Visible on the run and in the job summary, but not a failure.
           if [ -n "$SKIPPED" ]; then
             echo "::warning::endpoints skipped their work:$SKIPPED — see the db-check workflow"
@@ -105,8 +130,9 @@ jobs:
 
           # A green tick that fired nothing is worse than a red one. Fail the
           # run so a broken production scheduler is visible instead of silent.
-          # This still catches every genuine fault: a 5xx, a 401 from a bad
-          # PROD_URL, a timeout, an endpoint that has stopped existing.
+          # This still catches every genuine fault: a 5xx out of our own code,
+          # a 401 from a bad PROD_URL, an endpoint that has stopped existing —
+          # everything except the one case somebody else owns and time fixes.
           if [ -n "$FAILED" ]; then
             echo "::error::cron endpoints did not answer 2xx:$FAILED"
             exit 1

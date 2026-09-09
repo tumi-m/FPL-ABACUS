@@ -4,6 +4,7 @@ import { hasDb } from "@/lib/env";
 import { explainDbError, isMissingSchema } from "@/lib/db";
 import { buildCohortSnapshot } from "@/lib/server/cohortBuilder";
 import { getBootstrapLite } from "@/lib/fpl/bootstrapLite";
+import { cronFailure } from "@/lib/server/upstreamRefusal";
 
 export const maxDuration = 60;
 
@@ -42,6 +43,9 @@ export async function GET(req: NextRequest) {
     if (isMissingSchema(err)) {
       return NextResponse.json({ ok: true, skipped: "no-schema", error: explainDbError(err) });
     }
-    return NextResponse.json({ ok: false, error: explainDbError(err) }, { status: 502 });
+    // FPL refusing to answer is an outage, not a fault here — labelled so the
+    // scheduler can tell the two apart rather than mailing out the same alarm
+    // for both.
+    return NextResponse.json(cronFailure(err, explainDbError(err)), { status: 502 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cronWriteGuard } from "@/lib/server/cronGuard";
+import { cronFailure } from "@/lib/server/upstreamRefusal";
 import { hasDb } from "@/lib/env";
 import { db, explainDbError, isMissingSchema } from "@/lib/db";
 import { priceChange, priceSnapshot } from "@/lib/db/schema";
@@ -110,6 +111,6 @@ export async function GET(req: NextRequest) {
     if (isMissingSchema(err)) {
       return NextResponse.json({ ok: true, skipped: "no-schema", error: explainDbError(err) });
     }
-    return NextResponse.json({ ok: false, error: explainDbError(err) }, { status: 502 });
+    return NextResponse.json(cronFailure(err, explainDbError(err)), { status: 502 });
   }
 }

@@ -1,6 +1,6 @@
 name: db-check
 
-# Is production's database actually usable?
+# Is production's database actually usable — and can it still read FPL?
 #
 # prod-cron used to answer this by going red on every tick — the same
 # unchanging sentence ("relation cohort_snapshot does not exist") mailed out
@@ -12,7 +12,11 @@ name: db-check
 # skip is never quietly permanent. One alert a day, naming the fix, instead of
 # ten saying nothing new.
 #
-# The fix, when this fails: Actions → db-migrate → Run workflow.
+# It also carries the other daily question. The five-minute tick treats FPL
+# refusing to answer as weather and stays green, which is only safe if
+# something notices when the weather does not change. This is that something.
+#
+# The fix, when this fails on the schema: Actions → db-migrate → Run workflow.
 
 on:
   schedule:
@@ -82,7 +86,30 @@ jobs:
             exit 1
           fi
 
+          # The other thing this is now the watchdog for.
+          #
+          # The five-minute tick treats FPL refusing to answer as weather: it
+          # warns and stays green, because the jobs are idempotent, the next
+          # tick is minutes away, and a real outage lasted one tick between two
+          # green ones. That bargain only holds if something notices when it
+          # does not clear — otherwise a permanent block (FPL banning the
+          # deployment's addresses, say) looks exactly like a quiet afternoon.
+          # Once a day is the right amount of noise for that.
+          if printf '%s' "$body" | grep -q '"upstream":"fpl"'; then
+            echo "::error::Production still cannot read FPL a day later: ${body:0:300} — the five-minute scheduler has been treating this as a passing outage. If it is not passing, the app is serving stale data and the cause is upstream of this repo: check whether FPL is up, and whether it is refusing the deployment's requests specifically."
+            {
+              echo "### Production cannot reach the FPL API"
+              echo ""
+              echo "\`$body\`"
+              echo ""
+              echo "The five-minute tick warns and stays green on this, on the assumption it passes. It has not passed in a day."
+              echo ""
+              echo "A 403 on \`/bootstrap-static/\` is FPL refusing us specifically — that path takes no parameters, so there is nothing we could be asking wrong. Worth checking whether it answers from elsewhere before assuming an outage."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
           case "$code" in
-            2*) echo "Schema is present; the cohort job is doing its work." ;;
-            *)  echo "::error::cohort endpoint answered $code"; exit 1 ;;
+            2*) echo "Schema is present and FPL is answering; the cohort job is doing its work." ;;
+            *)  echo "::error::cohort endpoint answered $code: ${body:0:300}"; exit 1 ;;
           esac
