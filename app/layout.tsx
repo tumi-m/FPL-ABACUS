@@ -1,12 +1,37 @@
 import type { Metadata, Viewport } from "next";
 import { brand } from "@/config/brand";
+import { siteUrl } from "@/lib/siteUrl";
 import { fontClassName } from "@/config/fonts";
 import { Providers } from "@/components/primitives/Providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  /*
+   * The one absolute URL the app needs.
+   *
+   * Without it Next.js has no way to turn the OG and Twitter card images into
+   * absolute URLs, which is the only form the platforms that fetch them
+   * accept — so every share of this app has been posting a card that resolves
+   * against whatever host the scraper guessed. It also gives every page a
+   * canonical, which matters the moment a project has two addresses: a custom
+   * domain and the .vercel.app it was born on are the same site to us and two
+   * competing copies to a search engine.
+   *
+   * Resolved rather than written down, so the domain lives in one place —
+   * Vercel's project settings — and changing it is not a deploy.
+   */
+  metadataBase: new URL(siteUrl()),
+  alternates: { canonical: "/" },
   title: { default: `${brand.name} — ${brand.tagline}`, template: `%s · ${brand.name}` },
   description: brand.description,
+  openGraph: {
+    type: "website",
+    siteName: brand.name,
+    title: `${brand.name} — ${brand.tagline}`,
+    description: brand.description,
+    url: "/",
+  },
+  twitter: { card: "summary_large_image", title: brand.name, description: brand.description },
 };
 
 export const viewport: Viewport = {

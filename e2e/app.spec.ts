@@ -1667,15 +1667,31 @@ test("the command palette finds a player by name (v10 A2)", async ({ page }) => 
   // Player names come from the palette endpoint in the background; a route
   // miss would leave the list with routes only, which is the honest degrade.
   // A first-name that exists in the fixture market, not a hardcoded star.
-  const res = await page.request.get("/api/gaffer/palette-players");
-  const players = ((await res.json()) as { players: { id: number; name: string }[] }).players;
+  //
+  // This call only picks something to type. It already falls back when the
+  // endpoint has no players to offer — and not when the request itself dies,
+  // so an ECONNRESET under a parallel run failed a test about the palette on
+  // a line that never touches it. Same shape as the guard in the
+  // season-understanding test: a request made to set up an assertion must not
+  // be able to fail it.
+  const players = await page.request
+    .get("/api/gaffer/palette-players")
+    .then(async (res) =>
+      res.ok() ? ((await res.json()) as { players: { name: string }[] }).players : [],
+    )
+    .catch(() => [] as { name: string }[]);
   const needle = players[0]?.name.toLowerCase().slice(0, 4) ?? "gabr";
   await dialog.getByRole("combobox").fill(needle);
   const options = dialog.getByRole("option");
   await expect(options.first()).toBeVisible({ timeout: 10_000 });
-  const playerHit = await dialog.getByRole("option", { name: new RegExp(needle, "i") }).count();
-  if (playerHit > 0) {
-    await dialog.getByRole("option", { name: new RegExp(needle, "i") }).first().click();
+  // The needle comes from live data and goes into a RegExp, so it has to be
+  // escaped: one player named "D. Costa" or "N'Dicka" would otherwise turn a
+  // name into a pattern and match the wrong row, or nothing at all.
+  const byNeedle = dialog.getByRole("option", {
+    name: new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"),
+  });
+  if ((await byNeedle.count()) > 0) {
+    await byNeedle.first().click();
     await page.waitForURL("**/players/**");
   }
 });
