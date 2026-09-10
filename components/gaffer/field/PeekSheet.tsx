@@ -12,10 +12,66 @@ import { clubOf } from "@/config/clubs";
 import { POSITION_SHORT, formatSignedRank } from "@/lib/ui/format";
 import { MINUTES_METHOD } from "@/lib/engines/minutes";
 import { PlayerAvatar, useAvatarMode } from "@/components/gaffer/PlayerAvatar";
+import { PlayerRadar } from "@/components/charts/PlayerRadar";
+import type { PlayerRadar as RadarData } from "@/lib/engines/playerRadar";
 import type { MatchdayModel } from "@/lib/engines/matchdayModel";
 
 type SwingRow = MatchdayModel["swings"][number];
 type LevRow = MatchdayModel["leverage"]["yours"][number];
+
+/**
+ * The attribute web — six percentiles inside his own position, fetched when
+ * the sheet opens.
+ *
+ * Same bargain as the minutes estimate below it: the cohort is the whole
+ * market, so the ranking has to happen on the server, and the pitch draws
+ * twenty-two tokens of which nobody peeks at more than a few. Shipping a
+ * radar with every page would be paying to throw twenty away.
+ *
+ * A null radar is a real answer — too thin a cohort to rank against — and
+ * the sheet says so rather than drawing a hexagon out of nothing.
+ */
+function AttributeWeb({ element }: { element: number }) {
+  const [radar, setRadar] = React.useState<RadarData | null>(null);
+  const [state, setState] = React.useState<"loading" | "ready" | "none">("loading");
+
+  React.useEffect(() => {
+    let alive = true;
+    setRadar(null);
+    setState("loading");
+    fetch(`/api/gaffer/radar?player=${element}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((data: { radar: RadarData | null }) => {
+        if (!alive) return;
+        setRadar(data.radar);
+        setState(data.radar ? "ready" : "none");
+      })
+      .catch(() => {
+        if (alive) setState("none");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [element]);
+
+  if (state === "none") return null;
+
+  return (
+    <div className="mt-5">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <p className="upper-label text-2xs text-ink-lo">Attribute web</p>
+        <p className="text-2xs text-ink-lo">
+          Percentile in his position · outward is better
+        </p>
+      </div>
+      {state === "loading" || !radar ? (
+        <div className="h-[220px] animate-pulse rounded-md bg-surface-3/40" />
+      ) : (
+        <PlayerRadar radar={radar} />
+      )}
+    </div>
+  );
+}
 
 /**
  * Minutes certainty (v10 D2) — P(start)/P(60+) fetched per player when the
@@ -309,6 +365,10 @@ export function PeekSheet({
           {/* Will he start? (v10 D2) — fetched for this player when the sheet
               opens, never shipped with the pitch. */}
           <MinutesCertainty element={row.element} status={row.availability.kind} />
+
+          {/* The card radar. Above "this season" rather than below it: the
+              shape is the summary those figures add up to. */}
+          <AttributeWeb element={row.element} />
 
           {/*
            * The season, under the gameweek.
