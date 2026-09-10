@@ -1,23 +1,33 @@
 import type { MetadataRoute } from "next";
-import { siteUrl } from "@/lib/siteUrl";
+import { requestOrigin } from "@/lib/siteUrl";
 
 /**
- * Only the pages a stranger can actually open.
+ * The pages a stranger can open, on the host that served this file.
  *
- * Most of the app needs a team id and redirects to the landing page without
- * one, so listing /field or /planner here would hand a crawler a set of URLs
- * that all answer with a redirect to the same place — which is worse than
- * listing nothing, because it teaches the crawler the sitemap is unreliable.
- * These five render for anybody.
+ * `requestOrigin()` rather than the stated canonical, and that is the fix for
+ * four errors on four URLs. Google validates a sitemap's entries against the
+ * host it fetched the sitemap from, and the previous version listed whatever
+ * `VERCEL_PROJECT_PRODUCTION_URL` reported — the apex, because that variable
+ * returns the shortest domain — while being served at the www address. Every
+ * entry was rejected as belonging to another site.
  *
- * Player pages are public and there are six hundred of them, which would be a
- * real addition — but generating them means an FPL call inside the sitemap,
- * and FPL answered 403 for a spell this week. A sitemap that intermittently
- * 500s is a worse signal than a small one that always works; the explorer
- * links to every player, so they are reachable by crawl either way.
+ * Describing the host that answered cannot go wrong that way, whatever the
+ * environment says, and it means the file is correct at both addresses at
+ * once. The canonical tag on each page still nominates one preferred host, so
+ * a crawler arriving via the apex is told where the real copy lives; that is
+ * the canonical's job, not the sitemap's.
+ *
+ * Most of the app needs a team id and redirects without one, so listing
+ * /field or /planner would hand a crawler URLs that all answer with the same
+ * redirect — worse than listing nothing, because it teaches the crawler the
+ * sitemap is unreliable. Player pages are public and there are six hundred,
+ * which would be a real addition, but generating them means an FPL call
+ * inside the sitemap and FPL answered 403 for a spell this week; a sitemap
+ * that intermittently 500s is a worse signal than a small one that always
+ * works.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
-  const base = siteUrl();
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const base = await requestOrigin();
   const now = new Date();
   return [
     { url: base, lastModified: now, changeFrequency: "daily", priority: 1 },
