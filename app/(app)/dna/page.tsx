@@ -8,6 +8,8 @@ import { SeasonFingerprint } from "@/components/generative/SeasonFingerprint";
 import { KitWeave } from "@/components/generative/KitWeave";
 import { ShareCard } from "@/components/generative/ShareCard";
 import { PageHeader } from "@/components/gaffer/PageHeader";
+import { CareerRecord } from "@/components/gaffer/dna/CareerRecord";
+import { buildCareer, careerPace } from "@/lib/engines/career";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Manager DNA",
@@ -59,6 +61,20 @@ export default async function DnaPage() {
   };
 
   const dna = computeDna(input);
+
+  /*
+   * The seasons before this one. `history.past` has been fetched on every load
+   * of this page since it existed and used for a single note reading "N
+   * previous seasons"; this is the same data, read.
+   *
+   * Pace compares this season per gameweek rather than on the total, because
+   * a total eight weeks in says only that the season is young.
+   */
+  const career = buildCareer(history.past);
+  const pace = careerPace(career, {
+    points: history.current.at(-1)?.total_points ?? 0,
+    gwsPlayed: history.current.length,
+  });
   const bestRank = Math.min(...history.current.map((c) => c.overall_rank ?? Infinity));
   const fingerprintRecords = history.current.map((c) => ({
     event: c.event,
@@ -98,10 +114,12 @@ export default async function DnaPage() {
         </div>
       </div>
 
+      <CareerRecord report={career} pace={pace} />
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card label="Bench cost" value={`${dna.benchCost.points}`} note="points left on your bench this season" />
         <Card label="Consistency" value={`±${dna.consistency.sd}`} note={`floor ${dna.consistency.floor} · ceiling ${dna.consistency.ceiling}`} />
-        <Card label="GWs played" value={String(history.current.length)} note={`${history.past.length} previous seasons`} />
+        <Card label="GWs played" value={String(history.current.length)} note="this season" />
         <Card label="Chips used" value={String(history.chips.length)} note="across both sets" />
       </div>
 
